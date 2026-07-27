@@ -1,18 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/api_error_utils.dart';
 
-String authErrorMessage(AsyncValue<void> authState, {bool google = false}) {
+/// [provider]: null for email/password, or 'google' / 'apple' for social sign-in.
+String authErrorMessage(AsyncValue<void> authState, {String? provider, bool google = false}) {
+  final resolvedProvider = provider ?? (google ? 'google' : null);
+
   if (!authState.hasError) {
-    if (google) {
+    if (resolvedProvider == 'google') {
       return 'Google sign-in was cancelled. If you saw "Access blocked", add your Gmail as a test user in Google Cloud Console → OAuth consent screen.';
+    }
+    if (resolvedProvider == 'apple') {
+      return 'Apple sign-in was cancelled.';
     }
     return 'Invalid email or password';
   }
   return friendlyErrorMessage(
     authState.error,
-    fallback: google
-        ? 'Google sign-in failed. Please try again.'
-        : 'Sign in failed. Please try again.',
+    fallback: switch (resolvedProvider) {
+      'google' => 'Google sign-in failed. Please try again.',
+      'apple'  => 'Apple sign-in failed. Please try again.',
+      _        => 'Sign in failed. Please try again.',
+    },
   );
 }
 

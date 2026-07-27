@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../staff/controllers/staff_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../utils/auth_helpers.dart';
+import '../widgets/apple_sign_in_button.dart';
 import '../widgets/auth_shell.dart';
 import '../widgets/google_sign_in_button.dart';
 
@@ -23,6 +25,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _passCtrl  = TextEditingController();
   bool _loading = false;
   bool _googleLoading = false;
+  bool _appleLoading = false;
   bool _obscure = true;
   String? _error;
 
@@ -56,6 +59,18 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     setState(() => _googleLoading = false);
     if (result == null) {
       setState(() => _error = authErrorMessage(ref.read(authControllerProvider), google: true));
+      return;
+    }
+    _handleAuthResult(result);
+  }
+
+  Future<void> _signInWithApple() async {
+    setState(() { _appleLoading = true; _error = null; });
+    final result = await ref.read(authControllerProvider.notifier).signInWithApple();
+    if (!mounted) return;
+    setState(() => _appleLoading = false);
+    if (result == null) {
+      setState(() => _error = authErrorMessage(ref.read(authControllerProvider), provider: 'apple'));
       return;
     }
     _handleAuthResult(result);
@@ -198,13 +213,20 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         AppButton(
           label: 'Sign in',
           isLoading: _loading,
-          onPressed: (_loading || _googleLoading) ? null : _signInWithPassword,
+          onPressed: (_loading || _googleLoading || _appleLoading) ? null : _signInWithPassword,
         ),
         const AuthDivider(),
         GoogleSignInButton(
           isLoading: _googleLoading,
-          onPressed: (_loading || _googleLoading) ? null : _signInWithGoogle,
+          onPressed: (_loading || _googleLoading || _appleLoading) ? null : _signInWithGoogle,
         ),
+        if (Platform.isIOS) ...[
+          const SizedBox(height: 12),
+          AppleSignInButton(
+            isLoading: _appleLoading,
+            onPressed: (_loading || _googleLoading || _appleLoading) ? null : _signInWithApple,
+          ),
+        ],
       ]),
     );
   }

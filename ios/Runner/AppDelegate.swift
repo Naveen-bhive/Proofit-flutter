@@ -26,6 +26,28 @@ import flutter_local_notifications
       UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
     }
 
+    // Native app-icon badge control (flutter_local_notifications has no standalone
+    // "clear badge without showing a notification" API — Dart side calls this via
+    // NotificationService.clearBadge()).
+    if let controller = window?.rootViewController as? FlutterViewController {
+      let badgeChannel = FlutterMethodChannel(
+        name: "com.bhive.proofit/badge",
+        binaryMessenger: controller.binaryMessenger
+      )
+      badgeChannel.setMethodCallHandler { (call, result) in
+        guard call.method == "clearBadge" else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+        if #available(iOS 16.0, *) {
+          UNUserNotificationCenter.current().setBadgeCount(0, withCompletionHandler: nil)
+        } else {
+          UIApplication.shared.applicationIconBadgeNumber = 0
+        }
+        result(nil)
+      }
+    }
+
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }

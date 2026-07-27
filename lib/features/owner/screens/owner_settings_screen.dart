@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -39,6 +40,16 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
     if (confirm != true || !mounted) return;
     await ref.read(authControllerProvider.notifier).logout();
     if (mounted) context.go('/signin');
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open link.')),
+      );
+    }
   }
 
   @override
@@ -103,7 +114,8 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
 
         _sectionTitle('SUPPORT'),
         _settingRow(Icons.help_outline, 'Help & FAQ', '', onTap: () {}),
-        _settingRow(Icons.privacy_tip_outlined, 'Privacy Policy', '', onTap: () {}),
+        _settingRow(Icons.privacy_tip_outlined, 'Privacy Policy', '', onTap: () => _openUrl('https://proofitapp.in/ProofIt_PrivacyPolicy.html')),
+        _settingRow(Icons.article_outlined, 'Terms & Conditions', '', onTap: () => _openUrl('https://proofitapp.in/ProofIt_TermsConditions.html')),
         _settingRow(Icons.info_outline, 'App Version', '1.0.0', onTap: null),
         const SizedBox(height: 32),
 

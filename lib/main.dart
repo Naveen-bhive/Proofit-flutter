@@ -56,7 +56,9 @@ class _ProofItAppState extends ConsumerState<ProofItApp> with WidgetsBindingObse
     WidgetsBinding.instance.addObserver(this);
     _initNotifications();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      DeepLinkService.listen(ref.read(appRouterProvider));
+      final router = ref.read(appRouterProvider);
+      DeepLinkService.listen(router);
+      NotificationService.attachRouter(router);
     });
   }
 
@@ -64,9 +66,13 @@ class _ProofItAppState extends ConsumerState<ProofItApp> with WidgetsBindingObse
     await NotificationService.init(onTokenRefresh: (token) async {
       try {
         if (!await AuthStorage.isLoggedIn()) return;
-        await ref.read(apiServiceProvider).post('/notifications/fcm-token', data: {'token': token});
+        await ref.read(apiServiceProvider).post('/notifications/fcm-token', data: {
+          'token': token,
+          'platform': Platform.isIOS ? 'ios' : 'android',
+        });
       } catch (_) {}
     });
+    await NotificationService.clearBadge();
     ref.read(authControllerProvider.notifier).syncFcmToken();
   }
 
@@ -84,6 +90,7 @@ class _ProofItAppState extends ConsumerState<ProofItApp> with WidgetsBindingObse
       try {
         final isLoggedIn = await AuthStorage.isLoggedIn();
         if (!isLoggedIn) return;
+        await NotificationService.clearBadge();
         await ref.read(authControllerProvider.notifier).syncFcmToken();
         final org = await ref.read(authControllerProvider.notifier).syncOrgFromServer();
         final user = await AuthStorage.getUser();

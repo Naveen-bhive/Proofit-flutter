@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/api_error_utils.dart';
@@ -5,6 +6,7 @@ import '../../../core/network/api_service.dart';
 import '../../../shared/models/user_model.dart';
 import '../../../shared/models/org_model.dart';
 import '../../../shared/services/auth_storage.dart';
+import '../../../shared/services/apple_auth_service.dart';
 import '../../../shared/services/drive_service.dart';
 import '../../../shared/services/google_auth_service.dart';
 import '../../../shared/services/notification_service.dart';
@@ -20,6 +22,42 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     try {
       return await NotificationService.getToken()
           .timeout(const Duration(seconds: 5));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> sendOtp(String phone) async {
+    try {
+      final res = await _api.post('/auth/send-otp', data: {'phone': phone});
+      return res.data['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> resendOtp(String phone) async {
+    try {
+      final res = await _api.post('/auth/resend-otp', data: {'phone': phone});
+      return res.data['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<String?> verifyOtp(String phone, String otp) async {
+    try {
+      final fcmToken = await _fcmToken();
+      final res = await _api.post('/auth/verify-otp', data: {
+        'phone': phone,
+        'otp': otp,
+        if (fcmToken != null) 'fcmToken': fcmToken,
+      });
+      if (res.data['success'] != true) return null;
+      final data = res.data['data'] as Map<String, dynamic>?;
+      if (data == null) return null;
+      await _saveSession(data);
+      return data['user']['role'] ?? 'owner';
     } catch (_) {
       return null;
     }
@@ -113,6 +151,50 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  // Sign in with Apple — new users register as owners (then company setup),
+  // mirrors _googleAuth. Existing Google/email login are untouched by this.
+  Future<String?> signInWithApple({String? inviteToken}) async {
+    try {
+      state = const AsyncLoading();
+
+      final appleResult = await AppleAuthService.signIn();
+      if (appleResult.cancelled) {
+        state = const AsyncData(null);
+        return null;
+      }
+      if (appleResult.error != null) {
+        state = AsyncError(appleResult.error!, StackTrace.current);
+        return null;
+      }
+      final appleData = appleResult.data;
+      if (appleData == null) {
+        state = const AsyncData(null);
+        return null;
+      }
+
+      final fcmToken = await _fcmToken();
+      final res = await _api.post('/auth/apple', data: {
+        'identityToken': appleData['identityToken'],
+        if (appleData['name'] != null) 'name': appleData['name'],
+        if (fcmToken != null) 'fcmToken': fcmToken,
+        if (inviteToken != null) 'inviteToken': inviteToken,
+      });
+
+      if (res.data['success'] != true) {
+        state = AsyncError(res.data['message'] ?? 'Apple sign-in failed', StackTrace.current);
+        return null;
+      }
+
+      final data = res.data['data'];
+      final route = await _completeAuth(data);
+      state = const AsyncData(null);
+      return route;
+    } catch (e, st) {
+      state = AsyncError(friendlyErrorMessage(e, fallback: 'Apple sign-in failed. Please try again.'), st);
+      return null;
+    }
+  }
+
   Future<String?> _completeAuth(Map<String, dynamic> data) async {
     if (data['isNewOwner'] == true) {
       await _saveSession(data);
@@ -157,7 +239,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       if (!await AuthStorage.isLoggedIn()) return;
       final token = await _fcmToken();
       if (token != null) {
-        await _api.post('/notifications/fcm-token', data: {'token': token});
+        await _api.post('/notifications/fcm-token', data: {
+          'token': token,
+          'platform': Platform.isIOS ? 'ios' : 'android',
+        });
       }
     } catch (_) {}
   }
