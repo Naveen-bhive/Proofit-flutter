@@ -10,6 +10,7 @@ import '../../../shared/services/apple_auth_service.dart';
 import '../../../shared/services/drive_service.dart';
 import '../../../shared/services/google_auth_service.dart';
 import '../../../shared/services/notification_service.dart';
+import '../../../shared/services/revenue_cat_service.dart';
 
 final authControllerProvider = StateNotifierProvider<AuthController, AsyncValue<void>>(
   (ref) => AuthController(ref.read(apiServiceProvider)));
@@ -384,6 +385,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     DriveService.clearCache();
     await AuthStorage.clear();
     await _api.clearToken();
+    await RevenueCatService.logOut();
   }
 
   Future<void> _saveSession(Map<String, dynamic> data) async {
@@ -392,5 +394,11 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     final org  = OrgModel.fromJson(data['org'] ?? {});
     await AuthStorage.saveSession(token: data['token'], user: user, org: org);
     await syncFcmToken();
+    // Ties this device's RevenueCat identity to the org so IAP webhooks/sync
+    // can attribute a purchase correctly. Covers login, owner-setup, and
+    // session restore on app relaunch (all funnel through here).
+    if (user.isOwner && org.id.isNotEmpty) {
+      await RevenueCatService.logIn(org.id);
+    }
   }
 }

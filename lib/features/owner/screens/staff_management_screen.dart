@@ -336,7 +336,7 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand),
           ),
           SizedBox(width: 10),
-          Text('Sending invitationâ€¦', style: TextStyle(color: AppColors.silver, fontSize: 14)),
+          Text('Sending invitation...', style: TextStyle(color: AppColors.silver, fontSize: 14)),
         ]),
       ],
       const SizedBox(height: 20),

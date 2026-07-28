@@ -33,7 +33,7 @@ class LocationService {
   /// True when GPS / location services are enabled on the device.
   static Future<bool> isLocationServiceOn() => Geolocator.isLocationServiceEnabled();
 
-  /// Precise (fine) location â€” required for usable live map pins.
+  /// Precise (fine) location - required for usable live map pins.
   /// On unsupported platforms, falls back to having foreground permission.
   static Future<bool> hasPreciseLocation() async {
     try {
@@ -41,7 +41,7 @@ class LocationService {
       if (status == LocationAccuracyStatus.precise) return true;
       if (status == LocationAccuracyStatus.reduced) return false;
     } catch (_) {}
-    // Older OS / unknown â€” if we have permission, treat as OK.
+    // Older OS / unknown - if we have permission, treat as OK.
     return hasForegroundPermission();
   }
 
@@ -115,7 +115,7 @@ class LocationService {
       return false;
     }
 
-    // Step 1 â€” foreground ("While using the app")
+    // Step 1 - foreground ("While using the app")
     var whenInUse = await Permission.locationWhenInUse.status;
     if (!whenInUse.isGranted && !await Permission.locationAlways.isGranted) {
       if (context.mounted) {
@@ -124,7 +124,7 @@ class LocationService {
           title: 'Location access needed',
           message:
               'ProofIt needs your location while you are checked in so your manager can see you on the live map.\n\n'
-              'On the next screen, choose â€œWhile using the appâ€ (or â€œAllowâ€).',
+              'On the next screen, choose "While using the app" (or "Allow").',
           primaryLabel: 'Continue',
           secondaryLabel: 'Not now',
         );
@@ -142,7 +142,7 @@ class LocationService {
           title: 'Location permission required',
           message:
               'Without location permission you cannot check in.\n\n'
-              'Open Settings â†’ Permissions â†’ Location, then allow location for ProofIt.',
+              'Open Settings -> Permissions -> Location, then allow location for ProofIt.',
           primaryLabel: 'Open Settings',
           onPrimary: openAppSettings,
           secondaryLabel: 'Cancel',
@@ -151,12 +151,12 @@ class LocationService {
       return false;
     }
 
-    // Step 2 â€” guide for "Allow all the time"
+    // Step 2 - guide for "Allow all the time"
     if (!context.mounted) return false;
     final continueAlways = await _showAlwaysGuideDialog(context);
     if (continueAlways != true || !context.mounted) return false;
 
-    // Step 3 â€” background request (this is when "Allow all the time" appears)
+    // Step 3 - background request (this is when "Allow all the time" appears)
     var always = await Permission.locationAlways.request();
     if (always.isGranted) return true;
 
@@ -168,14 +168,14 @@ class LocationService {
     if (!context.mounted) return false;
     final openSettings = await _showDialog(
       context,
-      title: 'Select â€œAllow all the timeâ€',
+      title: 'Select "Allow all the time"',
       message:
           'Background tracking is required while you are checked in.\n\n'
           'Please do this now:\n'
           '1. Tap Open Settings\n'
           '2. Tap Permissions (or Location)\n'
           '3. Tap Location\n'
-          '4. Choose â€œAllow all the timeâ€\n\n'
+          '4. Choose "Allow all the time"\n\n'
           'Then return to ProofIt and try again.',
       primaryLabel: 'Open Settings',
       secondaryLabel: 'Cancel',
@@ -185,14 +185,14 @@ class LocationService {
       // Give the user time; re-check when they come back.
       always = await Permission.locationAlways.status;
       if (always.isGranted) return true;
-      // Status may still be stale until app resumes â€” caller can re-check.
+      // Status may still be stale until app resumes - caller can re-check.
       await Future.delayed(const Duration(milliseconds: 400));
       always = await Permission.locationAlways.status;
     }
     return always.isGranted;
   }
 
-  /// Kept for call sites that donâ€™t have a [BuildContext].
+  /// Kept for call sites that don't have a [BuildContext].
   /// Prefer [ensureAlwaysLocationPermission] from UI screens.
   static Future<bool> requestBackgroundPermission() async {
     final whenInUse = await Permission.locationWhenInUse.status;
@@ -302,12 +302,12 @@ class LocationService {
                     ),
                     SizedBox(height: 10),
                     Text(
-                      'âœ“  Allow all the time',
+                      'Allow all the time',
                       style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w800, fontSize: 16),
                     ),
                     SizedBox(height: 10),
                     Text(
-                      'Do not choose â€œOnly this timeâ€ or â€œWhile using the appâ€ for this step â€” live tracking will not work in the background.',
+                      'Do not choose "Only this time" or "While using the app" for this step - live tracking will not work in the background.',
                       style: TextStyle(color: AppColors.silver, height: 1.4, fontSize: 13),
                     ),
                   ],
@@ -324,7 +324,7 @@ class LocationService {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
-              'I understand â€” Continue',
+              'I understand - Continue',
               style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700),
             ),
           ),

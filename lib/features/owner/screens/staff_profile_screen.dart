@@ -17,7 +17,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // loadStaffProfile â€” fetches profile + reports
+    // loadStaffProfile - fetches profile + reports
     Future.microtask(() => ref.read(ownerControllerProvider.notifier).loadStaffProfile(widget.staffId));
   }
 
@@ -34,7 +34,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
         TextButton(onPressed: () {
           final val = int.tryParse(ctrl.text.trim());
           if (val != null) {
-            // setStaffTarget â€” updates target and notifies staff
+            // setStaffTarget - updates target and notifies staff
             ref.read(ownerControllerProvider.notifier).setStaffTarget(widget.staffId, val);
           }
           Navigator.pop(context);
@@ -47,7 +47,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
   Widget build(BuildContext context) {
     final state   = ref.watch(ownerControllerProvider);
     final profile = state.selectedStaffProfile;
-    // staffReports â€” reports for this staff member
+    // staffReports - reports for this staff member
     final staffReports = state.staffReports;
 
     return Scaffold(
@@ -76,7 +76,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
               if ((profile['streak'] ?? 0) > 0)
                 Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(100)),
-                  child: Text('ðŸ”¥ ${profile['streak']}-day streak', style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700))),
+                  child: Text('Streak: ${profile['streak']}-day streak', style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700))),
               const SizedBox(height: 28),
 
               Row(children: [

@@ -61,7 +61,7 @@ class _StaffReportDetailScreenState extends ConsumerState<StaffReportDetailScree
                       color: report.isSubmitted ? AppColors.green : AppColors.yellow, size: 20),
                   const SizedBox(width: 10),
                   Text(
-                    report.isSubmitted ? 'Submitted Successfully' : 'Draft â€” Not Submitted',
+                    report.isSubmitted ? 'Submitted Successfully' : 'Draft - Not Submitted',
                     style: TextStyle(
                       color: report.isSubmitted ? AppColors.green : AppColors.yellow,
                       fontWeight: FontWeight.w600,

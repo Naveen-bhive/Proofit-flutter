@@ -21,6 +21,14 @@ class AppConstants {
     defaultValue: 'AIzaSyCMWX4y7t-DGwyH6R3hDMDNNh4Ed0ZVmeI',
   );
 
+  // RevenueCat public SDK key (iOS/App Store only for now — Android still uses
+  // Razorpay). This is a public, client-embeddable key, not a secret.
+  static const String revenueCatApiKeyIos = String.fromEnvironment(
+    'REVENUECAT_API_KEY_IOS',
+    defaultValue: 'appl_kttNpIghFrqfWyhQlpQLCxgTpJs',
+  );
+  static const String revenueCatEntitlementId = 'Proofit_plans';
+
   // Google Drive folder name — created in staff's Drive
   static const String driveFolderName = 'ProofIt';
 

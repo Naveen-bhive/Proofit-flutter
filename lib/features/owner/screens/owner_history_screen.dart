@@ -159,7 +159,7 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
       Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16), decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
       const Text('Export Reports', style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
       if (_fromDate != null) Padding(padding: const EdgeInsets.only(top: 6),
-        child: Text('${DateFormat("d MMM").format(_fromDate!)} â€“ ${DateFormat("d MMM").format(_toDate ?? DateTime.now())}',
+        child: Text('${DateFormat("d MMM").format(_fromDate!)} - ${DateFormat("d MMM").format(_toDate ?? DateTime.now())}',
           style: const TextStyle(color: AppColors.silver, fontSize: 13))),
       const SizedBox(height: 20),
       _optRow(Icons.picture_as_pdf_outlined, AppColors.red, 'Export as PDF',   () { Navigator.pop(context); _export('pdf'); }),
@@ -203,7 +203,7 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
                   Icon(Icons.date_range_outlined, color: _fromDate != null ? AppColors.brand : AppColors.silver, size: 14),
                   const SizedBox(width: 6),
                   Text(
-                    _fromDate != null ? '${DateFormat("d MMM").format(_fromDate!)}â€“${DateFormat("d MMM").format(_toDate ?? DateTime.now())}' : 'Date Range',
+                    _fromDate != null ? '${DateFormat("d MMM").format(_fromDate!)}-${DateFormat("d MMM").format(_toDate ?? DateTime.now())}' : 'Date Range',
                     style: TextStyle(color: _fromDate != null ? AppColors.brand : AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600)),
                   if (_fromDate != null) ...[
                     const SizedBox(width: 6),
@@ -288,7 +288,7 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
             child: Row(children: [
               Text('${state.reportPagination!['total'] ?? 0} reports', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
               if (_staffName != null) ...[
-                const Text(' â€¢ ', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                const Text(' • ', style: TextStyle(color: AppColors.muted, fontSize: 12)),
                 Text(_staffName!, style: const TextStyle(color: AppColors.brand, fontSize: 12)),
               ],
             ])),

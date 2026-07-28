@@ -92,7 +92,7 @@ class CameraCaptureWidget extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             const Text(
-              'ðŸ“ Date Â· Time Â· GPS auto-stamped on photo',
+              'Location: Date · Time · GPS auto-stamped on photo',
               style: TextStyle(color: AppColors.silver, fontSize: 12),
             ),
             const SizedBox(height: 20),
@@ -206,7 +206,7 @@ class CameraCaptureWidget extends StatelessWidget {
               uploadFailed
                   ? 'Failed'
                   : _showSaved
-                      ? 'Saved âœ“'
+                      ? 'Saved'
                       : 'Pending',
               style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
             ),
@@ -300,7 +300,7 @@ class CameraCaptureWidget extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text('Tap to capture $label photo', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 14)),
                   const SizedBox(height: 4),
-                  const Text('ðŸ“ Timestamp + GPS Â· saved to Drive', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                  const Text('Location: Timestamp + GPS · saved to Drive', style: TextStyle(color: AppColors.muted, fontSize: 12)),
                 ]),
         ),
       ),

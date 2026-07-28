@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 // import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import '../../../core/constants/app_colors.dart';
@@ -167,21 +168,46 @@ class OwnerController extends StateNotifier<OwnerState> {
 
   Future<bool> verifyPayment({
     required String orderId, required String paymentId,
-    required String signature, required String plan,
+    required String signature,
   }) async {
     try {
       final res = await _api.post('/subscription/verify-payment', data: {
         'razorpay_order_id':   orderId,
         'razorpay_payment_id': paymentId,
         'razorpay_signature':  signature,
-        'plan':                plan,
       });
       if (res.data['success'] == true) {
-        state = state.copyWith(plan: plan);
+        // Server derives the plan from the Razorpay order's own notes, so
+        // trust its response rather than any locally-selected plan slug.
+        final planSlug = res.data['data']?['plan']?['slug'] as String?;
+        if (planSlug != null) state = state.copyWith(plan: planSlug);
         return true;
       }
+      debugPrint('verify-payment failed: ${res.data['message']}');
       return false;
-    } catch (_) { return false; }
+    } catch (e) {
+      debugPrint('verify-payment error: $e');
+      return false;
+    }
+  }
+
+  /// iOS in-app purchase equivalent of [verifyPayment] — called right after
+  /// Purchases.purchase() resolves. The backend re-checks entitlement against
+  /// RevenueCat's own servers (not just trusting this call) before activating.
+  Future<bool> syncIapPurchase() async {
+    try {
+      final res = await _api.post('/subscription/sync-iap');
+      if (res.data['success'] == true) {
+        final planSlug = res.data['data']?['plan']?['slug'] as String?;
+        if (planSlug != null) state = state.copyWith(plan: planSlug);
+        return true;
+      }
+      debugPrint('sync-iap failed: ${res.data['message']}');
+      return false;
+    } catch (e) {
+      debugPrint('sync-iap error: $e');
+      return false;
+    }
   }
 
   Future<void> loadSubscriptionStatus() async {

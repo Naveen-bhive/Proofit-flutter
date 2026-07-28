@@ -72,7 +72,7 @@ class _MultiPhotoReportScreenState extends ConsumerState<MultiPhotoReportScreen>
     if (!mounted) return;
     setState(() => _submitting = false);
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('âœ… Report submitted!'), backgroundColor: AppColors.green));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report submitted!'), backgroundColor: AppColors.green));
       context.pop();
     } else { setState(() => _error = 'Failed to submit. Try again.'); }
   }

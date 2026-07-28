@@ -101,5 +101,11 @@ bool _looksTechnical(String text) {
       lower.contains('validatestatus') ||
       lower.contains('stacktrace') ||
       lower.contains('bad response') ||
-      lower.contains('httpexception');
+      lower.contains('httpexception') ||
+      lower.contains('invalid login') ||
+      lower.contains('username and password not accepted') ||
+      lower.contains('badcredentials') ||
+      lower.contains('gsmtp') ||
+      lower.contains('smtp') ||
+      lower.contains('nodemailer');
 }

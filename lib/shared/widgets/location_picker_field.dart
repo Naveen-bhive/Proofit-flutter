@@ -242,30 +242,33 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
           Container(
             margin: const EdgeInsets.only(top: 4),
             constraints: const BoxConstraints(maxHeight: 140),
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              color: AppColors.dark3,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.border),
             ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-              itemCount: _suggestions.length.clamp(0, 5),
-              separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.border),
-              itemBuilder: (_, i) {
-                final s = _suggestions[i];
-                return ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.place_outlined, color: AppColors.brand, size: 20),
-                  title: Text(
-                    s.description,
-                    style: const TextStyle(color: AppColors.white, fontSize: 13),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onTap: () => _pickSuggestion(s),
-                );
-              },
+            child: Material(
+              color: AppColors.dark3,
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                itemCount: _suggestions.length.clamp(0, 5),
+                separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.border),
+                itemBuilder: (_, i) {
+                  final s = _suggestions[i];
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.place_outlined, color: AppColors.brand, size: 20),
+                    title: Text(
+                      s.description,
+                      style: const TextStyle(color: AppColors.white, fontSize: 13),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () => _pickSuggestion(s),
+                  );
+                },
+              ),
             ),
           ),
         const SizedBox(height: 8),

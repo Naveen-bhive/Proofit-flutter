@@ -219,7 +219,7 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
               Text('${state.reportPagination!['total'] ?? 0} reports',
                 style: const TextStyle(color: AppColors.muted, fontSize: 12)),
               if (_staffName != null) ...[
-                const Text(' â€¢ ', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                const Text(' • ', style: TextStyle(color: AppColors.muted, fontSize: 12)),
                 Text(_staffName!, style: const TextStyle(color: AppColors.brand, fontSize: 12)),
               ],
             ])),
@@ -255,7 +255,7 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
         const SizedBox(width: 6),
         Text(
           _fromDate != null
-            ? '${DateFormat("d MMM").format(_fromDate!)}â€“${DateFormat("d MMM").format(_toDate ?? DateTime.now())}'
+            ? '${DateFormat("d MMM").format(_fromDate!)}-${DateFormat("d MMM").format(_toDate ?? DateTime.now())}'
             : 'Date Range',
           style: TextStyle(color: _fromDate != null ? AppColors.brand : AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600)),
         if (_fromDate != null) ...[

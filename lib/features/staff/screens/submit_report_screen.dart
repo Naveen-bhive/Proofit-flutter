@@ -55,7 +55,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
   @override
   void initState() {
     super.initState();
-    // Keep continuing an existing draft on the same report id â€” never create a second draft.
+    // Keep continuing an existing draft on the same report id - never create a second draft.
     _savedDraftId = widget.reportId;
     _loadJobs();
     _getLocation();
@@ -96,7 +96,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
       _afterServerUrl   = _normalizePhotoUrl(r.afterMedia?.url);
       _beforeOnServer   = r.beforeMedia?.hasStoredPhoto == true;
       _afterOnServer    = r.afterMedia?.hasStoredPhoto == true;
-      // Drop any stale local files â€” remote draft media is source of truth on reopen.
+      // Drop any stale local files - remote draft media is source of truth on reopen.
       if (_beforeOnServer) _beforeImage = null;
       if (_afterOnServer) _afterImage = null;
       if (r.location != null) {
@@ -344,7 +344,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     if (asDraft) {
       // Drafts may omit photos, but any captured photo must finish uploading first.
       if (_beforeUploading || _afterUploading) {
-        setState(() => _error = 'Photos are still uploading â€” please wait');
+        setState(() => _error = 'Photos are still uploading - please wait');
         return false;
       }
       if (hasLocalBefore && !_beforeReady) await _uploadBeforePhoto();
@@ -369,7 +369,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
       return false;
     }
     if (_beforeUploading || _afterUploading) {
-      setState(() => _error = 'Photos are still uploading â€” please wait');
+      setState(() => _error = 'Photos are still uploading - please wait');
       return false;
     }
 
@@ -377,11 +377,11 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     if (!_afterReady && hasLocalAfter) await _uploadAfterPhoto();
 
     if (_beforeUploading || _afterUploading) {
-      setState(() => _error = 'Photos are still uploading â€” please wait');
+      setState(() => _error = 'Photos are still uploading - please wait');
       return false;
     }
 
-    // Drive may fail â€” server backup is used automatically on submit if needed.
+    // Drive may fail - server backup is used automatically on submit if needed.
     return true;
   }
 
@@ -545,7 +545,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                       ],
                       const SizedBox(height: 4),
                       Text(
-                        '${job['status'] ?? 'pending'} Â· $priority priority',
+                        '${job['status'] ?? 'pending'} · $priority priority',
                         style: const TextStyle(color: AppColors.muted, fontSize: 11),
                       ),
                     ]),
@@ -603,7 +603,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         const Text('BEFORE & AFTER PHOTOS',
           style: TextStyle(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
         const SizedBox(height: 4),
-        const Text('Photos are stamped with date, time and GPS â€” saved to Google Drive, with server backup if Drive is unavailable',
+        const Text('Photos are stamped with date, time and GPS - saved to Google Drive, with server backup if Drive is unavailable',
           style: TextStyle(color: AppColors.muted, fontSize: 12)),
         const SizedBox(height: 14),
 

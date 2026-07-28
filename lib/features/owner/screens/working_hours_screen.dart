@@ -61,7 +61,7 @@ class _WorkingHoursScreenState extends ConsumerState<WorkingHoursScreen> {
             onPressed: _pickDateRange,
             icon: const Icon(Icons.date_range_outlined, color: AppColors.brand, size: 18),
             label: Text(
-              '${DateFormat('d MMM').format(_from)} â€“ ${DateFormat('d MMM').format(_to)}',
+              '${DateFormat('d MMM').format(_from)} - ${DateFormat('d MMM').format(_to)}',
               style: const TextStyle(color: AppColors.brand, fontSize: 13)),
           ),
         ],

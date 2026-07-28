@@ -154,12 +154,14 @@ class _SearchableSelectionFieldState extends State<SearchableSelectionField> {
           const SizedBox(height: 8),
           Container(
             constraints: const BoxConstraints(maxHeight: 180),
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              color: AppColors.dark3,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.border),
             ),
-            child: filtered.isEmpty
+            child: Material(
+              color: AppColors.dark3,
+              child: filtered.isEmpty
                 ? Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
@@ -222,6 +224,7 @@ class _SearchableSelectionFieldState extends State<SearchableSelectionField> {
                       );
                     },
                   ),
+            ),
           ),
         ] else if (selected == null) ...[
           const SizedBox(height: 6),

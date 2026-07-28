@@ -107,7 +107,7 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
                                 ),
                               ),
                               Text(
-                                'â‚¹$amount',
+                                '\u20B9$amount',
                                 style: const TextStyle(color: AppColors.brand, fontSize: 16, fontWeight: FontWeight.w800),
                               ),
                             ]),

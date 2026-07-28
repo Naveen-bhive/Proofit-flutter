@@ -57,10 +57,10 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
           ),
           const SizedBox(height: 40),
           // Offline capabilities
-          _offlineCapability('📷 Capture photos', true),
-          _offlineCapability('💾 Save as draft', true),
-          _offlineCapability('📤 Submit report', false),
-          _offlineCapability('🗺  Live map', false),
+          _offlineCapability('Capture photos', true),
+          _offlineCapability('Save as draft', true),
+          _offlineCapability('Submit report', false),
+          _offlineCapability('Live map', false),
           const SizedBox(height: 40),
           AppButton(
             label: 'Try Again',

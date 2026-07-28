@@ -45,7 +45,7 @@ class GoogleSignInButton extends StatelessWidget {
               ),
             const SizedBox(width: 12),
             Text(
-              isLoading ? 'Connecting…' : label,
+              isLoading ? 'Connecting...' : label,
               style: const TextStyle(
                 color: Color(0xFF1F1F1F),
                 fontSize: 16,

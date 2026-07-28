@@ -74,7 +74,7 @@ class ReportCard extends StatelessWidget {
 
   Widget _statusChip() {
     final (color, label) = report.isFlagged
-        ? (AppColors.red, 'âš  Flagged')
+        ? (AppColors.red, '! Flagged')
         : report.isSubmitted
             ? (AppColors.green, 'Sent')
             : (AppColors.yellow, 'Draft');

@@ -156,8 +156,8 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
                     const SizedBox(width: 10),
                     Expanded(child: Text(
                       state.draftCount > 1
-                          ? '${state.draftCount} draft reports â€” tap to view & complete'
-                          : 'You have an unsent draft â€” tap to view & complete',
+                          ? '${state.draftCount} draft reports - tap to view & complete'
+                          : 'You have an unsent draft - tap to view & complete',
                       style: const TextStyle(color: AppColors.yellow, fontSize: 13))),
                     const Icon(Icons.chevron_right, color: AppColors.yellow, size: 18),
                   ])),
@@ -270,7 +270,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
       case TrackingHealthStatus.gpsOff:
         icon = Icons.location_off_outlined;
         color = AppColors.red;
-        title = 'GPS off â€” turn on Location';
+        title = 'GPS off - turn on Location';
         actionLabel = 'Fix';
         onAction = () async {
           await Geolocator.openLocationSettings();
@@ -315,7 +315,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
       case TrackingHealthStatus.unknown:
         icon = Icons.hourglass_empty_rounded;
         color = AppColors.muted;
-        title = 'Checking live trackingâ€¦';
+        title = 'Checking live tracking...';
     }
 
     return GestureDetector(

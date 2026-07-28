@@ -106,7 +106,7 @@ class _JobsScreenState extends ConsumerState<JobsScreen> with SingleTickerProvid
                         const SizedBox(width: 4),
                         Text(customer['name'] ?? '', style: const TextStyle(color: AppColors.brand, fontSize: 13, fontWeight: FontWeight.w600)),
                         if (customer['phone'] != null) ...[
-                          const Text(' â€¢ ', style: TextStyle(color: AppColors.muted)),
+                          const Text(' • ', style: TextStyle(color: AppColors.muted)),
                           Text(customer['phone'], style: const TextStyle(color: AppColors.silver, fontSize: 12)),
                         ],
                       ]),
@@ -337,7 +337,7 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
             itemSubtitle: (c) {
               final phone = c['phone']?.toString() ?? '';
               final email = c['email']?.toString() ?? '';
-              if (phone.isNotEmpty && email.isNotEmpty) return '$phone â€¢ $email';
+              if (phone.isNotEmpty && email.isNotEmpty) return '$phone • $email';
               return phone.isNotEmpty ? phone : email;
             },
             onSelected: (id) => setState(() => _selectedCustomerId = id),
@@ -365,7 +365,7 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
             itemSubtitle: (s) {
               final phone = s['phone']?.toString() ?? '';
               final email = s['email']?.toString() ?? '';
-              if (phone.isNotEmpty && email.isNotEmpty) return '$phone â€¢ $email';
+              if (phone.isNotEmpty && email.isNotEmpty) return '$phone • $email';
               return phone.isNotEmpty ? phone : email;
             },
             itemEnabled: (s) =>

@@ -90,7 +90,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
             const SizedBox(height: 24),
             const CircularProgressIndicator(color: AppColors.brand),
             const SizedBox(height: 16),
-            const Text('Loading invitation…',
+            const Text('Loading invitation...',
               style: TextStyle(color: AppColors.silver, fontSize: 14)),
           ]))
         : _error != null && _invite == null

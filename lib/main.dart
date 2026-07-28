@@ -13,6 +13,7 @@ import 'core/theme/app_theme.dart';
 import 'shared/services/notification_service.dart';
 import 'shared/services/auth_storage.dart';
 import 'shared/services/deep_link_service.dart';
+import 'shared/services/revenue_cat_service.dart';
 import 'shared/services/socket_service.dart';
 import 'shared/widgets/error_boundary.dart';
 import 'features/auth/controllers/auth_controller.dart';
@@ -33,6 +34,7 @@ void main() async {
   } catch (e, st) {
     debugPrint('Firebase.initializeApp failed: $e\n$st');
   }
+  await RevenueCatService.configure();
   if (Platform.isAndroid) {
     final maps = GoogleMapsFlutterPlatform.instance;
     if (maps is GoogleMapsFlutterAndroid) {

@@ -67,7 +67,7 @@ class StaffJobsScreenState extends ConsumerState<StaffJobsScreen> {
       refresh();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(status == 'completed' ? 'âœ… Job marked complete' : 'Status updated'),
+        content: Text(status == 'completed' ? 'Job marked complete' : 'Status updated'),
         backgroundColor: status == 'completed' ? AppColors.green : AppColors.brand));
     } catch (e) {
       if (!mounted) return;

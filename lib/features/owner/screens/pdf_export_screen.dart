@@ -112,7 +112,7 @@ class _PdfExportScreenState extends ConsumerState<PdfExportScreen> {
                   color: report.isFlagged ? red.shade(0.15) : green.shade(0.15),
                   borderRadius: pw.BorderRadius.circular(100)),
                 child: pw.Text(
-                  report.isFlagged ? '⚠ Location Flagged' : '✓ Verified',
+                  report.isFlagged ? 'Location Flagged' : 'Verified',
                   style: pw.TextStyle(
                     color: report.isFlagged ? red : green,
                     fontSize: 10, fontWeight: pw.FontWeight.bold))),

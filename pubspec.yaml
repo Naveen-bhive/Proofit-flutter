@@ -84,6 +84,7 @@ dependencies:
   # App icon + splash
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.3.9
+  purchases_flutter: ^10.5.0
 
 flutter_launcher_icons:
   android: true

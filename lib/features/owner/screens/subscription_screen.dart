@@ -1,7 +1,10 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:io' show Platform;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../core/utils/api_error_utils.dart';
 import '../../../core/utils/ui_feedback.dart';
 import '../../../core/constants/app_colors.dart';
@@ -9,6 +12,7 @@ import '../controllers/owner_controller.dart';
 
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../shared/services/auth_storage.dart';
+import '../../../shared/services/revenue_cat_service.dart';
 
 class SubscriptionScreen extends ConsumerStatefulWidget {
   const SubscriptionScreen({super.key});
@@ -17,7 +21,7 @@ class SubscriptionScreen extends ConsumerStatefulWidget {
 
 class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Razorpay? _razorpay;
-  String?   _selectedPlanSlug;
+  String?   _pendingPlanSlug;
   bool      _loading = false;
   bool      _plansLoading = true;
 
@@ -57,8 +61,28 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       ..sort((a, b) => _planTier(a).compareTo(_planTier(b)));
   }
 
-  Future<void> _startPayment(String planSlug, String planName, int price) async {
-    setState(() { _selectedPlanSlug = planSlug; _loading = true; });
+  String _priceLabel(dynamic rawPrice, dynamic rawDurationDays) {
+    final price = rawPrice is num ? rawPrice.toInt() : int.tryParse('$rawPrice') ?? 0;
+    final durationDays = rawDurationDays is num
+        ? rawDurationDays.toInt()
+        : int.tryParse('$rawDurationDays') ?? 30;
+    if (price <= 0 || durationDays <= 0) return 'Custom';
+    return '\u20B9$price${durationDays == 30 ? '/mo' : '/${durationDays}d'}';
+  }
+
+  Future<void> _startPayment(Map<String, dynamic> plan) async {
+    final planSlug = plan['slug'] as String? ?? '';
+    final planName = plan['name'] as String? ?? 'Plan';
+    final revenueCatProductId = plan['revenueCatProductId'] as String?;
+
+    // iOS must go through RevenueCat/App Store — Apple requires IAP for
+    // digital subscriptions. Android keeps the existing Razorpay flow.
+    if (Platform.isIOS && revenueCatProductId != null && revenueCatProductId.isNotEmpty) {
+      await _startIosPurchase(planSlug, planName, revenueCatProductId);
+      return;
+    }
+
+    setState(() { _pendingPlanSlug = planSlug; _loading = true; });
     try {
       final result = await ref.read(ownerControllerProvider.notifier).createOrder(planSlug);
       final data = result.data;
@@ -81,16 +105,52 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     } finally { if (mounted) setState(() => _loading = false); }
   }
 
+  Future<void> _startIosPurchase(String planSlug, String planName, String revenueCatProductId) async {
+    setState(() { _pendingPlanSlug = planSlug; _loading = true; });
+    try {
+      final product = await RevenueCatService.getProduct(revenueCatProductId);
+      if (product == null) {
+        throw Exception('This plan is not available for purchase right now.');
+      }
+
+      await RevenueCatService.purchase(product);
+
+      // Backend re-verifies against RevenueCat's own servers before activating —
+      // this call is what actually flips the org's plan, not the purchase itself.
+      final ok = await ref.read(ownerControllerProvider.notifier).syncIapPurchase();
+      await ref.read(ownerControllerProvider.notifier).loadSubscriptionStatus();
+      final activatedPlan = ref.read(ownerControllerProvider).plan;
+      if (!ok && activatedPlan != planSlug) {
+        throw Exception('Verification failed');
+      }
+      await ref.read(ownerControllerProvider.notifier).loadAvailablePlans();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plan activated!'), backgroundColor: AppColors.green));
+        context.pop();
+      }
+    } on PlatformException catch (e) {
+      final cancelled = PurchasesErrorHelper.getErrorCode(e) == PurchasesErrorCode.purchaseCancelledError;
+      if (!cancelled && mounted) {
+        showErrorSnackBar(context, e, fallback: 'Could not complete purchase. Please try again.');
+      }
+    } catch (e) {
+      if (mounted) showErrorSnackBar(context, e, fallback: 'Payment verification failed. Please contact support.');
+    } finally { if (mounted) setState(() => _loading = false); }
+  }
+
   void _handleSuccess(PaymentSuccessResponse r) async {
     try {
       final ok = await ref.read(ownerControllerProvider.notifier).verifyPayment(
         orderId: r.orderId ?? '',
         paymentId: r.paymentId ?? '',
         signature: r.signature ?? '',
-        plan: _selectedPlanSlug ?? '',
       );
-      if (!ok) throw Exception('Verification failed');
       await ref.read(ownerControllerProvider.notifier).loadSubscriptionStatus();
+      final activatedPlan = ref.read(ownerControllerProvider).plan;
+      final expectedPlan = _pendingPlanSlug;
+      if (!ok && (expectedPlan == null || activatedPlan != expectedPlan)) {
+        throw Exception('Verification failed');
+      }
       await ref.read(ownerControllerProvider.notifier).loadAvailablePlans();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plan activated!'), backgroundColor: AppColors.green));
@@ -155,11 +215,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
               plan: p,
               color: _cardColors[i % _cardColors.length],
               isCurrent: false,
-              onUpgrade: _loading ? null : () => _startPayment(
-                p['slug'] as String? ?? '',
-                p['name'] as String? ?? 'Plan',
-                (p['price'] as num?)?.toInt() ?? 0,
-              ),
+              onUpgrade: _loading ? null : () => _startPayment(p),
             );
           }),
         ] else if (slug != 'free' && currentPlan != null) ...[
@@ -250,9 +306,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   }) {
     final features = List<String>.from(plan['features'] ?? const []);
     final maxStaff = plan['maxStaff']?.toString() ?? '-';
-    final price = plan['price'] ?? 0;
-    final durationDays = plan['durationDays'] ?? 30;
     final name = plan['name'] as String? ?? 'Plan';
+    final priceLabel = _priceLabel(plan['price'], plan['durationDays']);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -267,7 +322,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           Row(children: [
             Expanded(child: Text(name, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w800))),
             Text(
-              'â‚¹$price${durationDays == 30 ? '/mo' : '/${durationDays}d'}',
+              priceLabel,
               style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w800),
             ),
           ]),

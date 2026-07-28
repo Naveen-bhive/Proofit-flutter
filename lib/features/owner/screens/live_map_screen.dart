@@ -30,7 +30,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
     if (!Platform.isAndroid) return;
     final maps = GoogleMapsFlutterPlatform.instance;
     if (maps is GoogleMapsFlutterAndroid) {
-      // Must stay false in release â€” hybrid composition bleeds a grey native layer over other routes.
+      // Must stay false in release - hybrid composition bleeds a grey native layer over other routes.
       maps.useAndroidViewSurface = false;
     }
   }
@@ -41,7 +41,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
     _ensureTextureMapMode();
     _loadInitial();
     _setupSocket();
-    // REST fallback â€” merge by timestamp so socket updates aren't overwritten.
+    // REST fallback - merge by timestamp so socket updates aren't overwritten.
     _fallbackTimer = Timer.periodic(const Duration(seconds: 10), (_) => _loadInitial());
   }
 
@@ -277,12 +277,12 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
     if (status == 'impaired') {
       return age == null
           ? 'Live tracking interrupted'
-          : 'Live tracking interrupted Â· last ping $age';
+          : 'Live tracking interrupted · last ping $age';
     }
     if (status == 'stale') {
-      return age == null ? 'No location signal' : 'No location signal Â· last ping $age';
+      return age == null ? 'No location signal' : 'No location signal · last ping $age';
     }
-    return age == null ? 'Live' : 'Live Â· updated $age';
+    return age == null ? 'Live' : 'Live · updated $age';
   }
 
   String? _relativeAge(String? iso) {
@@ -314,7 +314,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
   Widget build(BuildContext context) {
     final hasAccess = ref.read(ownerControllerProvider.notifier).hasFeature('liveMap');
     final badgeLabel = _offlineCount > 0
-        ? '$_liveCount live Â· $_offlineCount no signal'
+        ? '$_liveCount live · $_offlineCount no signal'
         : '${_liveLocations.length} live';
     final badgeColor = _liveCount > 0
         ? AppColors.green

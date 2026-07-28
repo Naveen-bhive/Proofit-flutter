@@ -29,7 +29,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     Future.microtask(() => ref.read(ownerControllerProvider.notifier).loadReportDetail(widget.reportId));
   }
 
-  // â”€â”€ Generate single report PDF + share via WhatsApp â”€â”€â”€
+  // -- Generate single report PDF + share via WhatsApp ---
   Future<void> _shareToCustomer(Map<String, dynamic>? customer) async {
     setState(() => _sharing = true);
     try {
@@ -115,7 +115,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                   decoration: BoxDecoration(
                     color: (report.isFlagged ? AppColors.red : AppColors.green).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(100)),
-                  child: Text(report.isFlagged ? 'âš  Flagged' : 'âœ“ Verified',
+                  child: Text(report.isFlagged ? '! Flagged' : 'Verified',
                     style: TextStyle(color: report.isFlagged ? AppColors.red : AppColors.green, fontSize: 12, fontWeight: FontWeight.w600))),
               ]),
 

@@ -66,7 +66,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
         content: Row(children: [
           const Icon(Icons.assignment_outlined, color: Colors.white, size: 18),
           const SizedBox(width: 8),
-          Expanded(child: Text('New: ${data['staffName'] ?? ''} â€” ${data['jobTitle'] ?? ''}')),
+          Expanded(child: Text('New: ${data['staffName'] ?? ''} - ${data['jobTitle'] ?? ''}')),
         ]),
         backgroundColor: AppColors.brand, duration: const Duration(seconds: 3),
         action: SnackBarAction(label: 'View', textColor: Colors.white,
@@ -78,7 +78,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
       _loadDashboard();
       setState(() => _unreadCount++);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('âš  Flagged: ${data['staffName'] ?? ''}'),
+        content: Text('! Flagged: ${data['staffName'] ?? ''}'),
         backgroundColor: AppColors.red, duration: const Duration(seconds: 5)));
     }));
     _socketIds.add(SocketService.onStaffCheckIn((_) { if (mounted) _loadDashboard(); }));
@@ -184,7 +184,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
                       const CircularProgressIndicator(color: AppColors.brand, strokeWidth: 2.5),
                       const SizedBox(height: 14),
                       Text(
-                        _loadFailed ? 'Could not load dashboard' : 'Loading dashboardâ€¦',
+                        _loadFailed ? 'Could not load dashboard' : 'Loading dashboard...',
                         style: const TextStyle(color: AppColors.silver, fontSize: 14),
                       ),
                       if (_loadFailed) ...[

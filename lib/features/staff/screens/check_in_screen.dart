@@ -137,7 +137,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
     if (!alwaysOk) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Select â€œAllow all the timeâ€ to check in. Live tracking needs background location.'),
+        content: Text('Select "Allow all the time" to check in. Live tracking needs background location.'),
         backgroundColor: AppColors.brand,
         duration: Duration(seconds: 4),
       ));

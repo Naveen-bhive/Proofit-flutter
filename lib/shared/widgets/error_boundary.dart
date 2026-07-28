@@ -52,7 +52,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
   }
 }
 
-// Global error handler â€” catches unhandled Flutter errors
+// Global error handler - catches unhandled Flutter errors
 class AppErrorHandler {
   static void init() {
     FlutterError.onError = (FlutterErrorDetails details) {

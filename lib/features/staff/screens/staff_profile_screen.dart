@@ -43,7 +43,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
               const SizedBox(height: 10),
               Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(100)),
-                child: Text('ðŸ”¥ ${state.streak}-day streak', style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700))),
+                child: Text('Streak: ${state.streak}-day streak', style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700))),
             ],
           ])),
 
