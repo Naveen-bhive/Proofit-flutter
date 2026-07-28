@@ -12,7 +12,20 @@
           "package_name": "com.bhive.proofit"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "529731801742-1nutav7bditmskrb938d98imvl3sov46.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bhive.proofit",
+            "certificate_hash": "b901cb971ec23f4ba7e7d6a0c713a93dc107a052"
+          }
+        },
+        {
+          "client_id": "529731801742-nce1qeoi0rcqasjof6knels1s5c63ejq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC8T0vSY_YiPbN7M-Aq1KBl_YIgzmQnXbM"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "529731801742-nce1qeoi0rcqasjof6knels1s5c63ejq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "529731801742-2vq91iudhpasqslf61m2hsq15vruudgb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.bhive.proofit"
+              }
+            }
+          ]
         }
       }
     }

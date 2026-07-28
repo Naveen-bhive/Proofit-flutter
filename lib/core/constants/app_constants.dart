@@ -12,7 +12,7 @@ class AppConstants {
   // Web OAuth client ID — must match GOOGLE_CLIENT_ID on the backend
   static const String googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
-    defaultValue: '971087084860-25lvv16jrdgm8fqioeaaa05qehjki4su.apps.googleusercontent.com',
+    defaultValue: '529731801742-nce1qeoi0rcqasjof6knels1s5c63ejq.apps.googleusercontent.com',
   );
 
   // Google Maps + Places — override via --dart-define=GOOGLE_MAPS_API_KEY=...
