@@ -187,9 +187,11 @@ class _PdfExportScreenState extends ConsumerState<PdfExportScreen> {
     final dir  = await getTemporaryDirectory();
     final path = '${dir.path}/ProofIt_Report_${widget.reportId}.pdf';
     await File(path).writeAsBytes(_pdfBytes!);
-    await Share.shareXFiles([XFile(path)],
+    await SharePlus.instance.share(ShareParams(
+      files: [XFile(path)],
       subject: 'Work Completion Report — ProofIt',
-      text: 'Please find the work completion report attached.');
+      text: 'Please find the work completion report attached.',
+    ));
   }
 
   @override

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
@@ -20,7 +20,7 @@ class OwnerProfileScreen extends ConsumerWidget {
         Container(margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
           child: Row(children: [
-            CircleAvatar(radius: 30, backgroundColor: AppColors.brand.withOpacity(0.15),
+            CircleAvatar(radius: 30, backgroundColor: AppColors.brand.withValues(alpha: 0.15),
               backgroundImage: state.ownerPhotoUrl != null ? NetworkImage(state.ownerPhotoUrl!) : null,
               child: state.ownerPhotoUrl == null ? Text(state.orgName.isNotEmpty ? state.orgName[0] : '?',
                 style: const TextStyle(color: AppColors.brand, fontSize: 22, fontWeight: FontWeight.w800)) : null),
@@ -30,7 +30,7 @@ class OwnerProfileScreen extends ConsumerWidget {
               Text(state.ownerEmail ?? '', style: const TextStyle(color: AppColors.silver, fontSize: 13)),
               const SizedBox(height: 6),
               Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.brand.withOpacity(0.15), borderRadius: BorderRadius.circular(100)),
+                decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(100)),
                 child: Text(state.plan.toUpperCase(), style: const TextStyle(color: AppColors.brand, fontSize: 11, fontWeight: FontWeight.w700))),
             ])),
           ])),
@@ -76,10 +76,10 @@ class OwnerProfileScreen extends ConsumerWidget {
 
   Widget _tile(IconData icon, Color color, String label, VoidCallback onTap, {Color? color_}) =>
     ListTile(
-      leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+      leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
         child: Icon(icon, color: color, size: 20)),
       title: Text(label, style: TextStyle(color: color_ ?? AppColors.white, fontSize: 14)),
-      trailing: Icon(Icons.chevron_right_rounded, color: AppColors.muted.withOpacity(0.5), size: 20),
+      trailing: Icon(Icons.chevron_right_rounded, color: AppColors.muted.withValues(alpha: 0.5), size: 20),
       onTap: onTap,
       dense: true,
     );

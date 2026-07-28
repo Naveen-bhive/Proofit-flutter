@@ -133,7 +133,8 @@ class DriveService {
       } catch (e) {
         lastError = friendlyErrorMessage(e, fallback: 'Upload to Google Drive failed');
         debugPrint('Drive upload attempt $attempt error: $e');
-        if (lastError!.contains('not authorized') || lastError.contains('Drive not linked')) {
+        final message = lastError;
+        if (message.contains('not authorized') || message.contains('Drive not linked')) {
           break;
         }
       }

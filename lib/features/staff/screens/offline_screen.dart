@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -13,19 +14,27 @@ class OfflineScreen extends ConsumerStatefulWidget {
 
 class _OfflineScreenState extends ConsumerState<OfflineScreen> {
   bool _isOffline = false;
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
 
   @override
   void initState() {
     super.initState();
-    Connectivity().onConnectivityChanged.listen((result) {
-      setState(() => _isOffline = result == ConnectivityResult.none);
+    _subscription = Connectivity().onConnectivityChanged.listen((result) {
+      setState(() => _isOffline = result.contains(ConnectivityResult.none));
     });
     _checkConnectivity();
   }
 
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
   Future<void> _checkConnectivity() async {
     final result = await Connectivity().checkConnectivity();
-    setState(() => _isOffline = result == ConnectivityResult.none);
+    if (!mounted) return;
+    setState(() => _isOffline = result.contains(ConnectivityResult.none));
   }
 
   @override

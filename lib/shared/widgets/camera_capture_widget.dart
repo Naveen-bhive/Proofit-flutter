@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
@@ -90,7 +92,7 @@ class CameraCaptureWidget extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             const Text(
-              '📍 Date · Time · GPS auto-stamped on photo',
+              'ðŸ“ Date Â· Time Â· GPS auto-stamped on photo',
               style: TextStyle(color: AppColors.silver, fontSize: 12),
             ),
             const SizedBox(height: 20),
@@ -156,16 +158,16 @@ class CameraCaptureWidget extends StatelessWidget {
   Widget _opt(IconData icon, Color color, String title, String sub, VoidCallback onTap) =>
     GestureDetector(onTap: onTap, child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(color: color.withOpacity(0.07), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withOpacity(0.2))),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withValues(alpha: 0.2))),
       child: Row(children: [
-        Container(width: 44, height: 44, decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle),
+        Container(width: 44, height: 44, decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
           child: Icon(icon, color: color, size: 22)),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 15)),
           Text(sub,   style: const TextStyle(color: AppColors.silver, fontSize: 12)),
         ])),
-        Icon(Icons.chevron_right_rounded, color: color.withOpacity(0.5), size: 20),
+        Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: 0.5), size: 20),
       ])));
 
   Widget _previewStack({required Widget child}) {
@@ -173,7 +175,7 @@ class CameraCaptureWidget extends StatelessWidget {
       ClipRRect(borderRadius: BorderRadius.circular(13), child: child),
       Positioned(bottom: 0, left: 0, right: 0,
         child: Container(padding: const EdgeInsets.symmetric(vertical: 9),
-          decoration: BoxDecoration(color: Colors.black.withOpacity(0.6),
+          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12))),
           child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(Icons.camera_alt_outlined, color: Colors.white70, size: 14),
@@ -184,10 +186,10 @@ class CameraCaptureWidget extends StatelessWidget {
         child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
             color: uploadFailed
-                ? AppColors.red.withOpacity(0.9)
+                ? AppColors.red.withValues(alpha: 0.9)
                 : _showSaved
-                    ? AppColors.green.withOpacity(0.9)
-                    : AppColors.yellow.withOpacity(0.9),
+                    ? AppColors.green.withValues(alpha: 0.9)
+                    : AppColors.yellow.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(100)),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(
@@ -204,7 +206,7 @@ class CameraCaptureWidget extends StatelessWidget {
               uploadFailed
                   ? 'Failed'
                   : _showSaved
-                      ? 'Saved ✓'
+                      ? 'Saved âœ“'
                       : 'Pending',
               style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
             ),
@@ -220,7 +222,7 @@ class CameraCaptureWidget extends StatelessWidget {
         if (isRequired) const Text(' *', style: TextStyle(color: AppColors.red, fontSize: 13)),
         const SizedBox(width: 8),
         Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(color: AppColors.brand.withOpacity(0.1), borderRadius: BorderRadius.circular(100)),
+          decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(100)),
           child: const Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.access_time_rounded, color: AppColors.brand, size: 10),
             SizedBox(width: 3),
@@ -293,12 +295,12 @@ class CameraCaptureWidget extends StatelessWidget {
               : image != null
               ? _previewStack(child: Image.file(image!, fit: BoxFit.cover))
               : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(width: 60, height: 60, decoration: BoxDecoration(color: AppColors.brand.withOpacity(0.1), shape: BoxShape.circle),
+                  Container(width: 60, height: 60, decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.1), shape: BoxShape.circle),
                     child: Icon(label == 'Before' ? Icons.camera_alt_outlined : Icons.camera_enhance_outlined, color: AppColors.brand, size: 30)),
                   const SizedBox(height: 12),
                   Text('Tap to capture $label photo', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 14)),
                   const SizedBox(height: 4),
-                  const Text('📍 Timestamp + GPS · saved to Drive', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                  const Text('ðŸ“ Timestamp + GPS Â· saved to Drive', style: TextStyle(color: AppColors.muted, fontSize: 12)),
                 ]),
         ),
       ),

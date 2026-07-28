@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
@@ -107,7 +107,7 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
                                 ),
                               ),
                               Text(
-                                '₹$amount',
+                                'â‚¹$amount',
                                 style: const TextStyle(color: AppColors.brand, fontSize: 16, fontWeight: FontWeight.w800),
                               ),
                             ]),
@@ -116,7 +116,7 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: _statusColor(status).withOpacity(0.12),
+                                  color: _statusColor(status).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(100),
                                 ),
                                 child: Text(

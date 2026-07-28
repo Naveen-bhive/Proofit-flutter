@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/utils/ui_feedback.dart';
@@ -67,7 +67,7 @@ class StaffJobsScreenState extends ConsumerState<StaffJobsScreen> {
       refresh();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(status == 'completed' ? '✅ Job marked complete' : 'Status updated'),
+        content: Text(status == 'completed' ? 'âœ… Job marked complete' : 'Status updated'),
         backgroundColor: status == 'completed' ? AppColors.green : AppColors.brand));
     } catch (e) {
       if (!mounted) return;
@@ -158,16 +158,16 @@ class StaffJobsScreenState extends ConsumerState<StaffJobsScreen> {
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: priority == 'urgent' ? AppColors.red.withOpacity(0.5) : AppColors.border)),
+                              border: Border.all(color: priority == 'urgent' ? AppColors.red.withValues(alpha: 0.5) : AppColors.border)),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Row(children: [
                                 Expanded(child: Text(j['title'] ?? '', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 15))),
                                 Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(color: _statusColor(status).withOpacity(0.15), borderRadius: BorderRadius.circular(100)),
+                                  decoration: BoxDecoration(color: _statusColor(status).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(100)),
                                   child: Text(status.replaceAll('_', ' '), style: TextStyle(color: _statusColor(status), fontSize: 11, fontWeight: FontWeight.w700))),
                                 const SizedBox(width: 6),
                                 Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(color: _priorityColor(priority).withOpacity(0.15), borderRadius: BorderRadius.circular(100)),
+                                  decoration: BoxDecoration(color: _priorityColor(priority).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(100)),
                                   child: Text(priority[0].toUpperCase() + priority.substring(1), style: TextStyle(color: _priorityColor(priority), fontSize: 11, fontWeight: FontWeight.w700))),
                               ]),
                               if (j['description'] != null && (j['description'] as String).isNotEmpty) ...[
@@ -186,7 +186,7 @@ class StaffJobsScreenState extends ConsumerState<StaffJobsScreen> {
                                 const SizedBox(height: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(color: AppColors.yellow.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.yellow.withOpacity(0.3))),
+                                  decoration: BoxDecoration(color: AppColors.yellow.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.yellow.withValues(alpha: 0.3))),
                                   child: const Row(children: [
                                     Icon(Icons.drafts_outlined, color: AppColors.yellow, size: 14),
                                     SizedBox(width: 6),

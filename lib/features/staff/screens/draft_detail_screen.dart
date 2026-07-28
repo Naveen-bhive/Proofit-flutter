@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -126,9 +126,9 @@ class _DraftDetailScreenState extends ConsumerState<DraftDetailScreen> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppColors.yellow.withOpacity(0.08),
+                          color: AppColors.yellow.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.yellow.withOpacity(0.3)),
+                          border: Border.all(color: AppColors.yellow.withValues(alpha: 0.3)),
                         ),
                         child: Row(children: [
                           const Icon(Icons.warning_amber_rounded, color: AppColors.yellow, size: 20),

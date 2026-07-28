@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import 'app_button.dart';
 
@@ -38,11 +38,11 @@ class EmptyState extends StatelessWidget {
         Container(
           width: 100, height: 100,
           decoration: BoxDecoration(
-            color: AppColors.brand.withOpacity(0.08),
+            color: AppColors.brand.withValues(alpha: 0.08),
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.brand.withOpacity(0.15), width: 2),
+            border: Border.all(color: AppColors.brand.withValues(alpha: 0.15), width: 2),
           ),
-          child: Icon(config['icon'] as IconData, color: AppColors.brand.withOpacity(0.7), size: 44),
+          child: Icon(config['icon'] as IconData, color: AppColors.brand.withValues(alpha: 0.7), size: 44),
         ),
         const SizedBox(height: 20),
         Text(

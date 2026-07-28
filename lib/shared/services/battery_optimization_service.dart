@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -65,7 +65,7 @@ class BatteryOptimizationService {
       return const OemGuide(
         brandLabel: 'Huawei / Honor',
         steps: [
-          'Set App launch for ProofIt to Manage manually → enable Auto-launch, Secondary launch, and Run in background.',
+          'Set App launch for ProofIt to Manage manually â†’ enable Auto-launch, Secondary launch, and Run in background.',
           'Add ProofIt to Protected apps / Battery optimization whitelist.',
         ],
       );
@@ -75,7 +75,7 @@ class BatteryOptimizationService {
         brandLabel: 'Oppo / Realme',
         steps: [
           'Allow ProofIt to Autostart.',
-          'Set Battery → App power management → ProofIt → Allow background activity.',
+          'Set Battery â†’ App power management â†’ ProofIt â†’ Allow background activity.',
         ],
       );
     }
@@ -92,7 +92,7 @@ class BatteryOptimizationService {
       return const OemGuide(
         brandLabel: 'OnePlus',
         steps: [
-          'Set Battery optimization for ProofIt to Don’t optimize / Unrestricted.',
+          'Set Battery optimization for ProofIt to Donâ€™t optimize / Unrestricted.',
           'Turn off Advanced optimization / Sleep standby optimization if present.',
         ],
       );
@@ -101,7 +101,7 @@ class BatteryOptimizationService {
       brandLabel: 'this phone',
       steps: [
         'Set battery usage for ProofIt to Unrestricted.',
-        'Disable any “kill apps when screen off” / battery saver options for ProofIt.',
+        'Disable any â€œkill apps when screen offâ€ / battery saver options for ProofIt.',
       ],
     );
   }
@@ -167,7 +167,7 @@ class BatteryOptimizationService {
     final aggressive = await isAggressiveOem;
     final alreadyShown = await hasWarningBeenShown();
 
-    // Stock Android already unrestricted — no need to block.
+    // Stock Android already unrestricted â€” no need to block.
     if (unrestricted && !aggressive) {
       await _markWarningShown();
       return true;
@@ -229,9 +229,9 @@ class BatteryOptimizationService {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.brand.withOpacity(0.1),
+                  color: AppColors.brand.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.brand.withOpacity(0.35)),
+                  border: Border.all(color: AppColors.brand.withValues(alpha: 0.35)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,7 +290,7 @@ class BatteryOptimizationService {
               if (forceMarkShown) await _markWarningShown();
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text('I understand — Continue', style: TextStyle(color: AppColors.muted)),
+            child: const Text('I understand â€” Continue', style: TextStyle(color: AppColors.muted)),
           ),
           TextButton(
             onPressed: () async {

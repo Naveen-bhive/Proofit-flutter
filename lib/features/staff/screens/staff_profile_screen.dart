@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
@@ -33,7 +33,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
         Container(margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
           child: Column(children: [
-            CircleAvatar(radius: 36, backgroundColor: AppColors.brand.withOpacity(0.15),
+            CircleAvatar(radius: 36, backgroundColor: AppColors.brand.withValues(alpha: 0.15),
               child: Text(state.userName.isNotEmpty ? state.userName[0].toUpperCase() : '?',
                 style: const TextStyle(color: AppColors.brand, fontSize: 28, fontWeight: FontWeight.w800))),
             const SizedBox(height: 12),
@@ -42,8 +42,8 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
             if (state.streak > 0) ...[
               const SizedBox(height: 10),
               Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(color: AppColors.brand.withOpacity(0.12), borderRadius: BorderRadius.circular(100)),
-                child: Text('🔥 ${state.streak}-day streak', style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700))),
+                decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(100)),
+                child: Text('ðŸ”¥ ${state.streak}-day streak', style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700))),
             ],
           ])),
 
@@ -97,7 +97,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
 
   Widget _stat(String label, String value, Color color) => Expanded(child: Container(
     padding: const EdgeInsets.symmetric(vertical: 12),
-    decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+    decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
     child: Column(children: [
       Text(value, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w800)),
       Text(label,  style: const TextStyle(color: AppColors.silver, fontSize: 11)),
@@ -117,7 +117,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
 
   Widget _tile(IconData icon, Color color, String label, VoidCallback onTap, {Color? textColor, int? badge}) =>
     ListTile(
-      leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+      leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
         child: Stack(children: [
           Center(child: Icon(icon, color: color, size: 20)),
           if (badge != null) Positioned(top: 0, right: 0,
@@ -125,7 +125,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
               child: Center(child: Text('$badge', style: const TextStyle(color: Colors.white, fontSize: 8))))),
         ])),
       title: Text(label, style: TextStyle(color: textColor ?? AppColors.white, fontSize: 14)),
-      trailing: Icon(Icons.chevron_right_rounded, color: AppColors.muted.withOpacity(0.5), size: 20),
+      trailing: Icon(Icons.chevron_right_rounded, color: AppColors.muted.withValues(alpha: 0.5), size: 20),
       onTap: onTap, dense: true);
 
   Future<void> _onCheckInOutTap(BuildContext context, WidgetRef ref, bool isCheckedIn) async {

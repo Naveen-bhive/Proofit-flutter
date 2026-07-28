@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
@@ -17,7 +17,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // loadStaffProfile — fetches profile + reports
+    // loadStaffProfile â€” fetches profile + reports
     Future.microtask(() => ref.read(ownerControllerProvider.notifier).loadStaffProfile(widget.staffId));
   }
 
@@ -34,7 +34,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
         TextButton(onPressed: () {
           final val = int.tryParse(ctrl.text.trim());
           if (val != null) {
-            // setStaffTarget — updates target and notifies staff
+            // setStaffTarget â€” updates target and notifies staff
             ref.read(ownerControllerProvider.notifier).setStaffTarget(widget.staffId, val);
           }
           Navigator.pop(context);
@@ -47,7 +47,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
   Widget build(BuildContext context) {
     final state   = ref.watch(ownerControllerProvider);
     final profile = state.selectedStaffProfile;
-    // staffReports — reports for this staff member
+    // staffReports â€” reports for this staff member
     final staffReports = state.staffReports;
 
     return Scaffold(
@@ -66,7 +66,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
           ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
           : SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(children: [
               const SizedBox(height: 10),
-              CircleAvatar(radius: 40, backgroundColor: AppColors.brand.withOpacity(0.2),
+              CircleAvatar(radius: 40, backgroundColor: AppColors.brand.withValues(alpha: 0.2),
                 child: Text((profile['name'] as String? ?? '?')[0].toUpperCase(),
                   style: const TextStyle(color: AppColors.brand, fontSize: 30, fontWeight: FontWeight.w800))),
               const SizedBox(height: 14),
@@ -75,8 +75,8 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
               const SizedBox(height: 8),
               if ((profile['streak'] ?? 0) > 0)
                 Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(color: AppColors.brand.withOpacity(0.12), borderRadius: BorderRadius.circular(100)),
-                  child: Text('🔥 ${profile['streak']}-day streak', style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700))),
+                  decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(100)),
+                  child: Text('ðŸ”¥ ${profile['streak']}-day streak', style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700))),
               const SizedBox(height: 28),
 
               Row(children: [
@@ -120,7 +120,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
 
   Widget _stat(String label, String value, Color color) => Expanded(child: Container(
     padding: const EdgeInsets.symmetric(vertical: 14),
-    decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withOpacity(0.2))),
+    decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))),
     child: Column(children: [
       Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.w800)),
       Text(label, style: const TextStyle(color: AppColors.silver, fontSize: 11)),

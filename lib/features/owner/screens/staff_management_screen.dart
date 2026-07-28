@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -80,7 +80,7 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                       decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
                       child: Row(children: [
                         CircleAvatar(
-                          backgroundColor: (pending ? AppColors.yellow : AppColors.brand).withOpacity(0.2),
+                          backgroundColor: (pending ? AppColors.yellow : AppColors.brand).withValues(alpha: 0.2),
                           radius: 20,
                           child: Text(
                             name.isNotEmpty ? name[0].toUpperCase() : '?',
@@ -101,9 +101,9 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: AppColors.yellow.withOpacity(0.12),
+                                color: AppColors.yellow.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(100),
-                                border: Border.all(color: AppColors.yellow.withOpacity(0.35)),
+                                border: Border.all(color: AppColors.yellow.withValues(alpha: 0.35)),
                               ),
                               child: const Text(
                                 'Invitation yet to be accepted',
@@ -266,7 +266,7 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: AppColors.green.withOpacity(0.15),
+            color: AppColors.green.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.check_rounded, color: AppColors.green, size: 40),
@@ -336,7 +336,7 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand),
           ),
           SizedBox(width: 10),
-          Text('Sending invitation…', style: TextStyle(color: AppColors.silver, fontSize: 14)),
+          Text('Sending invitationâ€¦', style: TextStyle(color: AppColors.silver, fontSize: 14)),
         ]),
       ],
       const SizedBox(height: 20),

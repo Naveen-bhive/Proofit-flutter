@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../core/constants/app_constants.dart';
 import 'auth_storage.dart';
 
@@ -8,7 +8,7 @@ typedef SocketListenerId = int;
 /// Socket.IO client with **multicast** listeners so screens can subscribe/unsubscribe
 /// without wiping handlers registered by other screens (e.g. dashboard + live map).
 class SocketService {
-  static IO.Socket? _socket;
+  static io.Socket? _socket;
   static bool _isConnected = false;
   static int _listenerSeq = 0;
 
@@ -77,9 +77,9 @@ class SocketService {
     if (token == null) return;
 
     _socket?.dispose();
-    _socket = IO.io(
+    _socket = io.io(
       AppConstants.socketUrl,
-      IO.OptionBuilder()
+      io.OptionBuilder()
           .setTransports(['websocket', 'polling'])
           .setAuth({'token': token})
           .enableAutoConnect()

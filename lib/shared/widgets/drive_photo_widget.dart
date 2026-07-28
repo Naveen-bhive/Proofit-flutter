@@ -99,7 +99,9 @@ class _DrivePhotoWidgetState extends State<DrivePhotoWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return _placeholder(child: const CircularProgressIndicator(color: AppColors.brand, strokeWidth: 2));
+    if (_loading) {
+      return _placeholder(child: const CircularProgressIndicator(color: AppColors.brand, strokeWidth: 2));
+    }
     if (_error || _bytes == null) return _placeholder(child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(Icons.broken_image_outlined, color: AppColors.muted, size: 36),
       SizedBox(height: 8),

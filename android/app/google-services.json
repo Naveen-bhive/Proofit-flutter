@@ -1,51 +1,26 @@
 {
   "project_info": {
-    "project_number": "971087084860",
-    "project_id": "proofit-f2bdf",
-    "storage_bucket": "proofit-f2bdf.firebasestorage.app"
+    "project_number": "529731801742",
+    "project_id": "proofit-74bdb",
+    "storage_bucket": "proofit-74bdb.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:971087084860:android:854248736c627977843239",
+        "mobilesdk_app_id": "1:529731801742:android:ce1a935df20653d8df2fdf",
         "android_client_info": {
           "package_name": "com.bhive.proofit"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "971087084860-5p6lq658umgbtmf1ktbd1t67r2u53qd1.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.bhive.proofit",
-            "certificate_hash": "4169e3d4fd6a01bd1c3d8d3cec8a8325488fdb9"
-          }
-        },
-        {
-          "client_id": "971087084860-25lvv16jrdgm8fqioeaaa05qehjki4su.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDb9NyodlYRzQtOjwGIwr7Ly1WH4B6_GAQ"
+          "current_key": "AIzaSyC8T0vSY_YiPbN7M-Aq1KBl_YIgzmQnXbM"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "971087084860-25lvv16jrdgm8fqioeaaa05qehjki4su.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "971087084860-lqe6muocceitsgg5m5if31pjpn3s009o.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.bhive.proofit"
-              }
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

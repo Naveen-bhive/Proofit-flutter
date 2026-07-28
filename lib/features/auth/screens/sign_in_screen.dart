@@ -155,12 +155,12 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           ),
         ),
         if (kDebugMode)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
             child: Text(
               'API: ${AppConstants.baseUrl}',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.muted, fontSize: 10),
+              style: TextStyle(color: AppColors.muted, fontSize: 10),
             ),
           ),
       ]),

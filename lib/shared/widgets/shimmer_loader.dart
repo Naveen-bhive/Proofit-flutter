@@ -54,15 +54,15 @@ class DashboardShimmer extends StatelessWidget {
     height: 80,
     decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(14)),
     padding: const EdgeInsets.all(14),
-    child: Row(children: [
-      const ShimmerBox(width: 52, height: 52, radius: 10),
-      const SizedBox(width: 14),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: const [
+    child: const Row(children: [
+       ShimmerBox(width: 52, height: 52, radius: 10),
+       SizedBox(width: 14),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
         ShimmerBox(width: 140, height: 15),
         SizedBox(height: 8),
         ShimmerBox(width: 100, height: 12),
       ])),
-      const ShimmerBox(width: 50, height: 22, radius: 6),
+       ShimmerBox(width: 50, height: 22, radius: 6),
     ]),
   );
 }
@@ -81,15 +81,15 @@ class StaffListShimmer extends StatelessWidget {
         height: 72,
         decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(14)),
         padding: const EdgeInsets.all(14),
-        child: Row(children: [
-          const ShimmerBox(width: 40, height: 40, radius: 100),
-          const SizedBox(width: 12),
-          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+        child: const Row(children: [
+           ShimmerBox(width: 40, height: 40, radius: 100),
+           SizedBox(width: 12),
+           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
             ShimmerBox(width: 120, height: 15),
             SizedBox(height: 8),
             ShimmerBox(width: 80, height: 12),
           ])),
-          const ShimmerBox(width: 60, height: 22, radius: 100),
+           ShimmerBox(width: 60, height: 22, radius: 100),
         ]),
       ),
     );
@@ -105,10 +105,10 @@ class ReportListShimmer extends StatelessWidget {
     height: 80,
     decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(14)),
     padding: const EdgeInsets.all(14),
-    child: Row(children: [
-      const ShimmerBox(width: 52, height: 52, radius: 10),
-      const SizedBox(width: 14),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: const [
+    child: const Row(children: [
+       ShimmerBox(width: 52, height: 52, radius: 10),
+       SizedBox(width: 14),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
         ShimmerBox(width: 160, height: 15),
         SizedBox(height: 8),
         ShimmerBox(width: 100, height: 12),

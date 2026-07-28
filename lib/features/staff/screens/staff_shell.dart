@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -97,7 +97,7 @@ class _StaffShellState extends ConsumerState<StaffShell> {
         backgroundColor: AppColors.dark,
         body: IndexedStack(index: _tab == 2 ? 0 : _tab, children: _screens),
         bottomNavigationBar: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.dark2,
             border: Border(top: BorderSide(color: AppColors.border, width: 1)),
           ),
@@ -115,7 +115,7 @@ class _StaffShellState extends ConsumerState<StaffShell> {
                       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
                       height: 44,
                       decoration: BoxDecoration(color: AppColors.brand, borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: AppColors.brand.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))]),
+                        boxShadow: [BoxShadow(color: AppColors.brand.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4))]),
                       child: const Center(child: Icon(Icons.add_a_photo_rounded, color: Colors.white, size: 26))),
                   )),
                   _navItem(3, Icons.history_outlined,       Icons.history_rounded,      'History'),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
 class ErrorBoundary extends StatefulWidget {
@@ -22,7 +22,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(
               width: 80, height: 80,
-              decoration: BoxDecoration(color: AppColors.red.withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: AppColors.red.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: const Icon(Icons.error_outline, color: AppColors.red, size: 40),
             ),
             const SizedBox(height: 20),
@@ -52,7 +52,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
   }
 }
 
-// Global error handler — catches unhandled Flutter errors
+// Global error handler â€” catches unhandled Flutter errors
 class AppErrorHandler {
   static void init() {
     FlutterError.onError = (FlutterErrorDetails details) {

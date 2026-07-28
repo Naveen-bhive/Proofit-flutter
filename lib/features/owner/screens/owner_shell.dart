@@ -84,7 +84,7 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
           child: _body(),
         ),
         bottomNavigationBar: Container(
-          decoration: BoxDecoration(color: AppColors.dark2, border: Border(top: BorderSide(color: AppColors.border))),
+          decoration: const BoxDecoration(color: AppColors.dark2, border: Border(top: BorderSide(color: AppColors.border))),
           child: SafeArea(
             child: MediaQuery.withClampedTextScaling(
               maxScaleFactor: 1.2,

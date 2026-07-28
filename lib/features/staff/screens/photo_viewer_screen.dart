@@ -52,7 +52,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
               onTap: () => context.pop(),
               child: Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
                 child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
               ),
             ),

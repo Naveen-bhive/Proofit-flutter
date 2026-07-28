@@ -114,7 +114,9 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
 
       final body = <String, dynamic>{'format': format};
       if (_fromDate != null) { body['from'] = DateFormat('yyyy-MM-dd').format(_fromDate!); body['to'] = DateFormat('yyyy-MM-dd').format(_toDate ?? DateTime.now()); }
-      else if (_filter.isNotEmpty) body['filter'] = _filter;
+      else if (_filter.isNotEmpty) {
+        body['filter'] = _filter;
+      }
       if (_staffId != null) body['staffId'] = _staffId;
 
       final res = await dio.post('${AppConstants.baseUrl}/reports/export',
@@ -137,15 +139,18 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
       const SizedBox(height: 20),
       _optRow(Icons.open_in_new_rounded, AppColors.brand, 'Open File',  () { Navigator.pop(context); OpenFile.open(path); }),
       const SizedBox(height: 10),
-      _optRow(Icons.share_outlined, AppColors.blue, 'Share', () { Navigator.pop(context); Share.shareXFiles([XFile(path)]); }),
+      _optRow(Icons.share_outlined, AppColors.blue, 'Share', () async {
+        Navigator.pop(context);
+        await SharePlus.instance.share(ShareParams(files: [XFile(path)]));
+      }),
       const SizedBox(height: 20),
     ])));
 
   Widget _optRow(IconData icon, Color c, String label, VoidCallback onTap) =>
     GestureDetector(onTap: onTap, child: Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: c.withOpacity(0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: c.withOpacity(0.2))),
-      child: Row(children: [Icon(icon, color: c, size: 22), const SizedBox(width: 14), Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w600, fontSize: 15)), const Spacer(), Icon(Icons.chevron_right, color: c.withOpacity(0.5), size: 18)])));
+      decoration: BoxDecoration(color: c.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: c.withValues(alpha: 0.2))),
+      child: Row(children: [Icon(icon, color: c, size: 22), const SizedBox(width: 14), Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w600, fontSize: 15)), const Spacer(), Icon(Icons.chevron_right, color: c.withValues(alpha: 0.5), size: 18)])));
 
   void _showExportOptions() => showModalBottomSheet(
     context: context, backgroundColor: AppColors.dark2,
@@ -154,7 +159,7 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
       Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16), decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
       const Text('Export Reports', style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
       if (_fromDate != null) Padding(padding: const EdgeInsets.only(top: 6),
-        child: Text('${DateFormat("d MMM").format(_fromDate!)} – ${DateFormat("d MMM").format(_toDate ?? DateTime.now())}',
+        child: Text('${DateFormat("d MMM").format(_fromDate!)} â€“ ${DateFormat("d MMM").format(_toDate ?? DateTime.now())}',
           style: const TextStyle(color: AppColors.silver, fontSize: 13))),
       const SizedBox(height: 20),
       _optRow(Icons.picture_as_pdf_outlined, AppColors.red, 'Export as PDF',   () { Navigator.pop(context); _export('pdf'); }),
@@ -191,14 +196,14 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
-                  color: _fromDate != null ? AppColors.brand.withOpacity(0.2) : AppColors.dark3,
+                  color: _fromDate != null ? AppColors.brand.withValues(alpha: 0.2) : AppColors.dark3,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: _fromDate != null ? AppColors.brand : AppColors.border)),
                 child: Row(children: [
                   Icon(Icons.date_range_outlined, color: _fromDate != null ? AppColors.brand : AppColors.silver, size: 14),
                   const SizedBox(width: 6),
                   Text(
-                    _fromDate != null ? '${DateFormat("d MMM").format(_fromDate!)}–${DateFormat("d MMM").format(_toDate ?? DateTime.now())}' : 'Date Range',
+                    _fromDate != null ? '${DateFormat("d MMM").format(_fromDate!)}â€“${DateFormat("d MMM").format(_toDate ?? DateTime.now())}' : 'Date Range',
                     style: TextStyle(color: _fromDate != null ? AppColors.brand : AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600)),
                   if (_fromDate != null) ...[
                     const SizedBox(width: 6),
@@ -215,7 +220,7 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: _filter == f.$1 && _fromDate == null ? AppColors.brand.withOpacity(0.2) : AppColors.dark3,
+                    color: _filter == f.$1 && _fromDate == null ? AppColors.brand.withValues(alpha: 0.2) : AppColors.dark3,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: _filter == f.$1 && _fromDate == null ? AppColors.brand : AppColors.border)),
                   child: Text(f.$2, style: TextStyle(color: _filter == f.$1 && _fromDate == null ? AppColors.brand : AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600))),
@@ -232,7 +237,7 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: _status == s.$1 ? AppColors.brand.withOpacity(0.2) : AppColors.dark3,
+                    color: _status == s.$1 ? AppColors.brand.withValues(alpha: 0.2) : AppColors.dark3,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: _status == s.$1 ? AppColors.brand : AppColors.border)),
                   child: Text(s.$2, textAlign: TextAlign.center,
@@ -253,7 +258,7 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   margin: const EdgeInsets.only(right: 8, bottom: 8),
                   decoration: BoxDecoration(
-                    color: _staffId == null ? AppColors.brand.withOpacity(0.15) : AppColors.dark3,
+                    color: _staffId == null ? AppColors.brand.withValues(alpha: 0.15) : AppColors.dark3,
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(color: _staffId == null ? AppColors.brand : AppColors.border)),
                   child: Text('All Staff', style: TextStyle(color: _staffId == null ? AppColors.brand : AppColors.silver, fontSize: 12, fontWeight: FontWeight.w600))),
@@ -268,7 +273,7 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     margin: const EdgeInsets.only(right: 8, bottom: 8),
                     decoration: BoxDecoration(
-                      color: sel ? AppColors.brand.withOpacity(0.15) : AppColors.dark3,
+                      color: sel ? AppColors.brand.withValues(alpha: 0.15) : AppColors.dark3,
                       borderRadius: BorderRadius.circular(100),
                       border: Border.all(color: sel ? AppColors.brand : AppColors.border)),
                     child: Text(sname, style: TextStyle(color: sel ? AppColors.brand : AppColors.silver, fontSize: 12, fontWeight: FontWeight.w600))),
@@ -283,7 +288,7 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
             child: Row(children: [
               Text('${state.reportPagination!['total'] ?? 0} reports', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
               if (_staffName != null) ...[
-                const Text(' • ', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                const Text(' â€¢ ', style: TextStyle(color: AppColors.muted, fontSize: 12)),
                 Text(_staffName!, style: const TextStyle(color: AppColors.brand, fontSize: 12)),
               ],
             ])),

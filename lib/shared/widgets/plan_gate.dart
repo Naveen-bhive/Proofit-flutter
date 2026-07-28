@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
 class PlanGate extends StatelessWidget {
@@ -21,7 +21,7 @@ class PlanGate extends StatelessWidget {
       Positioned.fill(
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.dark3.withOpacity(0.85),
+            color: AppColors.dark3.withValues(alpha: 0.85),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [

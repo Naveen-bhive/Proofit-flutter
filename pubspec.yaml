@@ -18,6 +18,7 @@ dependencies:
 
   # HTTP
   dio: ^5.4.0
+  http: ^1.6.0
 
   # Google Sign-In + Drive
   google_sign_in: ^6.2.1
@@ -42,6 +43,8 @@ dependencies:
   geolocator: ^11.0.0
   geocoding: ^3.0.0
   google_maps_flutter: ^2.6.0
+  google_maps_flutter_android: ^2.14.2
+  google_maps_flutter_platform_interface: ^2.13.0
   permission_handler: ^11.3.0
 
   # Storage
@@ -90,6 +93,9 @@ flutter_launcher_icons:
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/images/icon_foreground.png"
   remove_alpha_ios: true
+
+dev_dependencies:
+  flutter_lints: ^3.0.0
 
 flutter_native_splash:
   color: "#0A0A0A"

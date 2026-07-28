@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
 /// Search field + scrollable list for picking one item (customer, staff, etc.).
@@ -113,9 +113,9 @@ class _SearchableSelectionFieldState extends State<SearchableSelectionField> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: AppColors.brand.withOpacity(0.1),
+              color: AppColors.brand.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.brand.withOpacity(0.35)),
+              border: Border.all(color: AppColors.brand.withValues(alpha: 0.35)),
             ),
             child: Row(
               children: [
@@ -184,7 +184,7 @@ class _SearchableSelectionFieldState extends State<SearchableSelectionField> {
                         leading: CircleAvatar(
                           radius: 18,
                           backgroundColor: (isSelected ? AppColors.brand : AppColors.muted)
-                              .withOpacity(0.15),
+                              .withValues(alpha: 0.15),
                           child: Text(
                             widget.itemTitle(item).isNotEmpty
                                 ? widget.itemTitle(item)[0].toUpperCase()

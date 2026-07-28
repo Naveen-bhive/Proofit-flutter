@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -18,7 +18,6 @@ class SubscriptionScreen extends ConsumerStatefulWidget {
 class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Razorpay? _razorpay;
   String?   _selectedPlanSlug;
-  String?   _selectedPlanName;
   bool      _loading = false;
   bool      _plansLoading = true;
 
@@ -59,7 +58,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   }
 
   Future<void> _startPayment(String planSlug, String planName, int price) async {
-    setState(() { _selectedPlanSlug = planSlug; _selectedPlanName = planName; _loading = true; });
+    setState(() { _selectedPlanSlug = planSlug; _loading = true; });
     try {
       final result = await ref.read(ownerControllerProvider.notifier).createOrder(planSlug);
       final data = result.data;
@@ -179,11 +178,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             ),
           ),
         ] else if (plans.isEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 40),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
             child: Text(
               'No plans available right now. Please check back later.',
-              style: const TextStyle(color: AppColors.silver, fontSize: 13),
+              style: TextStyle(color: AppColors.silver, fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ),
@@ -203,9 +202,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     padding: const EdgeInsets.all(14),
     margin: const EdgeInsets.only(bottom: 20),
     decoration: BoxDecoration(
-      color: AppColors.yellow.withOpacity(0.1),
+      color: AppColors.yellow.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.yellow.withOpacity(0.3)),
+      border: Border.all(color: AppColors.yellow.withValues(alpha: 0.3)),
     ),
     child: const Row(children: [
       Icon(Icons.info_outline, color: AppColors.yellow, size: 18),
@@ -221,9 +220,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     padding: const EdgeInsets.all(20),
     margin: const EdgeInsets.only(bottom: 16),
     decoration: BoxDecoration(
-      color: AppColors.brand.withOpacity(0.08),
+      color: AppColors.brand.withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.brand.withOpacity(0.3)),
+      border: Border.all(color: AppColors.brand.withValues(alpha: 0.3)),
     ),
     child: Row(children: [
       const Icon(Icons.workspace_premium_outlined, color: AppColors.brand, size: 28),
@@ -258,7 +257,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isCurrent ? color.withOpacity(0.08) : AppColors.dark2,
+        color: isCurrent ? color.withValues(alpha: 0.08) : AppColors.dark2,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isCurrent ? color : AppColors.border, width: isCurrent ? 2 : 1),
       ),
@@ -268,7 +267,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           Row(children: [
             Expanded(child: Text(name, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w800))),
             Text(
-              '₹$price${durationDays == 30 ? '/mo' : '/${durationDays}d'}',
+              'â‚¹$price${durationDays == 30 ? '/mo' : '/${durationDays}d'}',
               style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w800),
             ),
           ]),
@@ -295,7 +294,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
               child: Center(child: Text('Current Plan', style: TextStyle(color: color, fontWeight: FontWeight.w700))),
             )
           else

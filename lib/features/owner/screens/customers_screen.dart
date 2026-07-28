@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -14,7 +14,6 @@ class CustomersScreen extends ConsumerStatefulWidget {
 
 class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   final _searchCtrl = TextEditingController();
-  bool  _searching  = false;
 
   @override
   void initState() {
@@ -61,7 +60,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
             const Spacer(),
             if (isEdit) IconButton(
               icon: const Icon(Icons.delete_outline_rounded, color: AppColors.red),
-              onPressed: () { Navigator.pop(sheetCtx); _confirmDelete(customer!); }),
+              onPressed: () { Navigator.pop(sheetCtx); _confirmDelete(customer); }),
           ]),
           const SizedBox(height: 16),
           TextFormField(controller: nameCtrl, style: const TextStyle(color: AppColors.white),
@@ -112,7 +111,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
               Navigator.pop(sheetCtx);
               if (isEdit) {
                 await ref.read(ownerControllerProvider.notifier).editCustomer(
-                  customer!.id,
+                  customer.id,
                   name,
                   phone,
                   addrCtrl.text.trim(),
@@ -174,7 +173,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           Padding(padding: const EdgeInsets.only(right: 8),
             child: Center(child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: AppColors.brand.withOpacity(0.15), borderRadius: BorderRadius.circular(100)),
+              decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(100)),
               child: Text(limitText, style: const TextStyle(color: AppColors.brand, fontSize: 12, fontWeight: FontWeight.w700))))),
           IconButton(icon: const Icon(Icons.person_add_outlined, color: AppColors.brand), onPressed: () => _showAddEdit()),
         ],
@@ -214,7 +213,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                       color: AppColors.dark2,
                       child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      leading: CircleAvatar(radius: 22, backgroundColor: AppColors.brand.withOpacity(0.15),
+                      leading: CircleAvatar(radius: 22, backgroundColor: AppColors.brand.withValues(alpha: 0.15),
                         child: Text(c.initials, style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700, fontSize: 16))),
                       title: Text(c.name, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
                       subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

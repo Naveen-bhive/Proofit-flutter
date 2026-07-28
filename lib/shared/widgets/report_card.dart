@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../models/report_model.dart';
@@ -22,7 +21,7 @@ class ReportCard extends StatelessWidget {
           color: AppColors.dark2,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: report.isFlagged ? AppColors.red.withOpacity(0.5) : AppColors.border,
+            color: report.isFlagged ? AppColors.red.withValues(alpha: 0.5) : AppColors.border,
           ),
         ),
         child: Row(children: [
@@ -43,7 +42,7 @@ class ReportCard extends StatelessWidget {
               maxLines: 1, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 4),
             Row(children: [
-              Icon(Icons.location_on_outlined, size: 13, color: AppColors.muted),
+              const Icon(Icons.location_on_outlined, size: 13, color: AppColors.muted),
               const SizedBox(width: 3),
               Expanded(child: Text(
                 report.location?.address ?? 'Location not available',
@@ -75,14 +74,14 @@ class ReportCard extends StatelessWidget {
 
   Widget _statusChip() {
     final (color, label) = report.isFlagged
-        ? (AppColors.red, '⚠ Flagged')
+        ? (AppColors.red, 'âš  Flagged')
         : report.isSubmitted
             ? (AppColors.green, 'Sent')
             : (AppColors.yellow, 'Draft');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
@@ -112,7 +112,7 @@ class _CheckinHistoryScreenState extends ConsumerState<CheckinHistoryScreen> {
                             decoration: BoxDecoration(
                               color: AppColors.dark2,
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: hasCheckout ? AppColors.border : AppColors.yellow.withOpacity(0.4)),
+                              border: Border.all(color: hasCheckout ? AppColors.border : AppColors.yellow.withValues(alpha: 0.4)),
                             ),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Row(children: [
@@ -121,7 +121,7 @@ class _CheckinHistoryScreenState extends ConsumerState<CheckinHistoryScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: hasCheckout ? AppColors.green.withOpacity(0.12) : AppColors.yellow.withOpacity(0.12),
+                                    color: hasCheckout ? AppColors.green.withValues(alpha: 0.12) : AppColors.yellow.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(100),
                                   ),
                                   child: Text(_duration(r),
@@ -158,7 +158,7 @@ class _CheckinHistoryScreenState extends ConsumerState<CheckinHistoryScreen> {
 
   Widget _timeBox(String label, String time, Color color) => Expanded(child: Container(
     padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.2))),
+    decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withValues(alpha: 0.2))),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
       const SizedBox(height: 4),

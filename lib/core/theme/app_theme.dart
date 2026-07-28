@@ -12,7 +12,6 @@ class AppTheme {
       primary: AppColors.brand,
       secondary: AppColors.brand2,
       surface: AppColors.dark2,
-      background: AppColors.dark,
       error: AppColors.red,
     ),
     appBarTheme: const AppBarTheme(

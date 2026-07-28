@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -66,7 +66,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
         content: Row(children: [
           const Icon(Icons.assignment_outlined, color: Colors.white, size: 18),
           const SizedBox(width: 8),
-          Expanded(child: Text('New: ${data['staffName'] ?? ''} — ${data['jobTitle'] ?? ''}')),
+          Expanded(child: Text('New: ${data['staffName'] ?? ''} â€” ${data['jobTitle'] ?? ''}')),
         ]),
         backgroundColor: AppColors.brand, duration: const Duration(seconds: 3),
         action: SnackBarAction(label: 'View', textColor: Colors.white,
@@ -78,7 +78,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
       _loadDashboard();
       setState(() => _unreadCount++);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('⚠ Flagged: ${data['staffName'] ?? ''}'),
+        content: Text('âš  Flagged: ${data['staffName'] ?? ''}'),
         backgroundColor: AppColors.red, duration: const Duration(seconds: 5)));
     }));
     _socketIds.add(SocketService.onStaffCheckIn((_) { if (mounted) _loadDashboard(); }));
@@ -142,7 +142,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
                 ]),
                 GestureDetector(onTap: () => context.push('/owner/subscription'),
                   child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(color: AppColors.brand.withOpacity(0.15), borderRadius: BorderRadius.circular(100), border: Border.all(color: AppColors.brand.withOpacity(0.3))),
+                    decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(100), border: Border.all(color: AppColors.brand.withValues(alpha: 0.3))),
                     child: Text(state.plan.toUpperCase(), style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700, fontSize: 11)))),
                 const SizedBox(width: 6),
                 GestureDetector(onTap: () => context.push('/owner/settings'),
@@ -184,7 +184,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
                       const CircularProgressIndicator(color: AppColors.brand, strokeWidth: 2.5),
                       const SizedBox(height: 14),
                       Text(
-                        _loadFailed ? 'Could not load dashboard' : 'Loading dashboard…',
+                        _loadFailed ? 'Could not load dashboard' : 'Loading dashboardâ€¦',
                         style: const TextStyle(color: AppColors.silver, fontSize: 14),
                       ),
                       if (_loadFailed) ...[
@@ -214,7 +214,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
                 decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
                 child: Row(children: [
                   GestureDetector(onTap: staffId.isEmpty ? null : () => context.push('/owner/staff/$staffId'),
-                    child: CircleAvatar(backgroundColor: AppColors.brand.withOpacity(0.2), radius: 18,
+                    child: CircleAvatar(backgroundColor: AppColors.brand.withValues(alpha: 0.2), radius: 18,
                       child: Text(_nameInitial(name),
                         style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700)))),
                   const SizedBox(width: 12),
@@ -271,9 +271,9 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
     final card = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

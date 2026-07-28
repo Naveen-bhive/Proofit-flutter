@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -52,16 +52,16 @@ class _StaffReportDetailScreenState extends ConsumerState<StaffReportDetailScree
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: report.isSubmitted ? AppColors.green.withOpacity(0.08) : AppColors.yellow.withOpacity(0.08),
+                  color: report.isSubmitted ? AppColors.green.withValues(alpha: 0.08) : AppColors.yellow.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: report.isSubmitted ? AppColors.green.withOpacity(0.3) : AppColors.yellow.withOpacity(0.3)),
+                  border: Border.all(color: report.isSubmitted ? AppColors.green.withValues(alpha: 0.3) : AppColors.yellow.withValues(alpha: 0.3)),
                 ),
                 child: Row(children: [
                   Icon(report.isSubmitted ? Icons.check_circle_outline : Icons.edit_outlined,
                       color: report.isSubmitted ? AppColors.green : AppColors.yellow, size: 20),
                   const SizedBox(width: 10),
                   Text(
-                    report.isSubmitted ? 'Submitted Successfully' : 'Draft — Not Submitted',
+                    report.isSubmitted ? 'Submitted Successfully' : 'Draft â€” Not Submitted',
                     style: TextStyle(
                       color: report.isSubmitted ? AppColors.green : AppColors.yellow,
                       fontWeight: FontWeight.w600,

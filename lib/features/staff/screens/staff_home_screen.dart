@@ -60,6 +60,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
       return;
     }
     _backgroundLocationPrompted = true;
+    if (!mounted) return;
     await LocationService.ensureAlwaysLocationPermission(context);
     if (!mounted) return;
     await ref.read(staffControllerProvider.notifier).evaluateTrackingHealth();
@@ -129,7 +130,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
                         style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800))))),
                 ]),
                 GestureDetector(onTap: () => context.push('/staff/profile'),
-                  child: CircleAvatar(radius: 18, backgroundColor: AppColors.brand.withOpacity(0.2),
+                  child: CircleAvatar(radius: 18, backgroundColor: AppColors.brand.withValues(alpha: 0.2),
                     child: Text(state.userName.isNotEmpty ? state.userName[0].toUpperCase() : '?',
                       style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700)))),
               ]),
@@ -149,14 +150,14 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
               GestureDetector(
                 onTap: () => context.push('/staff/history?filter=drafts'),
                 child: Container(margin: const EdgeInsets.only(bottom: 16), padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(color: AppColors.yellow.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.yellow.withOpacity(0.4))),
+                  decoration: BoxDecoration(color: AppColors.yellow.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.yellow.withValues(alpha: 0.4))),
                   child: Row(children: [
                     const Icon(Icons.drafts_outlined, color: AppColors.yellow, size: 20),
                     const SizedBox(width: 10),
                     Expanded(child: Text(
                       state.draftCount > 1
-                          ? '${state.draftCount} draft reports — tap to view & complete'
-                          : 'You have an unsent draft — tap to view & complete',
+                          ? '${state.draftCount} draft reports â€” tap to view & complete'
+                          : 'You have an unsent draft â€” tap to view & complete',
                       style: const TextStyle(color: AppColors.yellow, fontSize: 13))),
                     const Icon(Icons.chevron_right, color: AppColors.yellow, size: 18),
                   ])),
@@ -217,12 +218,12 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
   Widget _checkInRow(StaffState state, BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: state.isCheckedIn ? AppColors.green.withOpacity(0.08) : AppColors.dark2,
+      color: state.isCheckedIn ? AppColors.green.withValues(alpha: 0.08) : AppColors.dark2,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: state.isCheckedIn ? AppColors.green.withOpacity(0.3) : AppColors.border)),
+      border: Border.all(color: state.isCheckedIn ? AppColors.green.withValues(alpha: 0.3) : AppColors.border)),
     child: Row(children: [
       Container(width: 40, height: 40,
-        decoration: BoxDecoration(color: state.isCheckedIn ? AppColors.green.withOpacity(0.15) : AppColors.muted.withOpacity(0.1), shape: BoxShape.circle),
+        decoration: BoxDecoration(color: state.isCheckedIn ? AppColors.green.withValues(alpha: 0.15) : AppColors.muted.withValues(alpha: 0.1), shape: BoxShape.circle),
         child: Icon(state.isCheckedIn ? Icons.login_rounded : Icons.logout_rounded,
           color: state.isCheckedIn ? AppColors.green : AppColors.muted, size: 20)),
       const SizedBox(width: 12),
@@ -269,7 +270,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
       case TrackingHealthStatus.gpsOff:
         icon = Icons.location_off_outlined;
         color = AppColors.red;
-        title = 'GPS off — turn on Location';
+        title = 'GPS off â€” turn on Location';
         actionLabel = 'Fix';
         onAction = () async {
           await Geolocator.openLocationSettings();
@@ -282,9 +283,11 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
         title = 'Location permission missing';
         actionLabel = 'Fix';
         onAction = () async {
+          if (!mounted) return;
           await LocationService.ensureAlwaysLocationPermission(context);
           if (!mounted) return;
           if (!await LocationService.hasPreciseLocation()) {
+            if (!mounted) return;
             await LocationService.ensurePreciseLocation(context);
           }
           if (!mounted) return;
@@ -296,6 +299,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
         title = 'Battery optimization may stop tracking';
         actionLabel = 'Fix';
         onAction = () async {
+          if (!mounted) return;
           await BatteryOptimizationService.ensureWarningShownBeforeCheckIn(context);
           if (!mounted) return;
           await ref.read(staffControllerProvider.notifier).evaluateTrackingHealth();
@@ -311,7 +315,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
       case TrackingHealthStatus.unknown:
         icon = Icons.hourglass_empty_rounded;
         color = AppColors.muted;
-        title = 'Checking live tracking…';
+        title = 'Checking live trackingâ€¦';
     }
 
     return GestureDetector(
@@ -320,9 +324,9 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> with WidgetsB
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.35)),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
         ),
         child: Row(children: [
           Icon(icon, color: color, size: 18),

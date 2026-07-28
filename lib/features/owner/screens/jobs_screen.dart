@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -91,12 +91,12 @@ class _JobsScreenState extends ConsumerState<JobsScreen> with SingleTickerProvid
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: priority == 'urgent' ? AppColors.red.withOpacity(0.4) : AppColors.border)),
+                      border: Border.all(color: priority == 'urgent' ? AppColors.red.withValues(alpha: 0.4) : AppColors.border)),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
                         Expanded(child: Text(j['title'] ?? '', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 15), overflow: TextOverflow.ellipsis)),
                         Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: _priorityColor(priority).withOpacity(0.15), borderRadius: BorderRadius.circular(100)),
+                          decoration: BoxDecoration(color: _priorityColor(priority).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(100)),
                           child: Text(priority[0].toUpperCase() + priority.substring(1),
                             style: TextStyle(color: _priorityColor(priority), fontSize: 11, fontWeight: FontWeight.w700))),
                       ]),
@@ -106,7 +106,7 @@ class _JobsScreenState extends ConsumerState<JobsScreen> with SingleTickerProvid
                         const SizedBox(width: 4),
                         Text(customer['name'] ?? '', style: const TextStyle(color: AppColors.brand, fontSize: 13, fontWeight: FontWeight.w600)),
                         if (customer['phone'] != null) ...[
-                          const Text(' • ', style: TextStyle(color: AppColors.muted)),
+                          const Text(' â€¢ ', style: TextStyle(color: AppColors.muted)),
                           Text(customer['phone'], style: const TextStyle(color: AppColors.silver, fontSize: 12)),
                         ],
                       ]),
@@ -337,7 +337,7 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
             itemSubtitle: (c) {
               final phone = c['phone']?.toString() ?? '';
               final email = c['email']?.toString() ?? '';
-              if (phone.isNotEmpty && email.isNotEmpty) return '$phone • $email';
+              if (phone.isNotEmpty && email.isNotEmpty) return '$phone â€¢ $email';
               return phone.isNotEmpty ? phone : email;
             },
             onSelected: (id) => setState(() => _selectedCustomerId = id),
@@ -365,7 +365,7 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
             itemSubtitle: (s) {
               final phone = s['phone']?.toString() ?? '';
               final email = s['email']?.toString() ?? '';
-              if (phone.isNotEmpty && email.isNotEmpty) return '$phone • $email';
+              if (phone.isNotEmpty && email.isNotEmpty) return '$phone â€¢ $email';
               return phone.isNotEmpty ? phone : email;
             },
             itemEnabled: (s) =>
@@ -397,7 +397,7 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: _priority == p
-                        ? _jobPriorityColor(p).withOpacity(0.2)
+                        ? _jobPriorityColor(p).withValues(alpha: 0.2)
                         : AppColors.dark3,
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(

@@ -1,10 +1,9 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/utils/ui_feedback.dart';
@@ -30,7 +29,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     Future.microtask(() => ref.read(ownerControllerProvider.notifier).loadReportDetail(widget.reportId));
   }
 
-  // ── Generate single report PDF + share via WhatsApp ───
+  // â”€â”€ Generate single report PDF + share via WhatsApp â”€â”€â”€
   Future<void> _shareToCustomer(Map<String, dynamic>? customer) async {
     setState(() => _sharing = true);
     try {
@@ -50,14 +49,14 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
 
       // Share sheet
       final box = context.findRenderObject() as RenderBox?;
-      await Share.shareXFiles(
-        [XFile(path, mimeType: 'application/pdf')],
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(path, mimeType: 'application/pdf')],
         subject: 'Work Completion Report',
-        text:     customer != null
-          ? 'Dear ${customer['name']}, please find attached the work completion report. - ${ref.read(ownerControllerProvider).orgName}'
-          : 'Work Completion Report',
-        sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
-      );
+        text: customer != null
+            ? 'Dear ${customer['name']}, please find attached the work completion report. - ${ref.read(ownerControllerProvider).orgName}'
+            : 'Work Completion Report',
+        sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+      ));
     } catch (e) {
       if (mounted) {
         showErrorSnackBar(
@@ -102,7 +101,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
             decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
             child: Column(children: [
               Row(children: [
-                CircleAvatar(radius: 22, backgroundColor: AppColors.brand.withOpacity(0.2),
+                CircleAvatar(radius: 22, backgroundColor: AppColors.brand.withValues(alpha: 0.2),
                   child: Text(report.staffName.isNotEmpty ? report.staffName[0].toUpperCase() : '?',
                     style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w800, fontSize: 18))),
                 const SizedBox(width: 14),
@@ -114,9 +113,9 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                 ])),
                 Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: (report.isFlagged ? AppColors.red : AppColors.green).withOpacity(0.15),
+                    color: (report.isFlagged ? AppColors.red : AppColors.green).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(100)),
-                  child: Text(report.isFlagged ? '⚠ Flagged' : '✓ Verified',
+                  child: Text(report.isFlagged ? 'âš  Flagged' : 'âœ“ Verified',
                     style: TextStyle(color: report.isFlagged ? AppColors.red : AppColors.green, fontSize: 12, fontWeight: FontWeight.w600))),
               ]),
 
@@ -139,11 +138,11 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                       onTap: () => _shareToCustomer(customer),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(color: const Color(0xFF25D366).withOpacity(0.15), borderRadius: BorderRadius.circular(100), border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3))),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.share_outlined, color: Color(0xFF25D366), size: 14),
-                          const SizedBox(width: 6),
-                          const Text('Share PDF', style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.w600)),
+                        decoration: BoxDecoration(color: const Color(0xFF25D366).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(100), border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.3))),
+                        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                         Icon(Icons.share_outlined, color: Color(0xFF25D366), size: 14),
+                         SizedBox(width: 6),
+                         Text('Share PDF', style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.w600)),
                         ]))),
                 ]),
               ],

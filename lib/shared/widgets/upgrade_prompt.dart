@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 
@@ -34,7 +34,7 @@ class UpgradePrompt extends StatelessWidget {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20),
           decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
-        Container(width: 64, height: 64, decoration: BoxDecoration(color: AppColors.brand.withOpacity(0.1), shape: BoxShape.circle),
+        Container(width: 64, height: 64, decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.1), shape: BoxShape.circle),
           child: const Icon(Icons.workspace_premium_outlined, color: AppColors.brand, size: 32)),
         const SizedBox(height: 16),
         Text('Upgrade to $requiredPlan', style: const TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w800)),

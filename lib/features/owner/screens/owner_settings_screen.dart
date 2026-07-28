@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -65,7 +65,7 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
           child: Row(children: [
-            CircleAvatar(radius: 28, backgroundColor: AppColors.brand.withOpacity(0.2),
+            CircleAvatar(radius: 28, backgroundColor: AppColors.brand.withValues(alpha: 0.2),
               child: Text(state.orgName.isNotEmpty ? state.orgName[0].toUpperCase() : 'O',
                   style: const TextStyle(color: AppColors.brand, fontSize: 22, fontWeight: FontWeight.w800))),
             const SizedBox(width: 16),
@@ -158,7 +158,8 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
         title: Text(label, style: const TextStyle(color: AppColors.light, fontSize: 14)),
         value: value,
         onChanged: onChanged,
-        activeColor: AppColors.brand,
+        activeThumbColor: AppColors.brand,
+        activeTrackColor: AppColors.brand.withValues(alpha: 0.35),
         contentPadding: EdgeInsets.zero,
       ),
     );

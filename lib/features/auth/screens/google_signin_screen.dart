@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
@@ -70,7 +70,7 @@ class _GoogleSignInScreenState extends ConsumerState<GoogleSignInScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))],
                   ),
                   child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     Image.asset('assets/images/google_logo.png', width: 22, height: 22, fit: BoxFit.contain),
@@ -84,7 +84,7 @@ class _GoogleSignInScreenState extends ConsumerState<GoogleSignInScreen> {
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppColors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.red.withOpacity(0.3))),
+              decoration: BoxDecoration(color: AppColors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.red.withValues(alpha: 0.3))),
               child: Row(children: [
                 const Icon(Icons.error_outline, color: AppColors.red, size: 18),
                 const SizedBox(width: 8),

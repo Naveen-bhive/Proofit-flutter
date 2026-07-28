@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,8 +18,8 @@ class _MultiPhotoReportScreenState extends ConsumerState<MultiPhotoReportScreen>
   final _titleCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
-  List<File> _beforePhotos = [];
-  List<File> _afterPhotos  = [];
+  final List<File> _beforePhotos = [];
+  final List<File> _afterPhotos  = [];
   double? _lat, _lng;
   String? _address;
   bool _locLoading  = false;
@@ -72,7 +72,7 @@ class _MultiPhotoReportScreenState extends ConsumerState<MultiPhotoReportScreen>
     if (!mounted) return;
     setState(() => _submitting = false);
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Report submitted!'), backgroundColor: AppColors.green));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('âœ… Report submitted!'), backgroundColor: AppColors.green));
       context.pop();
     } else { setState(() => _error = 'Failed to submit. Try again.'); }
   }
@@ -109,7 +109,7 @@ class _MultiPhotoReportScreenState extends ConsumerState<MultiPhotoReportScreen>
         if (_error != null) ...[
           const SizedBox(height: 12),
           Container(padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: AppColors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.red.withOpacity(0.3))),
+            decoration: BoxDecoration(color: AppColors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.red.withValues(alpha: 0.3))),
             child: Row(children: [const Icon(Icons.error_outline, color: AppColors.red, size: 18), const SizedBox(width: 8), Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.red, fontSize: 13)))])),
         ],
         const SizedBox(height: 28),
@@ -135,7 +135,7 @@ class _MultiPhotoReportScreenState extends ConsumerState<MultiPhotoReportScreen>
           if (i == photos.length) {
             return GestureDetector(
               onTap: () => _addPhoto(isBefore),
-              child: Container(decoration: BoxDecoration(color: AppColors.dark3, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.brand.withOpacity(0.4), width: 1.5)),
+              child: Container(decoration: BoxDecoration(color: AppColors.dark3, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.brand.withValues(alpha: 0.4), width: 1.5)),
                 child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Icon(Icons.add_a_photo_outlined, color: AppColors.brand, size: 24),
                   SizedBox(height: 4),
@@ -147,7 +147,7 @@ class _MultiPhotoReportScreenState extends ConsumerState<MultiPhotoReportScreen>
             Positioned(top: 4, right: 4,
               child: GestureDetector(
                 onTap: () => _removePhoto(isBefore, i),
-                child: Container(padding: const EdgeInsets.all(3), decoration: BoxDecoration(color: AppColors.red, shape: BoxShape.circle),
+                child: Container(padding: const EdgeInsets.all(3), decoration: const BoxDecoration(color: AppColors.red, shape: BoxShape.circle),
                   child: const Icon(Icons.close, color: Colors.white, size: 12)))),
           ]);
         },

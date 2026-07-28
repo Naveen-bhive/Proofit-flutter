@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -51,7 +51,7 @@ class _FlaggedReportsScreenState extends ConsumerState<FlaggedReportsScreen> {
                   Container(
                     margin: const EdgeInsets.all(16),
                     padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(color: AppColors.red.withOpacity(0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.red.withOpacity(0.3))),
+                    decoration: BoxDecoration(color: AppColors.red.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.red.withValues(alpha: 0.3))),
                     child: Row(children: [
                       const Icon(Icons.warning_amber_rounded, color: AppColors.red, size: 20),
                       const SizedBox(width: 10),
@@ -74,7 +74,7 @@ class _FlaggedReportsScreenState extends ConsumerState<FlaggedReportsScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.dark2,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppColors.red.withOpacity(0.4)),
+                            border: Border.all(color: AppColors.red.withValues(alpha: 0.4)),
                           ),
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Row(children: [
@@ -90,7 +90,7 @@ class _FlaggedReportsScreenState extends ConsumerState<FlaggedReportsScreen> {
                               const SizedBox(height: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(color: AppColors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                                decoration: BoxDecoration(color: AppColors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
                                 child: Text(r.location!.flagReason!, style: const TextStyle(color: AppColors.red, fontSize: 12)),
                               ),
                             ],

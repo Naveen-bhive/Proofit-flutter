@@ -3,32 +3,28 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyDb9NyodlYRzQtOjwGIwr7Ly1WH4B6_GAQ</string>
+	<string>AIzaSyDNsxL6OoWPdFsVGz5yX-tCAvmFTBoEw-8</string>
 	<key>GCM_SENDER_ID</key>
-	<string>971087084860</string>
+	<string>529731801742</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.bhive.proofit</string>
 	<key>PROJECT_ID</key>
-	<string>proofit-f2bdf</string>
+	<string>proofit-74bdb</string>
 	<key>STORAGE_BUCKET</key>
-	<string>proofit-f2bdf.firebasestorage.app</string>
+	<string>proofit-74bdb.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
-	<false/>
+	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
-	<false/>
+	<false></false>
 	<key>IS_APPINVITE_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>IS_GCM_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>IS_SIGNIN_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:971087084860:ios:0c3f38913c3712ac843239</string>
-	<key>CLIENT_ID</key>
-	<string>971087084860-lqe6muocceitsgg5m5if31pjpn3s009o.apps.googleusercontent.com</string>
-	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.971087084860-lqe6muocceitsgg5m5if31pjpn3s009o</string>
+	<string>1:529731801742:ios:4191d5ee5c5fbc66df2fdf</string>
 </dict>
 </plist>

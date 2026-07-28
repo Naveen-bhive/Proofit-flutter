@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
@@ -137,7 +137,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
     if (!alwaysOk) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Select “Allow all the time” to check in. Live tracking needs background location.'),
+        content: Text('Select â€œAllow all the timeâ€ to check in. Live tracking needs background location.'),
         backgroundColor: AppColors.brand,
         duration: Duration(seconds: 4),
       ));
@@ -208,9 +208,9 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.35)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(children: [
         Icon(ok ? Icons.check_circle_rounded : Icons.warning_amber_rounded, color: color, size: 18),
@@ -249,8 +249,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                     height: 180,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.green.withOpacity(0.08),
-                      border: Border.all(color: AppColors.green.withOpacity(0.3), width: 2),
+                      color: AppColors.green.withValues(alpha: 0.08),
+                      border: Border.all(color: AppColors.green.withValues(alpha: 0.3), width: 2),
                     ),
                     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       const Icon(Icons.login_rounded, color: AppColors.green, size: 40),
@@ -290,7 +290,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                     ]),
                   ),
                   const SizedBox(height: 14),
-                  Align(
+                  const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Required for live tracking',

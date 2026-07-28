@@ -55,6 +55,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     }
     setState(() { _loading = true; _error = null; });
     final result = await ref.read(authControllerProvider.notifier).sendOtp(phone);
+    if (!mounted) return;
     setState(() { _loading = false; });
     if (result) {
       setState(() => _otpSent = true);
@@ -68,6 +69,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     if (_resendCooldown > 0) return;
     setState(() { _loading = true; _error = null; });
     final result = await ref.read(authControllerProvider.notifier).resendOtp(_phoneCtrl.text.trim());
+    if (!mounted) return;
     setState(() => _loading = false);
     if (result) {
       _startResendTimer();
@@ -175,9 +177,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.red.withOpacity(0.1),
+                color: AppColors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.red.withOpacity(0.3)),
+                border: Border.all(color: AppColors.red.withValues(alpha: 0.3)),
               ),
               child: Row(children: [
                 const Icon(Icons.error_outline, color: AppColors.red, size: 16),

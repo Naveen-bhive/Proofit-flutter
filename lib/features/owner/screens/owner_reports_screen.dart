@@ -109,7 +109,9 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
 
       final body = <String, dynamic>{'format': format};
       if (_fromDate != null) { body['from'] = DateFormat('yyyy-MM-dd').format(_fromDate!); body['to'] = DateFormat('yyyy-MM-dd').format(_toDate ?? DateTime.now()); }
-      else if (_filter.isNotEmpty) body['filter'] = _filter;
+      else if (_filter.isNotEmpty) {
+        body['filter'] = _filter;
+      }
       if (_staffId != null) body['staffId'] = _staffId;
 
       final res = await dio.post('${AppConstants.baseUrl}/reports/export',
@@ -132,15 +134,18 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
       const SizedBox(height: 20),
       _opt(Icons.open_in_new_rounded,  AppColors.brand, 'Open',  () { Navigator.pop(context); OpenFile.open(path); }),
       const SizedBox(height: 10),
-      _opt(Icons.share_outlined,       AppColors.blue,  'Share to Customer', () { Navigator.pop(context); Share.shareXFiles([XFile(path)], subject: 'Work Completion Report'); }),
+      _opt(Icons.share_outlined,       AppColors.blue,  'Share to Customer', () async {
+        Navigator.pop(context);
+        await SharePlus.instance.share(ShareParams(files: [XFile(path)], subject: 'Work Completion Report'));
+      }),
       const SizedBox(height: 20),
     ])));
 
   Widget _opt(IconData icon, Color c, String label, VoidCallback onTap) =>
     GestureDetector(onTap: onTap, child: Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: c.withOpacity(0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: c.withOpacity(0.2))),
-      child: Row(children: [Icon(icon, color: c, size: 22), const SizedBox(width: 14), Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w600, fontSize: 15)), const Spacer(), Icon(Icons.chevron_right, color: c.withOpacity(0.5), size: 18)])));
+      decoration: BoxDecoration(color: c.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: c.withValues(alpha: 0.2))),
+      child: Row(children: [Icon(icon, color: c, size: 22), const SizedBox(width: 14), Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w600, fontSize: 15)), const Spacer(), Icon(Icons.chevron_right, color: c.withValues(alpha: 0.5), size: 18)])));
 
   void _showExportOptions() => showModalBottomSheet(
     context: context, backgroundColor: AppColors.dark2,
@@ -190,7 +195,7 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: _status == s.$1 ? AppColors.brand.withOpacity(0.2) : AppColors.dark3,
+                    color: _status == s.$1 ? AppColors.brand.withValues(alpha: 0.2) : AppColors.dark3,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: _status == s.$1 ? AppColors.brand : AppColors.border)),
                   child: Text(s.$2, textAlign: TextAlign.center,
@@ -214,7 +219,7 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
               Text('${state.reportPagination!['total'] ?? 0} reports',
                 style: const TextStyle(color: AppColors.muted, fontSize: 12)),
               if (_staffName != null) ...[
-                const Text(' • ', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                const Text(' â€¢ ', style: TextStyle(color: AppColors.muted, fontSize: 12)),
                 Text(_staffName!, style: const TextStyle(color: AppColors.brand, fontSize: 12)),
               ],
             ])),
@@ -242,7 +247,7 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
-        color: _fromDate != null ? AppColors.brand.withOpacity(0.2) : AppColors.dark3,
+        color: _fromDate != null ? AppColors.brand.withValues(alpha: 0.2) : AppColors.dark3,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _fromDate != null ? AppColors.brand : AppColors.border)),
       child: Row(children: [
@@ -250,7 +255,7 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
         const SizedBox(width: 6),
         Text(
           _fromDate != null
-            ? '${DateFormat("d MMM").format(_fromDate!)}–${DateFormat("d MMM").format(_toDate ?? DateTime.now())}'
+            ? '${DateFormat("d MMM").format(_fromDate!)}â€“${DateFormat("d MMM").format(_toDate ?? DateTime.now())}'
             : 'Date Range',
           style: TextStyle(color: _fromDate != null ? AppColors.brand : AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600)),
         if (_fromDate != null) ...[
@@ -265,7 +270,7 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
-        color: _filter == f && _fromDate == null ? AppColors.brand.withOpacity(0.2) : AppColors.dark3,
+        color: _filter == f && _fromDate == null ? AppColors.brand.withValues(alpha: 0.2) : AppColors.dark3,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _filter == f && _fromDate == null ? AppColors.brand : AppColors.border)),
       child: Text(label, style: TextStyle(color: _filter == f && _fromDate == null ? AppColors.brand : AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600))));
@@ -275,7 +280,7 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), margin: const EdgeInsets.only(right: 8, bottom: 8),
       decoration: BoxDecoration(
-        color: _staffId == id ? AppColors.brand.withOpacity(0.15) : AppColors.dark3,
+        color: _staffId == id ? AppColors.brand.withValues(alpha: 0.15) : AppColors.dark3,
         borderRadius: BorderRadius.circular(100),
         border: Border.all(color: _staffId == id ? AppColors.brand : AppColors.border)),
       child: Text(name, style: TextStyle(color: _staffId == id ? AppColors.brand : AppColors.silver, fontSize: 12, fontWeight: FontWeight.w600))));

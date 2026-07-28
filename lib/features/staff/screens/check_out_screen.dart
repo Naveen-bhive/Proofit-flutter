@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -120,8 +120,8 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
                     width: 180, height: 180,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.brand.withOpacity(0.08),
-                      border: Border.all(color: AppColors.brand.withOpacity(0.3), width: 2),
+                      color: AppColors.brand.withValues(alpha: 0.08),
+                      border: Border.all(color: AppColors.brand.withValues(alpha: 0.3), width: 2),
                     ),
                     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       const Icon(Icons.logout_rounded, color: AppColors.brand, size: 40),
@@ -178,9 +178,9 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Icon(icon, color: color, size: 20),

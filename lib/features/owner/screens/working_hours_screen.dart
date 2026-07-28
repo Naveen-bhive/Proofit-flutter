@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/network/api_service.dart';
-import '../../../shared/services/auth_storage.dart';
 
 class WorkingHoursScreen extends ConsumerStatefulWidget {
   const WorkingHoursScreen({super.key});
@@ -62,7 +61,7 @@ class _WorkingHoursScreenState extends ConsumerState<WorkingHoursScreen> {
             onPressed: _pickDateRange,
             icon: const Icon(Icons.date_range_outlined, color: AppColors.brand, size: 18),
             label: Text(
-              '${DateFormat('d MMM').format(_from)} – ${DateFormat('d MMM').format(_to)}',
+              '${DateFormat('d MMM').format(_from)} â€“ ${DateFormat('d MMM').format(_to)}',
               style: const TextStyle(color: AppColors.brand, fontSize: 13)),
           ),
         ],
@@ -84,7 +83,7 @@ class _WorkingHoursScreenState extends ConsumerState<WorkingHoursScreen> {
                         decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Row(children: [
-                            CircleAvatar(radius: 20, backgroundColor: AppColors.brand.withOpacity(0.2),
+                            CircleAvatar(radius: 20, backgroundColor: AppColors.brand.withValues(alpha: 0.2),
                               child: Text((s['name'] as String? ?? '?')[0].toUpperCase(),
                                 style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700))),
                             const SizedBox(width: 12),
@@ -114,7 +113,7 @@ class _WorkingHoursScreenState extends ConsumerState<WorkingHoursScreen> {
 
   Widget _stat(String label, String value, Color color) => Expanded(child: Container(
     padding: const EdgeInsets.symmetric(vertical: 8),
-    decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+    decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
     child: Column(children: [
       Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w700)),
       Text(label, style: const TextStyle(color: AppColors.silver, fontSize: 10)),
