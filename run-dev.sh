@@ -36,5 +36,5 @@ export PATH="${HOME}/flutter/bin:${HOME}/Android/Sdk/platform-tools:${PATH}"
 exec flutter run "${FLUTTER_ARGS[@]}" \
   --dart-define=API_BASE_URL="${API_BASE}" \
   --dart-define=SOCKET_URL="${SOCKET_URL}" \
-  --dart-define=GOOGLE_SERVER_CLIENT_ID="${GOOGLE_SERVER_CLIENT_ID:-971087084860-53cgc2l6lhk7ogn1rnq7lkmqu0jmaqak.apps.googleusercontent.com}" \
+  --dart-define=GOOGLE_SERVER_CLIENT_ID="${GOOGLE_SERVER_CLIENT_ID:-529731801742-nce1qeoi0rcqasjof6knels1s5c63ejq.apps.googleusercontent.com}" \
   --dart-define=GOOGLE_MAPS_API_KEY="${GOOGLE_MAPS_API_KEY:-AIzaSyCMWX4y7t-DGwyH6R3hDMDNNh4Ed0ZVmeI}"
