@@ -214,9 +214,9 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         reportId: widget.reportId,
         photoSlot: slot,
         height: 200,
-        onTap: driveFileId != null
-          ? () => context.push('/owner/photo-viewer?fileId=$driveFileId&label=$label&reportId=${widget.reportId}&slot=$slot')
-          : null),
+        // Photos can be stored via direct upload (no driveFileId) or Drive —
+        // the viewer itself handles both, so don't gate navigation on Drive only.
+        onTap: () => context.push('/owner/photo-viewer?fileId=${driveFileId ?? ''}&label=$label&reportId=${widget.reportId}&slot=$slot')),
       if (capturedAt != null) ...[
         const SizedBox(height: 8),
         Text(DateFormat('d MMM yyyy, h:mm:ss a').format(capturedAt.toLocal()),
