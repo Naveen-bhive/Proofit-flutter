@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 import '../../../core/utils/ui_feedback.dart';
+import '../../../core/utils/export_file_utils.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/report_card.dart';
@@ -107,7 +108,7 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
       if (token == null) return;
       final dio  = Dio();
       final dir  = await getTemporaryDirectory();
-      final org  = ref.read(ownerControllerProvider).orgName.replaceAll(' ', '-');
+      final org  = exportFileNamePart(ref.read(ownerControllerProvider).orgName);
       final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final ext  = format == 'excel' ? 'xlsx' : 'pdf';
       final path = '${dir.path}/proofit-$org-$date.$ext';

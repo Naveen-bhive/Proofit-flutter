@@ -86,14 +86,18 @@ class _DrivePhotoWidgetState extends State<DrivePhotoWidget> {
           ? await DriveService.fetchPhotoBytes(widget.driveFileId!)
           : null;
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() { _bytes = bytes; _loading = false; _error = bytes == null; });
       if (bytes != null && !_notifiedLoad) {
         _notifiedLoad = true;
         widget.onLoaded?.call();
       }
     } catch (_) {
-      if (mounted) setState(() { _loading = false; _error = true; });
+      if (mounted) {
+        setState(() { _loading = false; _error = true; });
+      }
     }
   }
 
@@ -102,11 +106,13 @@ class _DrivePhotoWidgetState extends State<DrivePhotoWidget> {
     if (_loading) {
       return _placeholder(child: const CircularProgressIndicator(color: AppColors.brand, strokeWidth: 2));
     }
-    if (_error || _bytes == null) return _placeholder(child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.broken_image_outlined, color: AppColors.muted, size: 36),
-      SizedBox(height: 8),
-      Text('Photo unavailable', style: TextStyle(color: AppColors.muted, fontSize: 12)),
-    ]));
+    if (_error || _bytes == null) {
+      return _placeholder(child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.broken_image_outlined, color: AppColors.muted, size: 36),
+        SizedBox(height: 8),
+        Text('Photo unavailable', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+      ]));
+    }
 
     return GestureDetector(
       onTap: widget.onTap,

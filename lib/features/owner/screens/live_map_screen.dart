@@ -362,6 +362,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
             },
             initialCameraPosition: _initialCamera,
             markers: _markers,
+            padding: const EdgeInsets.only(bottom: 56),
             myLocationEnabled: false,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: true,

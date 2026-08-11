@@ -43,9 +43,12 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
   bool _resolving = false;
   bool _showCoords = false;
   bool _searchLoading = false;
+  bool _ignoreNextSearchChange = false;
+  bool _suggestionsDismissed = false;
   List<PlaceSuggestion> _suggestions = [];
   Timer? _geocodeDebounce;
   Timer? _searchDebounce;
+  int _searchRequestId = 0;
 
   @override
   void initState() {
@@ -142,22 +145,38 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
   }
 
   void _onSearchChanged() {
+    if (_ignoreNextSearchChange) {
+      _ignoreNextSearchChange = false;
+      return;
+    }
+
+    _suggestionsDismissed = false;
     _searchDebounce?.cancel();
+    final requestId = ++_searchRequestId;
     _searchDebounce = Timer(const Duration(milliseconds: 400), () async {
       final q = _searchCtrl.text;
       if (q.trim().length < 3) {
-        if (mounted) setState(() { _suggestions = []; _searchLoading = false; });
+        if (mounted && requestId == _searchRequestId) {
+          setState(() { _suggestions = []; _searchLoading = false; });
+        }
         return;
       }
+      if (!mounted || requestId != _searchRequestId) return;
       setState(() => _searchLoading = true);
       final results = await PlacesService.autocomplete(q);
-      if (mounted) setState(() { _suggestions = results; _searchLoading = false; });
+      if (mounted && requestId == _searchRequestId) {
+        setState(() { _suggestions = results; _searchLoading = false; });
+      }
     });
   }
 
   Future<void> _pickSuggestion(PlaceSuggestion suggestion) async {
+    _searchDebounce?.cancel();
+    _searchRequestId++;
+    _ignoreNextSearchChange = true;
     setState(() {
       _suggestions = [];
+      _suggestionsDismissed = true;
       _searchLoading = true;
       _searchCtrl.text = suggestion.description;
     });
@@ -238,7 +257,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                     : null),
           ),
         ),
-        if (_suggestions.isNotEmpty)
+        if (_suggestions.isNotEmpty && !_suggestionsDismissed)
           Container(
             margin: const EdgeInsets.only(top: 4),
             constraints: const BoxConstraints(maxHeight: 140),

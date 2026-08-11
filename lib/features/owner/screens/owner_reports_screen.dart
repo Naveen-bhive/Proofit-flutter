@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 import '../../../core/utils/ui_feedback.dart';
+import '../../../core/utils/export_file_utils.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/report_card.dart';
@@ -102,7 +103,7 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
       if (token == null) return;
       final dio  = Dio();
       final dir  = await getTemporaryDirectory();
-      final org  = ref.read(ownerControllerProvider).orgName.replaceAll(' ', '-');
+      final org  = exportFileNamePart(ref.read(ownerControllerProvider).orgName);
       final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final ext  = format == 'excel' ? 'xlsx' : 'pdf';
       final path = '${dir.path}/proofit-$org-$date.$ext';
@@ -150,7 +151,9 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
   void _showExportOptions() => showModalBottomSheet(
     context: context, backgroundColor: AppColors.dark2,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-    builder: (_) => Padding(padding: const EdgeInsets.all(20), child: Column(mainAxisSize: MainAxisSize.min, children: [
+    builder: (_) => SafeArea(
+      top: false,
+      child: Padding(padding: const EdgeInsets.all(20), child: Column(mainAxisSize: MainAxisSize.min, children: [
       Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16), decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
       const Text('Export Reports', style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
       const SizedBox(height: 4),
@@ -159,8 +162,9 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
       _opt(Icons.picture_as_pdf_outlined, AppColors.red,   'Export as PDF (with photos)', () { Navigator.pop(context); _export('pdf'); }),
       const SizedBox(height: 10),
       _opt(Icons.table_chart_outlined,    AppColors.green, 'Export as Excel',              () { Navigator.pop(context); _export('excel'); }),
-      const SizedBox(height: 20),
-    ])));
+      const SizedBox(height: 36),
+    ]))),
+    );
 
   @override
   Widget build(BuildContext context) {

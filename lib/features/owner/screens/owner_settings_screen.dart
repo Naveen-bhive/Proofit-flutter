@@ -113,7 +113,7 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
         const SizedBox(height: 24),
 
         _sectionTitle('SUPPORT'),
-        _settingRow(Icons.help_outline, 'Help & FAQ', '', onTap: () {}),
+        // _settingRow(Icons.help_outline, 'Help & FAQ', '', onTap: () {}),
         _settingRow(Icons.privacy_tip_outlined, 'Privacy Policy', '', onTap: () => _openUrl('https://proofitapp.in/ProofIt_PrivacyPolicy.html')),
         _settingRow(Icons.article_outlined, 'Terms & Conditions', '', onTap: () => _openUrl('https://proofitapp.in/ProofIt_TermsConditions.html')),
         _settingRow(Icons.info_outline, 'App Version', '1.0.0', onTap: null),
