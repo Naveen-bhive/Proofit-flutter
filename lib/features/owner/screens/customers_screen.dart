@@ -232,10 +232,11 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
       await ref
           .read(ownerControllerProvider.notifier)
           .deleteCustomer(customer.id);
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Customer deleted'),
             backgroundColor: AppColors.green));
+      }
     }
   }
 

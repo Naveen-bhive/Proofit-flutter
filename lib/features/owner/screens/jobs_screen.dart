@@ -482,8 +482,9 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                 itemSubtitle: (c) {
                   final phone = c['phone']?.toString() ?? '';
                   final email = c['email']?.toString() ?? '';
-                  if (phone.isNotEmpty && email.isNotEmpty)
+                  if (phone.isNotEmpty && email.isNotEmpty) {
                     return '$phone • $email';
+                  }
                   return phone.isNotEmpty ? phone : email;
                 },
                 onSelected: (id) => setState(() => _selectedCustomerId = id),
@@ -515,8 +516,9 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                 itemSubtitle: (s) {
                   final phone = s['phone']?.toString() ?? '';
                   final email = s['email']?.toString() ?? '';
-                  if (phone.isNotEmpty && email.isNotEmpty)
+                  if (phone.isNotEmpty && email.isNotEmpty) {
                     return '$phone • $email';
+                  }
                   return phone.isNotEmpty ? phone : email;
                 },
                 itemEnabled: (s) =>
