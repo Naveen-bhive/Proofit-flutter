@@ -394,6 +394,47 @@ class OwnerController extends StateNotifier<OwnerState> {
     }
   }
 
+  Future<Map<String, dynamic>?> fetchAccountDeletionStatus() async {
+    try {
+      final res = await _api.get('/owner/account-deletion-request');
+      if (res.data['success'] == true) {
+        final d = res.data['data']?['request'];
+        return d is Map ? Map<String, dynamic>.from(d) : null;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<({bool ok, String message})> requestAccountDeletion({
+    required String reason,
+    String? email,
+    String? phone,
+  }) async {
+    try {
+      final res = await _api.post('/owner/account-deletion-request', data: {
+        'reason': reason,
+        if (email != null) 'email': email,
+        if (phone != null) 'phone': phone,
+      });
+      final msg = res.data['message']?.toString();
+      return (ok: res.data['success'] == true, message: msg ?? 'Request submitted');
+    } catch (e) {
+      return (ok: false, message: friendlyErrorMessage(e, fallback: 'Could not submit request'));
+    }
+  }
+
+  Future<({bool ok, String message})> cancelAccountDeletionRequest(String requestId) async {
+    try {
+      final res = await _api.post('/owner/account-deletion-request/$requestId/cancel');
+      final msg = res.data['message']?.toString();
+      return (ok: res.data['success'] == true, message: msg ?? 'Request cancelled');
+    } catch (e) {
+      return (ok: false, message: friendlyErrorMessage(e, fallback: 'Could not cancel request'));
+    }
+  }
+
   Future<void> removeStaff(String staffId) async {
     try {
       await _api.delete('/staff/$staffId');
@@ -431,9 +472,10 @@ class OwnerController extends StateNotifier<OwnerState> {
   Future<void> loadReportDetail(String reportId) async {
     try {
       final res = await _api.get('/reports/$reportId');
-      if (res.data['success'] == true)
+      if (res.data['success'] == true) {
         state = state.copyWith(
             selectedReport: ReportModel.fromJson(res.data['data']));
+      }
     } catch (_) {}
   }
 
@@ -466,10 +508,11 @@ class OwnerController extends StateNotifier<OwnerState> {
   Future<void> loadLiveLocations() async {
     try {
       final res = await _api.get('/location/live');
-      if (res.data['success'] == true)
+      if (res.data['success'] == true) {
         state = state.copyWith(
             staffLocations:
                 List<Map<String, dynamic>>.from(res.data['data'] ?? []));
+      }
     } catch (_) {}
   }
 

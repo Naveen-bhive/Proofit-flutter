@@ -44,6 +44,7 @@ import '../../features/owner/screens/working_hours_screen.dart';
 import '../../features/staff/screens/staff_jobs_screen.dart';
 import '../../features/staff/screens/staff_profile_screen.dart';
 import '../../features/owner/screens/pdf_export_screen.dart';
+import '../../features/owner/screens/account_deletion_screen.dart';
 import '../../shared/services/deep_link_utils.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -124,6 +125,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/owner/customers', builder: (_, __) => const CustomersScreen()),
       GoRoute(path: '/owner/jobs',          builder: (_, __) => const JobsScreen()),
       GoRoute(path: '/owner/working-hours', builder: (_, __) => const WorkingHoursScreen()),
+      GoRoute(path: '/owner/account-deletion', builder: (_, __) => const AccountDeletionScreen()),
       GoRoute(path: '/owner/staff-attendance', builder: (_, s) => StaffAttendanceScreen(
         staffId: s.pathParameters['staffId'],
         staffName: s.uri.queryParameters['name'] != null

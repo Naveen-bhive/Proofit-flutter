@@ -117,6 +117,11 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
         _settingRow(Icons.privacy_tip_outlined, 'Privacy Policy', '', onTap: () => _openUrl('https://proofitapp.in/ProofIt_PrivacyPolicy.html')),
         _settingRow(Icons.article_outlined, 'Terms & Conditions', '', onTap: () => _openUrl('https://proofitapp.in/ProofIt_TermsConditions.html')),
         _settingRow(Icons.info_outline, 'App Version', '1.0.0', onTap: null),
+        const SizedBox(height: 24),
+
+        _sectionTitle('DANGER ZONE'),
+        _settingRow(Icons.delete_forever_outlined, 'Delete Account', '',
+            onTap: () => context.push('/owner/account-deletion')),
         const SizedBox(height: 32),
 
         AppButton(label: 'Log Out', isOutlined: true, color: AppColors.red, icon: Icons.logout_rounded, onPressed: _logout),
@@ -151,16 +156,20 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
 
   Widget _settingToggle(String label, bool value, ValueChanged<bool> onChanged) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
       margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(12)),
-      child: SwitchListTile(
-        title: Text(label, style: const TextStyle(color: AppColors.light, fontSize: 14)),
-        value: value,
-        onChanged: onChanged,
-        activeThumbColor: AppColors.brand,
-        activeTrackColor: AppColors.brand.withValues(alpha: 0.35),
-        contentPadding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: SwitchListTile(
+          title: Text(label, style: const TextStyle(color: AppColors.light, fontSize: 14)),
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: AppColors.brand,
+          activeTrackColor: AppColors.brand.withValues(alpha: 0.35),
+          contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+        ),
       ),
     );
   }

@@ -126,13 +126,15 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
           sliver: SliverList(delegate: SliverChildListDelegate([
 
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(state.orgName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.white)),
-                Text(today, style: const TextStyle(color: AppColors.silver, fontSize: 13)),
-              ]),
-              Row(children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(state.orgName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.white)),
+                  Text(today, style: const TextStyle(color: AppColors.silver, fontSize: 13)),
+                ]),
+              ),
+              Row(mainAxisSize: MainAxisSize.min, children: [
                 Stack(children: [
-                  IconButton(icon: const Icon(Icons.notifications_outlined, color: AppColors.white),
+                  IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 36, minHeight: 36), icon: const Icon(Icons.notifications_outlined, color: AppColors.white),
                     onPressed: () async { await context.push('/owner/notifications'); _loadUnreadCount(); }),
                   if (_unreadCount > 0) Positioned(top: 8, right: 8,
                     child: Container(width: 16, height: 16,

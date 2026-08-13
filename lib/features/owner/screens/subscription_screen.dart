@@ -129,11 +129,14 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         context.pop();
       }
     } on PlatformException catch (e) {
-      final cancelled = PurchasesErrorHelper.getErrorCode(e) == PurchasesErrorCode.purchaseCancelledError;
+      final errorCode = PurchasesErrorHelper.getErrorCode(e);
+      debugPrint('RevenueCat purchase failed: code=${e.code} rcErrorCode=$errorCode message=${e.message} details=${e.details}');
+      final cancelled = errorCode == PurchasesErrorCode.purchaseCancelledError;
       if (!cancelled && mounted) {
         showErrorSnackBar(context, e, fallback: 'Could not complete purchase. Please try again.');
       }
     } catch (e) {
+      debugPrint('IAP purchase/verification failed: $e');
       if (mounted) showErrorSnackBar(context, e, fallback: 'Payment verification failed. Please contact support.');
     } finally { if (mounted) setState(() => _loading = false); }
   }

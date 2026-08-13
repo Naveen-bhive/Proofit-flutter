@@ -18,7 +18,16 @@ class AppTheme {
       backgroundColor: AppColors.dark,
       elevation: 0,
       centerTitle: false,
-      systemOverlayStyle: SystemUiOverlayStyle.light,
+      // Icon brightness only — no explicit bar colors. Setting statusBarColor/
+      // systemNavigationBarColor (as the SystemUiOverlayStyle.light preset does)
+      // forces Flutter to call the deprecated Window.setStatusBarColor/
+      // setNavigationBarColor APIs on every AppBar build; edge-to-edge mode
+      // already keeps the bars transparent without them.
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
       titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.white),
       iconTheme: IconThemeData(color: AppColors.white),
     ),

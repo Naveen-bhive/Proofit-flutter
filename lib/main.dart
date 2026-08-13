@@ -25,8 +25,13 @@ void main() async {
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   AppErrorHandler.init();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // Edge-to-edge explicitly, rather than relying on the API 35+ default, so
+  // behavior is consistent across Android versions (Play Console flags this).
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
+    // No explicit statusBarColor/systemNavigationBarColor: edge-to-edge makes
+    // bars transparent by default, and setting a color forces Flutter to call
+    // the now-deprecated Window.setStatusBarColor/setNavigationBarColor APIs.
     statusBarIconBrightness: Brightness.light,
   ));
   try {

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'photo_stamp_service.dart';
 import 'location_service.dart';
@@ -24,8 +23,7 @@ class CapturedPhoto {
 }
 
 class CameraService {
-  static final _picker     = ImagePicker();
-  static final _deviceInfo = DeviceInfoPlugin();
+  static final _picker = ImagePicker();
 
   static Future<bool> requestCameraPermission(BuildContext context) async {
     final status = await Permission.camera.request();
@@ -33,24 +31,6 @@ class CameraService {
     if (status.isPermanentlyDenied && context.mounted) {
       await _showSettingsDialog(context, 'Camera Access Required',
         'ProofIt needs camera access.\n\nGo to Settings → ProofIt → Camera.');
-    }
-    return false;
-  }
-
-  static Future<bool> requestStoragePermission(BuildContext context) async {
-    PermissionStatus status;
-    if (Platform.isAndroid) {
-      final info = await _deviceInfo.androidInfo;
-      status = info.version.sdkInt >= 33
-        ? await Permission.photos.request()
-        : await Permission.storage.request();
-    } else {
-      status = await Permission.photos.request();
-    }
-    if (status.isGranted || status.isLimited) return true;
-    if (status.isPermanentlyDenied && context.mounted) {
-      await _showSettingsDialog(context, 'Photo Library Access Required',
-        'ProofIt needs photo library access.\n\nGo to Settings → ProofIt → Photos.');
     }
     return false;
   }
@@ -113,7 +93,6 @@ class CameraService {
   }
 
   static Future<CapturedPhoto?> pickFromGallery(BuildContext context, {String? staffName, String? jobTitle}) async {
-    if (!await requestStoragePermission(context)) return null;
     try {
       final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 1920, maxHeight: 1920);
       if (picked == null) return null;
