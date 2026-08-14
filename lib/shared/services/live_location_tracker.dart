@@ -6,7 +6,10 @@ import 'location_service.dart';
 
 typedef LocationCallback = Future<void> Function(double latitude, double longitude);
 
-/// Keeps sending GPS updates while staff is checked in — including background / app minimized.
+/// Keeps sending GPS updates while staff is checked in.
+/// Android: continues in the background (foreground service + "Allow all the time").
+/// iOS: foreground-only — updates pause once the app is backgrounded, since the app
+/// no longer declares the "location" background mode (App Store Guideline 2.5.4).
 class LiveLocationTracker {
   static StreamSubscription<Position>? _subscription;
   static Timer? _heartbeatTimer;
@@ -89,11 +92,13 @@ class LiveLocationTracker {
       );
     }
     if (Platform.isIOS) {
+      // No "location" UIBackgroundMode on iOS (App Store Guideline 2.5.4) — updates
+      // are foreground-only and iOS pauses/stops them once the app is backgrounded.
       return AppleSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 0,
-        pauseLocationUpdatesAutomatically: false,
-        showBackgroundLocationIndicator: true,
+        pauseLocationUpdatesAutomatically: true,
+        showBackgroundLocationIndicator: false,
         activityType: ActivityType.other,
       );
     }

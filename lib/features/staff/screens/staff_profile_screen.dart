@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../shared/services/socket_service.dart';
 import '../../../shared/services/live_location_tracker.dart';
+import '../../../shared/services/google_auth_service.dart';
 import '../controllers/staff_controller.dart';
 import '../utils/attendance_gates.dart';
 
@@ -14,11 +15,44 @@ class StaffProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
+  bool _driveLinked   = false;
+  bool _checkingDrive = true;
+  bool _connectingDrive = false;
+
   @override
   void initState() {
     super.initState();
     ref.read(staffControllerProvider.notifier).loadProfileStats();
     ref.read(staffControllerProvider.notifier).syncOrgFromServer();
+    _checkDriveStatus();
+  }
+
+  Future<void> _checkDriveStatus() async {
+    // Silent-only check — never prompts. Just reflects whether a session
+    // from a previous interactive connect can still be resumed.
+    final result = await GoogleAuthService.ensureDriveAccess();
+    if (!mounted) return;
+    setState(() { _driveLinked = result.ok; _checkingDrive = false; });
+  }
+
+  Future<void> _connectDrive() async {
+    setState(() => _connectingDrive = true);
+    final result = await GoogleAuthService.ensureDriveAccess(interactive: true);
+    if (!mounted) return;
+    setState(() { _connectingDrive = false; _driveLinked = result.ok; });
+
+    if (result.ok) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Google Drive connected. Report photos will now upload to your Drive.'),
+        backgroundColor: AppColors.green,
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result.error ?? 'Could not connect Google Drive. Please try again.'),
+        backgroundColor: AppColors.red,
+        duration: const Duration(seconds: 6),
+      ));
+    }
   }
 
   @override
@@ -76,6 +110,25 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
                 valueColor: AlwaysStoppedAnimation(state.submittedToday >= state.dailyTarget ? AppColors.green : AppColors.brand),
                 minHeight: 8)),
             ])),
+
+        _section('STORAGE', [
+          _tile(
+            _driveLinked ? Icons.cloud_done_rounded : Icons.cloud_outlined,
+            _driveLinked ? AppColors.green : AppColors.brand,
+            _checkingDrive
+              ? 'Checking Google Drive...'
+              : _connectingDrive
+                ? 'Connecting...'
+                : _driveLinked
+                  ? 'Google Drive Connected'
+                  : 'Connect Google Drive',
+            (_checkingDrive || _connectingDrive)
+              ? () {}
+              : _driveLinked
+                ? _checkDriveStatus  // re-verify — catches silent token expiry
+                : _connectDrive,
+          ),
+        ]),
 
         _section('ATTENDANCE', [
           _tile(Icons.login_rounded,   state.isCheckedIn ? AppColors.green : AppColors.muted,

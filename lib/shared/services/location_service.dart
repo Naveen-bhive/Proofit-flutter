@@ -12,7 +12,14 @@ class LocationService {
   static StreamSubscription<Position>? _positionStream;
   static Function(Position)? onLocationUpdate;
 
+  /// On iOS this reports foreground permission instead of true "Always".
+  /// The app no longer requests background/"Always" location on iOS
+  /// (App Store Guideline 2.5.4 — employee tracking alone does not justify it),
+  /// so foreground permission is what "ready to track" means on that platform.
   static Future<bool> hasAlwaysPermission() async {
+    if (Platform.isIOS) {
+      return hasForegroundPermission();
+    }
     if (Platform.isAndroid) {
       return Permission.locationAlways.isGranted;
     }
@@ -98,6 +105,13 @@ class LocationService {
   /// 3) Request [Permission.locationAlways] (system dialog / settings)
   /// 4) If still denied, open App Settings with clear steps
   static Future<bool> ensureAlwaysLocationPermission(BuildContext context) async {
+    if (Platform.isIOS) {
+      // iOS: no background/"Always" location request (App Store Guideline 2.5.4).
+      // Foreground ("While Using the App") permission is all that's needed;
+      // live tracking pauses automatically once the app is backgrounded.
+      return requestPermission();
+    }
+
     final serviceOn = await Geolocator.isLocationServiceEnabled();
     if (!serviceOn) {
       if (context.mounted) {
@@ -195,6 +209,10 @@ class LocationService {
   /// Kept for call sites that don't have a [BuildContext].
   /// Prefer [ensureAlwaysLocationPermission] from UI screens.
   static Future<bool> requestBackgroundPermission() async {
+    if (Platform.isIOS) {
+      // iOS: no background/"Always" location request (App Store Guideline 2.5.4).
+      return hasForegroundPermission();
+    }
     final whenInUse = await Permission.locationWhenInUse.status;
     if (!whenInUse.isGranted && !await Permission.locationAlways.isGranted) {
       final result = await Permission.locationWhenInUse.request();
