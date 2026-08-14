@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
@@ -136,10 +137,12 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
     final alwaysOk = await _ensureBackgroundPermission(forcePrompt: true);
     if (!alwaysOk) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Select "Allow all the time" to check in. Live tracking needs background location.'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(Platform.isIOS
+            ? 'Location permission is required to check in.'
+            : 'Select "Allow all the time" to check in. Live tracking needs background location.'),
         backgroundColor: AppColors.brand,
-        duration: Duration(seconds: 4),
+        duration: const Duration(seconds: 4),
       ));
       return;
     }
@@ -305,9 +308,9 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                   ),
                   _gateChip(
                     ok: _hasAlwaysPermission,
-                    label: _hasAlwaysPermission
-                        ? 'Allow all the time enabled'
-                        : 'Allow all the time required',
+                    label: Platform.isIOS
+                        ? (_hasAlwaysPermission ? 'Location permission enabled' : 'Location permission required')
+                        : (_hasAlwaysPermission ? 'Allow all the time enabled' : 'Allow all the time required'),
                     onFix: () => _ensureBackgroundPermission(forcePrompt: true),
                   ),
                   _gateChip(
@@ -331,10 +334,12 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                     color: AppColors.green,
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'ProofIt will keep a permanent notification while you are checked in and share your live location with your owner.',
+                  Text(
+                    Platform.isIOS
+                        ? 'ProofIt shares your live location with your owner while the app is open.'
+                        : 'ProofIt will keep a permanent notification while you are checked in and share your live location with your owner.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.4),
+                    style: const TextStyle(color: AppColors.muted, fontSize: 12, height: 1.4),
                   ),
                   const SizedBox(height: 12),
                   AppButton(label: 'Cancel', isOutlined: true, onPressed: () => context.pop()),
