@@ -26,11 +26,15 @@ class AppButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         icon: icon != null ? Icon(icon, size: 18) : const SizedBox.shrink(),
         label: isLoading
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2))
             : Text(label),
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           side: BorderSide(color: color ?? AppColors.border),
           foregroundColor: color ?? AppColors.white,
         ),
@@ -40,10 +44,15 @@ class AppButton extends StatelessWidget {
       onPressed: isLoading ? null : onPressed,
       icon: icon != null ? Icon(icon, size: 18) : const SizedBox.shrink(),
       label: isLoading
-          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white))
           : Text(label),
       style: ElevatedButton.styleFrom(
         backgroundColor: color ?? AppColors.brand,
+        foregroundColor: AppColors.white,
         minimumSize: const Size(double.infinity, 56),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),

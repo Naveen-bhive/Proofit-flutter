@@ -1,4 +1,4 @@
-﻿import 'dart:io' show Platform;
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,23 +16,28 @@ import '../../../shared/services/revenue_cat_service.dart';
 
 class SubscriptionScreen extends ConsumerStatefulWidget {
   const SubscriptionScreen({super.key});
-  @override ConsumerState<SubscriptionScreen> createState() => _SubscriptionScreenState();
+  @override
+  ConsumerState<SubscriptionScreen> createState() => _SubscriptionScreenState();
 }
 
 class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Razorpay? _razorpay;
-  String?   _pendingPlanSlug;
-  bool      _loading = false;
-  bool      _plansLoading = true;
+  String? _pendingPlanSlug;
+  bool _loading = false;
+  bool _plansLoading = true;
 
-  static const List<Color> _cardColors = [AppColors.blue, AppColors.brand, Color(0xFF8B5CF6)];
+  static const List<Color> _cardColors = [
+    AppColors.blue,
+    AppColors.brand,
+    Color(0xFF8B5CF6)
+  ];
 
   @override
   void initState() {
     super.initState();
     _razorpay = Razorpay();
     _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleSuccess);
-    _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR,   _handleError);
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handleError);
     _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleWallet);
     Future.microtask(() async {
       await ref.read(ownerControllerProvider.notifier).loadSubscriptionStatus();
@@ -42,11 +47,16 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   }
 
   @override
-  void dispose() { _razorpay?.clear(); super.dispose(); }
+  void dispose() {
+    _razorpay?.clear();
+    super.dispose();
+  }
 
-  int _planTier(Map<String, dynamic> plan) => (plan['sortOrder'] as num?)?.toInt() ?? 0;
+  int _planTier(Map<String, dynamic> plan) =>
+      (plan['sortOrder'] as num?)?.toInt() ?? 0;
 
-  Map<String, dynamic>? _currentPlan(List<Map<String, dynamic>> plans, String slug) {
+  Map<String, dynamic>? _currentPlan(
+      List<Map<String, dynamic>> plans, String slug) {
     if (slug == 'free') return null;
     for (final p in plans) {
       if (p['slug'] == slug) return p;
@@ -54,15 +64,15 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     return null;
   }
 
-  List<Map<String, dynamic>> _upgradePlans(List<Map<String, dynamic>> plans, int currentTier) {
-    return plans
-        .where((p) => _planTier(p) > currentTier)
-        .toList()
+  List<Map<String, dynamic>> _upgradePlans(
+      List<Map<String, dynamic>> plans, int currentTier) {
+    return plans.where((p) => _planTier(p) > currentTier).toList()
       ..sort((a, b) => _planTier(a).compareTo(_planTier(b)));
   }
 
   String _priceLabel(dynamic rawPrice, dynamic rawDurationDays) {
-    final price = rawPrice is num ? rawPrice.toInt() : int.tryParse('$rawPrice') ?? 0;
+    final price =
+        rawPrice is num ? rawPrice.toInt() : int.tryParse('$rawPrice') ?? 0;
     final durationDays = rawDurationDays is num
         ? rawDurationDays.toInt()
         : int.tryParse('$rawDurationDays') ?? 30;
@@ -77,36 +87,56 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
 
     // iOS must go through RevenueCat/App Store — Apple requires IAP for
     // digital subscriptions. Android keeps the existing Razorpay flow.
-    if (Platform.isIOS && revenueCatProductId != null && revenueCatProductId.isNotEmpty) {
+    if (Platform.isIOS &&
+        revenueCatProductId != null &&
+        revenueCatProductId.isNotEmpty) {
       await _startIosPurchase(planSlug, planName, revenueCatProductId);
       return;
     }
 
-    setState(() { _pendingPlanSlug = planSlug; _loading = true; });
+    setState(() {
+      _pendingPlanSlug = planSlug;
+      _loading = true;
+    });
     try {
-      final result = await ref.read(ownerControllerProvider.notifier).createOrder(planSlug);
+      final result = await ref
+          .read(ownerControllerProvider.notifier)
+          .createOrder(planSlug);
       final data = result.data;
-      if (data == null) throw Exception(result.error ?? 'Could not start payment');
+      if (data == null) {
+        throw Exception(result.error ?? 'Could not start payment');
+      }
 
       final user = await AuthStorage.getUser();
 
       _razorpay!.open({
-        'key':         data['key'],
-        'amount':      data['amount'] is int ? data['amount'] : int.parse('${data['amount']}'),
-        'currency':    'INR',
-        'order_id':    data['orderId'],
-        'name':        'ProofIt',
+        'key': data['key'],
+        'amount': data['amount'] is int
+            ? data['amount']
+            : int.parse('${data['amount']}'),
+        'currency': 'INR',
+        'order_id': data['orderId'],
+        'name': 'ProofIt',
         'description': '$planName Plan',
-        'prefill':     {'contact': user?.phone ?? '', 'email': user?.email ?? ''},
-        'theme':       {'color': '#FF4D00'},
+        'prefill': {'contact': user?.phone ?? '', 'email': user?.email ?? ''},
+        'theme': {'color': '#2F80ED'},
       });
     } catch (e) {
-      if (mounted) showErrorSnackBar(context, e, fallback: 'Could not start payment. Please try again.');
-    } finally { if (mounted) setState(() => _loading = false); }
+      if (mounted) {
+        showErrorSnackBar(context, e,
+            fallback: 'Could not start payment. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
-  Future<void> _startIosPurchase(String planSlug, String planName, String revenueCatProductId) async {
-    setState(() { _pendingPlanSlug = planSlug; _loading = true; });
+  Future<void> _startIosPurchase(
+      String planSlug, String planName, String revenueCatProductId) async {
+    setState(() {
+      _pendingPlanSlug = planSlug;
+      _loading = true;
+    });
     try {
       final product = await RevenueCatService.getProduct(revenueCatProductId);
       if (product == null) {
@@ -117,7 +147,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
 
       // Backend re-verifies against RevenueCat's own servers before activating —
       // this call is what actually flips the org's plan, not the purchase itself.
-      final ok = await ref.read(ownerControllerProvider.notifier).syncIapPurchase();
+      final ok =
+          await ref.read(ownerControllerProvider.notifier).syncIapPurchase();
       await ref.read(ownerControllerProvider.notifier).loadSubscriptionStatus();
       final activatedPlan = ref.read(ownerControllerProvider).plan;
       if (!ok && activatedPlan != planSlug) {
@@ -125,29 +156,38 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       }
       await ref.read(ownerControllerProvider.notifier).loadAvailablePlans();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plan activated!'), backgroundColor: AppColors.green));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Plan activated!'),
+            backgroundColor: AppColors.green));
         context.pop();
       }
     } on PlatformException catch (e) {
       final errorCode = PurchasesErrorHelper.getErrorCode(e);
-      debugPrint('RevenueCat purchase failed: code=${e.code} rcErrorCode=$errorCode message=${e.message} details=${e.details}');
+      debugPrint(
+          'RevenueCat purchase failed: code=${e.code} rcErrorCode=$errorCode message=${e.message} details=${e.details}');
       final cancelled = errorCode == PurchasesErrorCode.purchaseCancelledError;
       if (!cancelled && mounted) {
-        showErrorSnackBar(context, e, fallback: 'Could not complete purchase. Please try again.');
+        showErrorSnackBar(context, e,
+            fallback: 'Could not complete purchase. Please try again.');
       }
     } catch (e) {
       debugPrint('IAP purchase/verification failed: $e');
-      if (mounted) showErrorSnackBar(context, e, fallback: 'Payment verification failed. Please contact support.');
-    } finally { if (mounted) setState(() => _loading = false); }
+      if (mounted) {
+        showErrorSnackBar(context, e,
+            fallback: 'Payment verification failed. Please contact support.');
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   void _handleSuccess(PaymentSuccessResponse r) async {
     try {
       final ok = await ref.read(ownerControllerProvider.notifier).verifyPayment(
-        orderId: r.orderId ?? '',
-        paymentId: r.paymentId ?? '',
-        signature: r.signature ?? '',
-      );
+            orderId: r.orderId ?? '',
+            paymentId: r.paymentId ?? '',
+            signature: r.signature ?? '',
+          );
       await ref.read(ownerControllerProvider.notifier).loadSubscriptionStatus();
       final activatedPlan = ref.read(ownerControllerProvider).plan;
       final expectedPlan = _pendingPlanSlug;
@@ -156,11 +196,16 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       }
       await ref.read(ownerControllerProvider.notifier).loadAvailablePlans();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plan activated!'), backgroundColor: AppColors.green));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Plan activated!'),
+            backgroundColor: AppColors.green));
         context.pop();
       }
     } catch (e) {
-      if (mounted) showErrorSnackBar(context, e, fallback: 'Payment verification failed. Please contact support.');
+      if (mounted) {
+        showErrorSnackBar(context, e,
+            fallback: 'Payment verification failed. Please contact support.');
+      }
     }
   }
 
@@ -181,124 +226,147 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(ownerControllerProvider);
-    final slug  = state.plan;
+    final slug = state.plan;
     final plans = state.availablePlans;
     final currentPlan = _currentPlan(plans, slug);
-    final currentTier = slug == 'free' ? 0 : (currentPlan != null ? _planTier(currentPlan) : 0);
+    final currentTier =
+        slug == 'free' ? 0 : (currentPlan != null ? _planTier(currentPlan) : 0);
     final upgrades = _upgradePlans(plans, currentTier);
 
     return Scaffold(
       backgroundColor: AppColors.dark,
       appBar: AppBar(title: const Text('Subscription')),
       body: _plansLoading
-        ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
-        : SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-
-        if (slug == 'free') ...[
-          _freeBanner(),
-        ] else if (currentPlan != null) ...[
-          _sectionLabel('Current plan'),
-          _planCard(
-            plan: currentPlan,
-            color: AppColors.brand,
-            isCurrent: true,
-            expiresAt: state.subscriptionExpiresAt,
-          ),
-        ] else ...[
-          _legacyCurrentBanner(slug, state.subscriptionExpiresAt),
-        ],
-
-        if (upgrades.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          _sectionLabel('Available upgrades'),
-          ...upgrades.asMap().entries.map((entry) {
-            final i = entry.key;
-            final p = entry.value;
-            return _planCard(
-              plan: p,
-              color: _cardColors[i % _cardColors.length],
-              isCurrent: false,
-              onUpgrade: _loading ? null : () => _startPayment(p),
-            );
-          }),
-        ] else if (slug != 'free' && currentPlan != null) ...[
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.dark2,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: const Text(
-              "You're on the highest plan. No further upgrades available.",
-              style: TextStyle(color: AppColors.silver, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ] else if (plans.isEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
-            child: Text(
-              'No plans available right now. Please check back later.',
-              style: TextStyle(color: AppColors.silver, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 40),
-      ])),
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.brand))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (slug == 'free') ...[
+                      _freeBanner(),
+                    ] else if (currentPlan != null) ...[
+                      _sectionLabel('Current plan'),
+                      _planCard(
+                        plan: currentPlan,
+                        color: AppColors.brand,
+                        isCurrent: true,
+                        expiresAt: state.subscriptionExpiresAt,
+                      ),
+                    ] else ...[
+                      _legacyCurrentBanner(slug, state.subscriptionExpiresAt),
+                    ],
+                    if (upgrades.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _sectionLabel('Available upgrades'),
+                      ...upgrades.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final p = entry.value;
+                        return _planCard(
+                          plan: p,
+                          color: _cardColors[i % _cardColors.length],
+                          isCurrent: false,
+                          onUpgrade: _loading ? null : () => _startPayment(p),
+                        );
+                      }),
+                    ] else if (slug != 'free' && currentPlan != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.dark2,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Text(
+                          "You're on the highest plan. No further upgrades available.",
+                          style:
+                              TextStyle(color: AppColors.silver, fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ] else if (plans.isEmpty) ...[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Text(
+                          'No plans available right now. Please check back later.',
+                          style:
+                              TextStyle(color: AppColors.silver, fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 40),
+                  ])),
     );
   }
 
   Widget _sectionLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 12, top: 4),
-    child: Text(text, style: const TextStyle(color: AppColors.silver, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-  );
+        padding: const EdgeInsets.only(bottom: 12, top: 4),
+        child: Text(text,
+            style: const TextStyle(
+                color: AppColors.silver,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5)),
+      );
 
   Widget _freeBanner() => Container(
-    padding: const EdgeInsets.all(14),
-    margin: const EdgeInsets.only(bottom: 20),
-    decoration: BoxDecoration(
-      color: AppColors.yellow.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.yellow.withValues(alpha: 0.3)),
-    ),
-    child: const Row(children: [
-      Icon(Icons.info_outline, color: AppColors.yellow, size: 18),
-      SizedBox(width: 10),
-      Expanded(child: Text(
-        'You are on the Free plan (1 staff). Upgrade to unlock more seats, export, live map and more.',
-        style: TextStyle(color: AppColors.yellow, fontSize: 13),
-      )),
-    ]),
-  );
+        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: AppColors.yellow.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.yellow.withValues(alpha: 0.3)),
+        ),
+        child: const Row(children: [
+          Icon(Icons.info_outline, color: AppColors.yellow, size: 18),
+          SizedBox(width: 10),
+          Expanded(
+              child: Text(
+            'You are on the Free plan (1 staff). Upgrade to unlock more seats, export, live map and more.',
+            style: TextStyle(color: AppColors.yellow, fontSize: 13),
+          )),
+        ]),
+      );
 
   Widget _legacyCurrentBanner(String slug, DateTime? expiresAt) => Container(
-    padding: const EdgeInsets.all(20),
-    margin: const EdgeInsets.only(bottom: 16),
-    decoration: BoxDecoration(
-      color: AppColors.brand.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.brand.withValues(alpha: 0.3)),
-    ),
-    child: Row(children: [
-      const Icon(Icons.workspace_premium_outlined, color: AppColors.brand, size: 28),
-      const SizedBox(width: 14),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Current Plan', style: TextStyle(color: AppColors.silver, fontSize: 12)),
-        Text('${slug[0].toUpperCase()}${slug.substring(1)}',
-          style: const TextStyle(color: AppColors.brand, fontSize: 22, fontWeight: FontWeight.w800)),
-      ])),
-      if (expiresAt != null)
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          const Text('Renews', style: TextStyle(color: AppColors.muted, fontSize: 11)),
-          Text(DateFormat('d MMM yyyy').format(expiresAt),
-            style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: AppColors.brand.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.brand.withValues(alpha: 0.3)),
+        ),
+        child: Row(children: [
+          const Icon(Icons.workspace_premium_outlined,
+              color: AppColors.brand, size: 28),
+          const SizedBox(width: 14),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                const Text('Current Plan',
+                    style: TextStyle(color: AppColors.silver, fontSize: 12)),
+                Text('${slug[0].toUpperCase()}${slug.substring(1)}',
+                    style: const TextStyle(
+                        color: AppColors.brand,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800)),
+              ])),
+          if (expiresAt != null)
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              const Text('Renews',
+                  style: TextStyle(color: AppColors.muted, fontSize: 11)),
+              Text(DateFormat('d MMM yyyy').format(expiresAt),
+                  style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+            ]),
         ]),
-    ]),
-  );
+      );
 
   Widget _planCard({
     required Map<String, dynamic> plan,
@@ -317,43 +385,59 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       decoration: BoxDecoration(
         color: isCurrent ? color.withValues(alpha: 0.08) : AppColors.dark2,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isCurrent ? color : AppColors.border, width: isCurrent ? 2 : 1),
+        border: Border.all(
+            color: isCurrent ? color : AppColors.border,
+            width: isCurrent ? 2 : 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Expanded(child: Text(name, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w800))),
+            Expanded(
+                child: Text(name,
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800))),
             Text(
               priceLabel,
-              style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                  color: color, fontSize: 20, fontWeight: FontWeight.w800),
             ),
           ]),
           if (isCurrent && expiresAt != null) ...[
             const SizedBox(height: 6),
             Text('Renews ${DateFormat('d MMM yyyy').format(expiresAt)}',
-              style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                style: const TextStyle(color: AppColors.muted, fontSize: 12)),
           ],
           const SizedBox(height: 12),
           _limit(Icons.people_outline, '$maxStaff staff'),
           if (features.isNotEmpty) ...[
             const SizedBox(height: 12),
             ...features.map((f) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(children: [
-                Icon(Icons.check_rounded, color: color, size: 14),
-                const SizedBox(width: 8),
-                Expanded(child: Text(f, style: const TextStyle(color: AppColors.light, fontSize: 13))),
-              ]),
-            )),
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(children: [
+                    Icon(Icons.check_rounded, color: color, size: 14),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: Text(f,
+                            style: const TextStyle(
+                                color: AppColors.light, fontSize: 13))),
+                  ]),
+                )),
           ],
           const SizedBox(height: 16),
           if (isCurrent)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-              child: Center(child: Text('Current Plan', style: TextStyle(color: color, fontWeight: FontWeight.w700))),
+              decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12)),
+              child: Center(
+                  child: Text('Current Plan',
+                      style: TextStyle(
+                          color: color, fontWeight: FontWeight.w700))),
             )
           else
             ElevatedButton(
@@ -361,19 +445,25 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
                 minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
               child: Text('Upgrade to $name',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white)),
             ),
         ]),
       ),
     );
   }
 
-  Widget _limit(IconData icon, String text) => Row(mainAxisSize: MainAxisSize.min, children: [
-    Icon(icon, color: AppColors.silver, size: 14),
-    const SizedBox(width: 4),
-    Text(text, style: const TextStyle(color: AppColors.silver, fontSize: 12)),
-  ]);
+  Widget _limit(IconData icon, String text) =>
+      Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: AppColors.silver, size: 14),
+        const SizedBox(width: 4),
+        Text(text,
+            style: const TextStyle(color: AppColors.silver, fontSize: 12)),
+      ]);
 }

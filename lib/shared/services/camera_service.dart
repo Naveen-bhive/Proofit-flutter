@@ -30,27 +30,33 @@ class CameraService {
     if (status.isGranted) return true;
     if (status.isPermanentlyDenied && context.mounted) {
       await _showSettingsDialog(context, 'Camera Access Required',
-        'ProofIt needs camera access.\n\nGo to Settings → ProofIt → Camera.');
+          'ProofIt needs camera access.\n\nGo to Settings → ProofIt → Camera.');
     }
     return false;
   }
 
   // ── Take photo → stamp → return file + capture metadata ─────────────
   // Upload to Drive is handled by submit flow
-  static Future<CapturedPhoto?> takePhoto(BuildContext context, {String? staffName, String? jobTitle}) async {
+  static Future<CapturedPhoto?> takePhoto(BuildContext context,
+      {String? staffName, String? jobTitle}) async {
     final hasCam = await requestCameraPermission(context);
     if (!hasCam) return null;
     try {
       final picked = await _picker.pickImage(
-        source: ImageSource.camera, imageQuality: 85,
-        maxWidth: 1920, maxHeight: 1920,
-        preferredCameraDevice: CameraDevice.rear);
+          source: ImageSource.camera,
+          imageQuality: 85,
+          maxWidth: 1920,
+          maxHeight: 1920,
+          preferredCameraDevice: CameraDevice.rear);
       if (picked == null) return null;
 
-      final file   = File(picked.path);
+      final file = File(picked.path);
       final sizeMB = await getFileSizeMB(file);
       if (sizeMB > 10) {
-        if (context.mounted) _showError(context, 'Photo too large (${sizeMB.toStringAsFixed(1)}MB). Max 10MB.');
+        if (context.mounted) {
+          _showError(context,
+              'Photo too large (${sizeMB.toStringAsFixed(1)}MB). Max 10MB.');
+        }
         return null;
       }
 
@@ -60,22 +66,22 @@ class CameraService {
       String? address;
       try {
         final pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-          timeLimit: const Duration(seconds: 5));
-        lat     = pos.latitude;
-        lng     = pos.longitude;
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 5));
+        lat = pos.latitude;
+        lng = pos.longitude;
         address = await LocationService.getAddressFromCoords(lat, lng);
       } catch (_) {}
 
       // Stamp timestamp + GPS into photo
       final stamped = await PhotoStampService.stampPhoto(
         originalFile: file,
-        capturedAt:   capturedAt,
-        latitude:     lat,
-        longitude:    lng,
-        address:      address,
-        staffName:    staffName,
-        jobTitle:     jobTitle,
+        capturedAt: capturedAt,
+        latitude: lat,
+        longitude: lng,
+        address: address,
+        staffName: staffName,
+        jobTitle: jobTitle,
       );
 
       return CapturedPhoto(
@@ -87,14 +93,21 @@ class CameraService {
       );
     } catch (e) {
       debugPrint('Camera error: $e');
-      if (context.mounted) _showError(context, 'Camera error. Please try again.');
+      if (context.mounted) {
+        _showError(context, 'Camera error. Please try again.');
+      }
       return null;
     }
   }
 
-  static Future<CapturedPhoto?> pickFromGallery(BuildContext context, {String? staffName, String? jobTitle}) async {
+  static Future<CapturedPhoto?> pickFromGallery(BuildContext context,
+      {String? staffName, String? jobTitle}) async {
     try {
-      final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 1920, maxHeight: 1920);
+      final picked = await _picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 85,
+          maxWidth: 1920,
+          maxHeight: 1920);
       if (picked == null) return null;
 
       final file = File(picked.path);
@@ -103,8 +116,8 @@ class CameraService {
       String? address;
       try {
         final pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-          timeLimit: const Duration(seconds: 5));
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 5));
         lat = pos.latitude;
         lng = pos.longitude;
         address = await LocationService.getAddressFromCoords(lat, lng);
@@ -127,7 +140,9 @@ class CameraService {
         longitude: lng,
         address: address,
       );
-    } catch (_) { return null; }
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<double> getFileSizeMB(File file) async {
@@ -135,19 +150,38 @@ class CameraService {
   }
 
   static void _showError(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: const Color(0xFFEF4444)));
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: const Color(0xFFEF4444)));
   }
 
-  static Future<void> _showSettingsDialog(BuildContext context, String title, String message) async {
-    await showDialog(context: context, builder: (_) => AlertDialog(
-      backgroundColor: const Color(0xFF1A1A1A),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-      content: Text(message, style: const TextStyle(color: Color(0xFFCCCCCC), height: 1.5)),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Color(0xFF999999)))),
-        TextButton(onPressed: () async { Navigator.pop(context); await openAppSettings(); },
-          child: const Text('Open Settings', style: TextStyle(color: Color(0xFFFF4D00), fontWeight: FontWeight.w700))),
-      ]));
+  static Future<void> _showSettingsDialog(
+      BuildContext context, String title, String message) async {
+    await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+                backgroundColor: const Color(0xFF1A1A1A),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                title: Text(title,
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w700)),
+                content: Text(message,
+                    style:
+                        const TextStyle(color: Color(0xFFCCCCCC), height: 1.5)),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel',
+                          style: TextStyle(color: Color(0xFF999999)))),
+                  TextButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await openAppSettings();
+                      },
+                      child: const Text('Open Settings',
+                          style: TextStyle(
+                              color: Color(0xFF2F80ED),
+                              fontWeight: FontWeight.w700))),
+                ]));
   }
 }

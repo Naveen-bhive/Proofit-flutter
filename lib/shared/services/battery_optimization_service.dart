@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +21,8 @@ class BatteryOptimizationService {
   static Future<bool> isIgnoringBatteryOptimizations() async {
     if (!Platform.isAndroid) return true;
     try {
-      final native = await _channel.invokeMethod<bool>('isIgnoringBatteryOptimizations');
+      final native =
+          await _channel.invokeMethod<bool>('isIgnoringBatteryOptimizations');
       if (native != null) return native;
     } catch (_) {}
     return Permission.ignoreBatteryOptimizations.isGranted;
@@ -40,11 +41,17 @@ class BatteryOptimizationService {
   static Future<bool> get isAggressiveOem async {
     final m = await manufacturer();
     const known = [
-      'xiaomi', 'redmi', 'poco',
-      'huawei', 'honor',
-      'oppo', 'realme',
-      'vivo', 'iqoo',
-      'oneplus', 'meizu',
+      'xiaomi',
+      'redmi',
+      'poco',
+      'huawei',
+      'honor',
+      'oppo',
+      'realme',
+      'vivo',
+      'iqoo',
+      'oneplus',
+      'meizu',
     ];
     return known.any(m.contains);
   }
@@ -109,7 +116,8 @@ class BatteryOptimizationService {
   static Future<bool> requestUnrestricted() async {
     if (!Platform.isAndroid) return true;
     try {
-      final opened = await _channel.invokeMethod<bool>('requestIgnoreBatteryOptimizations');
+      final opened = await _channel
+          .invokeMethod<bool>('requestIgnoreBatteryOptimizations');
       if (opened == true) return true;
     } catch (_) {}
     final status = await Permission.ignoreBatteryOptimizations.request();
@@ -119,7 +127,9 @@ class BatteryOptimizationService {
   static Future<bool> openBatterySettings() async {
     if (!Platform.isAndroid) return false;
     try {
-      return await _channel.invokeMethod<bool>('openBatteryOptimizationSettings') ?? false;
+      return await _channel
+              .invokeMethod<bool>('openBatteryOptimizationSettings') ??
+          false;
     } catch (_) {
       return openAppSettings();
     }
@@ -128,7 +138,8 @@ class BatteryOptimizationService {
   static Future<bool> openOemAutostartSettings() async {
     if (!Platform.isAndroid) return false;
     try {
-      return await _channel.invokeMethod<bool>('openOemAutostartSettings') ?? false;
+      return await _channel.invokeMethod<bool>('openOemAutostartSettings') ??
+          false;
     } catch (_) {
       return openAppSettings();
     }
@@ -159,7 +170,8 @@ class BatteryOptimizationService {
 
   /// Must be shown before check-in (Android). Marks warning as seen when dismissed.
   /// Returns true when the gate is satisfied (shown / not needed / already unrestricted).
-  static Future<bool> ensureWarningShownBeforeCheckIn(BuildContext context) async {
+  static Future<bool> ensureWarningShownBeforeCheckIn(
+      BuildContext context) async {
     if (!Platform.isAndroid) return true;
     if (!context.mounted) return false;
 
@@ -177,7 +189,8 @@ class BatteryOptimizationService {
     if (alreadyShown) return true;
 
     if (!context.mounted) return false;
-    await _showBatteryGuideDialog(context, unrestricted: unrestricted, forceMarkShown: true);
+    await _showBatteryGuideDialog(context,
+        unrestricted: unrestricted, forceMarkShown: true);
     return hasWarningBeenShown();
   }
 
@@ -191,7 +204,22 @@ class BatteryOptimizationService {
     if (unrestricted && !aggressive) return;
 
     if (!context.mounted) return;
-    await _showBatteryGuideDialog(context, unrestricted: unrestricted, forceMarkShown: true);
+    await _showBatteryGuideDialog(context,
+        unrestricted: unrestricted, forceMarkShown: true);
+  }
+
+  /// User-initiated fix from an existing warning banner. Always shows the
+  /// guide/settings actions, even if the pre-check-in warning was seen before.
+  static Future<void> showFixGuide(BuildContext context) async {
+    if (!Platform.isAndroid || !context.mounted) return;
+
+    final unrestricted = await isIgnoringBatteryOptimizations();
+    if (!context.mounted) return;
+    await _showBatteryGuideDialog(
+      context,
+      unrestricted: unrestricted,
+      forceMarkShown: true,
+    );
   }
 
   static Future<void> _showBatteryGuideDialog(
@@ -211,7 +239,10 @@ class BatteryOptimizationService {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Keep location running in background',
-          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 18),
+          style: TextStyle(
+              color: AppColors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 18),
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -222,7 +253,8 @@ class BatteryOptimizationService {
                 unrestricted
                     ? 'On ${guide.brandLabel} phones, also allow ProofIt to autostart so live tracking is not killed.'
                     : 'Your phone may stop ProofIt when the screen is locked. Set battery to Unrestricted so your owner keeps getting your live location.',
-                style: const TextStyle(color: AppColors.silver, height: 1.45, fontSize: 14),
+                style: const TextStyle(
+                    color: AppColors.silver, height: 1.45, fontSize: 14),
               ),
               const SizedBox(height: 14),
               Container(
@@ -231,20 +263,25 @@ class BatteryOptimizationService {
                 decoration: BoxDecoration(
                   color: AppColors.brand.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.brand.withValues(alpha: 0.35)),
+                  border: Border.all(
+                      color: AppColors.brand.withValues(alpha: 0.35)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'On ${guide.brandLabel}:',
-                      style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                      style: const TextStyle(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14),
                     ),
                     const SizedBox(height: 8),
                     for (var i = 0; i < guide.steps.length; i++) ...[
                       Text(
                         '${i + 1}. ${guide.steps[i]}',
-                        style: const TextStyle(color: AppColors.silver, height: 1.4, fontSize: 13),
+                        style: const TextStyle(
+                            color: AppColors.silver, height: 1.4, fontSize: 13),
                       ),
                       if (i < guide.steps.length - 1) const SizedBox(height: 6),
                     ],
@@ -256,9 +293,13 @@ class BatteryOptimizationService {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () async { await requestUnrestricted(); },
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.brand),
-                    child: const Text('Allow unrestricted', style: TextStyle(fontWeight: FontWeight.w700)),
+                    onPressed: () async {
+                      await requestUnrestricted();
+                    },
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.brand),
+                    child: const Text('Allow unrestricted',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
               if (!unrestricted) const SizedBox(height: 8),
@@ -266,8 +307,12 @@ class BatteryOptimizationService {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: () async { await openOemAutostartSettings(); },
-                    style: OutlinedButton.styleFrom(foregroundColor: AppColors.yellow, side: const BorderSide(color: AppColors.yellow)),
+                    onPressed: () async {
+                      await openOemAutostartSettings();
+                    },
+                    style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.yellow,
+                        side: const BorderSide(color: AppColors.yellow)),
                     child: const Text('Open Autostart settings'),
                   ),
                 ),
@@ -275,8 +320,12 @@ class BatteryOptimizationService {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () async { await openBatterySettings(); },
-                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.silver, side: const BorderSide(color: AppColors.border)),
+                  onPressed: () async {
+                    await openBatterySettings();
+                  },
+                  style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.silver,
+                      side: const BorderSide(color: AppColors.border)),
                   child: const Text('Open battery settings'),
                 ),
               ),
@@ -290,14 +339,17 @@ class BatteryOptimizationService {
               if (forceMarkShown) await _markWarningShown();
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text('I understand - Continue', style: TextStyle(color: AppColors.muted)),
+            child: const Text('I understand - Continue',
+                style: TextStyle(color: AppColors.muted)),
           ),
           TextButton(
             onPressed: () async {
               if (forceMarkShown) await _markWarningShown();
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text('Done', style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700)),
+            child: const Text('Done',
+                style: TextStyle(
+                    color: AppColors.brand, fontWeight: FontWeight.w700)),
           ),
         ],
       ),

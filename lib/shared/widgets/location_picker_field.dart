@@ -33,6 +33,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
   final _searchCtrl = TextEditingController();
   final _latCtrl = TextEditingController();
   final _lngCtrl = TextEditingController();
+  final _searchFocus = FocusNode();
 
   GoogleMapController? _mapCtrl;
   LatLng _pinPosition = _defaultCenter;
@@ -63,6 +64,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
     _searchDebounce?.cancel();
     _searchCtrl.removeListener(_onSearchChanged);
     _searchCtrl.dispose();
+    _searchFocus.dispose();
     _latCtrl.dispose();
     _lngCtrl.dispose();
     _mapCtrl?.dispose();
@@ -100,7 +102,8 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
 
   void _emitSelection() {
     widget.onPlaceSelected(SelectedPlace(
-      address: _address ?? '${_pinPosition.latitude}, ${_pinPosition.longitude}',
+      address:
+          _address ?? '${_pinPosition.latitude}, ${_pinPosition.longitude}',
       latitude: _pinPosition.latitude,
       longitude: _pinPosition.longitude,
     ));
@@ -128,7 +131,8 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
     _syncCoordFields();
     if (!geocode) return;
     _geocodeDebounce?.cancel();
-    _geocodeDebounce = Timer(const Duration(milliseconds: 450), _resolveAddress);
+    _geocodeDebounce =
+        Timer(const Duration(milliseconds: 450), _resolveAddress);
   }
 
   Future<void> _moveCamera(LatLng target, {double? zoom}) async {
@@ -157,7 +161,10 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
       final q = _searchCtrl.text;
       if (q.trim().length < 3) {
         if (mounted && requestId == _searchRequestId) {
-          setState(() { _suggestions = []; _searchLoading = false; });
+          setState(() {
+            _suggestions = [];
+            _searchLoading = false;
+          });
         }
         return;
       }
@@ -165,7 +172,10 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
       setState(() => _searchLoading = true);
       final results = await PlacesService.autocomplete(q);
       if (mounted && requestId == _searchRequestId) {
-        setState(() { _suggestions = results; _searchLoading = false; });
+        setState(() {
+          _suggestions = results;
+          _searchLoading = false;
+        });
       }
     });
   }
@@ -174,6 +184,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
     _searchDebounce?.cancel();
     _searchRequestId++;
     _ignoreNextSearchChange = true;
+    _searchFocus.unfocus();
     setState(() {
       _suggestions = [];
       _suggestionsDismissed = true;
@@ -182,11 +193,20 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
     });
     final place = await PlacesService.placeDetails(suggestion.placeId);
     if (!mounted) return;
-    setState(() => _searchLoading = false);
-    if (place == null) return;
+    if (place == null) {
+      setState(() {
+        _searchLoading = false;
+        _suggestions = [];
+        _suggestionsDismissed = true;
+      });
+      return;
+    }
 
     final target = LatLng(place.latitude, place.longitude);
     setState(() {
+      _searchLoading = false;
+      _suggestions = [];
+      _suggestionsDismissed = true;
       _pinPosition = target;
       _address = place.address;
       _zoom = 14;
@@ -205,8 +225,14 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
   void _applyManualCoords() {
     final lat = double.tryParse(_latCtrl.text.trim());
     final lng = double.tryParse(_lngCtrl.text.trim());
-    if (lat == null || lng == null || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      setState(() => _coordError = 'Enter valid latitude (-90 to 90) and longitude (-180 to 180)');
+    if (lat == null ||
+        lng == null ||
+        lat < -90 ||
+        lat > 90 ||
+        lng < -180 ||
+        lng > 180) {
+      setState(() => _coordError =
+          'Enter valid latitude (-90 to 90) and longitude (-180 to 180)');
       return;
     }
     final target = LatLng(lat, lng);
@@ -235,6 +261,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
         const SizedBox(height: 8),
         TextField(
           controller: _searchCtrl,
+          focusNode: _searchFocus,
           style: const TextStyle(color: AppColors.white),
           decoration: InputDecoration(
             hintText: 'Search city, district, or address',
@@ -246,7 +273,8 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                     child: SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.brand),
                     ),
                   )
                 : (_searchCtrl.text.isNotEmpty
@@ -272,15 +300,18 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                 shrinkWrap: true,
                 padding: EdgeInsets.zero,
                 itemCount: _suggestions.length.clamp(0, 5),
-                separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.border),
+                separatorBuilder: (_, __) =>
+                    const Divider(height: 1, color: AppColors.border),
                 itemBuilder: (_, i) {
                   final s = _suggestions[i];
                   return ListTile(
                     dense: true,
-                    leading: const Icon(Icons.place_outlined, color: AppColors.brand, size: 20),
+                    leading: const Icon(Icons.place_outlined,
+                        color: AppColors.brand, size: 20),
                     title: Text(
                       s.description,
-                      style: const TextStyle(color: AppColors.white, fontSize: 13),
+                      style:
+                          const TextStyle(color: AppColors.white, fontSize: 13),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -303,7 +334,9 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
             child: _loading
                 ? const ColoredBox(
                     color: AppColors.dark3,
-                    child: Center(child: CircularProgressIndicator(color: AppColors.brand)),
+                    child: Center(
+                        child:
+                            CircularProgressIndicator(color: AppColors.brand)),
                   )
                 : Stack(
                     alignment: Alignment.center,
@@ -335,12 +368,15 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                         rotateGesturesEnabled: true,
                         tiltGesturesEnabled: true,
                         mapToolbarEnabled: false,
-                        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                          Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+                        gestureRecognizers: <Factory<
+                            OneSequenceGestureRecognizer>>{
+                          Factory<OneSequenceGestureRecognizer>(
+                              () => EagerGestureRecognizer()),
                         },
                       ),
                       const IgnorePointer(
-                        child: Icon(Icons.location_pin, color: AppColors.brand, size: 42),
+                        child: Icon(Icons.location_pin,
+                            color: AppColors.brand, size: 42),
                       ),
                     ],
                   ),
@@ -361,7 +397,8 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                 _resolving
                     ? 'Getting address...'
                     : (_address ?? 'Move the map to set the job location'),
-                style: const TextStyle(color: AppColors.silver, fontSize: 12, height: 1.4),
+                style: const TextStyle(
+                    color: AppColors.silver, fontSize: 12, height: 1.4),
               ),
             ),
           ],
@@ -395,7 +432,8 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
               Expanded(
                 child: TextField(
                   controller: _latCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true, signed: true),
                   style: const TextStyle(color: AppColors.white, fontSize: 13),
                   decoration: const InputDecoration(
                     labelText: 'Latitude',
@@ -407,7 +445,8 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
               Expanded(
                 child: TextField(
                   controller: _lngCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true, signed: true),
                   style: const TextStyle(color: AppColors.white, fontSize: 13),
                   decoration: const InputDecoration(
                     labelText: 'Longitude',
@@ -419,7 +458,8 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
           ),
           if (_coordError != null) ...[
             const SizedBox(height: 6),
-            Text(_coordError!, style: const TextStyle(color: AppColors.red, fontSize: 12)),
+            Text(_coordError!,
+                style: const TextStyle(color: AppColors.red, fontSize: 12)),
           ],
           const SizedBox(height: 8),
           SizedBox(

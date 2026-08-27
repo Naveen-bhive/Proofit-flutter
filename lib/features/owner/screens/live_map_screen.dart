@@ -13,7 +13,8 @@ import '../controllers/owner_controller.dart';
 
 class LiveMapScreen extends ConsumerStatefulWidget {
   const LiveMapScreen({super.key});
-  @override ConsumerState<LiveMapScreen> createState() => _LiveMapScreenState();
+  @override
+  ConsumerState<LiveMapScreen> createState() => _LiveMapScreenState();
 }
 
 class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
@@ -42,7 +43,8 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
     _loadInitial();
     _setupSocket();
     // REST fallback - merge by timestamp so socket updates aren't overwritten.
-    _fallbackTimer = Timer.periodic(const Duration(seconds: 10), (_) => _loadInitial());
+    _fallbackTimer =
+        Timer.periodic(const Duration(seconds: 10), (_) => _loadInitial());
   }
 
   DateTime? _parseLastSeen(String? iso) {
@@ -93,7 +95,8 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
     _fitToMarkers();
   }
 
-  Map<String, dynamic> _normalizeLocation(String id, Map<String, dynamic> data) {
+  Map<String, dynamic> _normalizeLocation(
+      String id, Map<String, dynamic> data) {
     final lastSeen = data['lastSeen']?.toString() ??
         data['timestamp']?.toString() ??
         DateTime.now().toIso8601String();
@@ -147,7 +150,9 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
       setState(() {
         _mergeLocation(id, {
           ...data,
-          'lastSeen': data['lastSeen'] ?? data['timestamp'] ?? DateTime.now().toIso8601String(),
+          'lastSeen': data['lastSeen'] ??
+              data['timestamp'] ??
+              DateTime.now().toIso8601String(),
           'trackingStatus': data['trackingStatus'] ?? 'live',
           'isStale': false,
         });
@@ -157,7 +162,9 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
       if (!mounted) return;
       final id = data['staffId']?.toString() ?? '';
       if (id.isEmpty) return;
-      final loc = data['location'] is Map ? Map<String, dynamic>.from(data['location'] as Map) : null;
+      final loc = data['location'] is Map
+          ? Map<String, dynamic>.from(data['location'] as Map)
+          : null;
       final lat = (loc?['latitude'] ?? data['latitude']) as num?;
       final lng = (loc?['longitude'] ?? data['longitude']) as num?;
       if (lat == null || lng == null) return;
@@ -207,7 +214,8 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
     if (_mapCtrl == null || _liveLocations.isEmpty) return;
 
     final points = _liveLocations.values
-        .map((l) => LatLng((l['lat'] as num).toDouble(), (l['lng'] as num).toDouble()))
+        .map((l) =>
+            LatLng((l['lat'] as num).toDouble(), (l['lng'] as num).toDouble()))
         .toList();
     if (points.length == 1) {
       _mapCtrl!.animateCamera(CameraUpdate.newLatLngZoom(points.first, 14));
@@ -223,7 +231,8 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
       maxLng = maxLng > p.longitude ? maxLng : p.longitude;
     }
     _mapCtrl!.animateCamera(CameraUpdate.newLatLngBounds(
-      LatLngBounds(southwest: LatLng(minLat, minLng), northeast: LatLng(maxLat, maxLng)),
+      LatLngBounds(
+          southwest: LatLng(minLat, minLng), northeast: LatLng(maxLat, maxLng)),
       64,
     ));
   }
@@ -252,23 +261,24 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
   int get _offlineCount => _liveLocations.length - _liveCount;
 
   Set<Marker> get _markers => _liveLocations.values.map((l) {
-    final id = l['staffId']?.toString() ?? '';
-    final status = l['trackingStatus']?.toString() ?? 'live';
-    final hue = switch (status) {
-      'impaired' => BitmapDescriptor.hueRed,
-      'stale'    => BitmapDescriptor.hueYellow,
-      _          => BitmapDescriptor.hueOrange,
-    };
-    return Marker(
-      markerId: MarkerId(id),
-      position: LatLng((l['lat'] as num).toDouble(), (l['lng'] as num).toDouble()),
-      icon: BitmapDescriptor.defaultMarkerWithHue(hue),
-      infoWindow: InfoWindow(
-        title: l['name']?.toString() ?? 'Staff',
-        snippet: _snippetFor(l),
-      ),
-    );
-  }).toSet();
+        final id = l['staffId']?.toString() ?? '';
+        final status = l['trackingStatus']?.toString() ?? 'live';
+        final hue = switch (status) {
+          'impaired' => BitmapDescriptor.hueRed,
+          'stale' => BitmapDescriptor.hueYellow,
+          _ => BitmapDescriptor.hueGreen,
+        };
+        return Marker(
+          markerId: MarkerId(id),
+          position: LatLng(
+              (l['lat'] as num).toDouble(), (l['lng'] as num).toDouble()),
+          icon: BitmapDescriptor.defaultMarkerWithHue(hue),
+          infoWindow: InfoWindow(
+            title: l['name']?.toString() ?? 'Staff',
+            snippet: _snippetFor(l),
+          ),
+        );
+      }).toSet();
 
   String _snippetFor(Map<String, dynamic> l) {
     final status = l['trackingStatus']?.toString() ?? 'live';
@@ -280,7 +290,9 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
           : 'Live tracking interrupted · last ping $age';
     }
     if (status == 'stale') {
-      return age == null ? 'No location signal' : 'No location signal · last ping $age';
+      return age == null
+          ? 'No location signal'
+          : 'No location signal · last ping $age';
     }
     return age == null ? 'Live' : 'Live · updated $age';
   }
@@ -303,7 +315,8 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
     if (_liveLocations.isNotEmpty) {
       final first = _liveLocations.values.first;
       return CameraPosition(
-        target: LatLng((first['lat'] as num).toDouble(), (first['lng'] as num).toDouble()),
+        target: LatLng(
+            (first['lat'] as num).toDouble(), (first['lng'] as num).toDouble()),
         zoom: 13,
       );
     }
@@ -312,7 +325,8 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasAccess = ref.read(ownerControllerProvider.notifier).hasFeature('liveMap');
+    final hasAccess =
+        ref.read(ownerControllerProvider.notifier).hasFeature('liveMap');
     final badgeLabel = _offlineCount > 0
         ? '$_liveCount live · $_offlineCount no signal'
         : '${_liveLocations.length} live';
@@ -322,57 +336,65 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.dark,
-      appBar: AppBar(title: Row(children: [
-        const Text('Live Map'),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: badgeColor.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(100),
-            ),
-            child: Text(
-              badgeLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: badgeColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+      appBar: AppBar(
+          title: Row(children: [
+            const Text('Live Map'),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  badgeLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: badgeColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-      ]), actions: [
-        IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _loadInitial),
-        if (_liveLocations.isNotEmpty)
-          IconButton(icon: const Icon(Icons.fit_screen_outlined), onPressed: _fitToMarkers),
-      ]),
+          ]),
+          actions: [
+            IconButton(
+                icon: const Icon(Icons.refresh_rounded),
+                onPressed: _loadInitial),
+            if (_liveLocations.isNotEmpty)
+              IconButton(
+                  icon: const Icon(Icons.fit_screen_outlined),
+                  onPressed: _fitToMarkers),
+          ]),
       body: PlanGate(
         hasAccess: hasAccess,
         requiredPlan: 'Pro',
         child: Stack(children: [
           if (_showMap)
-          GoogleMap(
-            key: const ValueKey('owner-live-map'),
-            onMapCreated: (c) {
-              _mapCtrl = c;
-              _fitToMarkers();
-            },
-            initialCameraPosition: _initialCamera,
-            markers: _markers,
-            padding: const EdgeInsets.only(bottom: 56),
-            myLocationEnabled: false,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: true,
-            mapToolbarEnabled: false,
-          )
+            GoogleMap(
+              key: const ValueKey('owner-live-map'),
+              onMapCreated: (c) {
+                _mapCtrl = c;
+                _fitToMarkers();
+              },
+              initialCameraPosition: _initialCamera,
+              markers: _markers,
+              padding: const EdgeInsets.only(bottom: 56),
+              myLocationEnabled: false,
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: true,
+              mapToolbarEnabled: false,
+            )
           else
             const ColoredBox(color: AppColors.dark, child: SizedBox.expand()),
           if (_liveLocations.isEmpty)
             Positioned(
-              left: 16, right: 16, bottom: 24,
+              left: 16,
+              right: 16,
+              bottom: 24,
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -381,11 +403,14 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
                   border: Border.all(color: AppColors.border),
                 ),
                 child: const Row(children: [
-                  Icon(Icons.location_off_outlined, color: AppColors.muted, size: 22),
+                  Icon(Icons.location_off_outlined,
+                      color: AppColors.muted, size: 22),
                   SizedBox(width: 12),
-                  Expanded(child: Text(
+                  Expanded(
+                      child: Text(
                     'No staff checked in yet. Staff appear here when they check in and share location.',
-                    style: TextStyle(color: AppColors.silver, fontSize: 13, height: 1.4),
+                    style: TextStyle(
+                        color: AppColors.silver, fontSize: 13, height: 1.4),
                   )),
                 ]),
               ),

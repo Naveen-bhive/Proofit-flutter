@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
+import '../../shared/services/auth_storage.dart';
 
 final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
 
@@ -15,14 +16,15 @@ class ApiService {
   late final Dio _dio;
   final _storage = const FlutterSecureStorage();
   Future<bool>? _refreshFuture;
+  bool _refreshWasUnauthorized = false;
 
   ApiService() {
     _dio = Dio(BaseOptions(
-      baseUrl:        AppConstants.baseUrl,
+      baseUrl: AppConstants.baseUrl,
       connectTimeout: const Duration(seconds: 12),
       receiveTimeout: const Duration(seconds: 12),
-      sendTimeout:    const Duration(seconds: 12),
-      headers:        {'Content-Type': 'application/json'},
+      sendTimeout: const Duration(seconds: 12),
+      headers: {'Content-Type': 'application/json'},
     ));
 
     _dio.interceptors.add(InterceptorsWrapper(
@@ -37,7 +39,11 @@ class ApiService {
       },
       onError: (error, handler) async {
         final path = error.requestOptions.path;
-        if (path.contains('/auth/login') || path.contains('/auth/google') || path.contains('/auth/refresh-token')) {
+        if (path.contains('/auth/login') ||
+            path.contains('/auth/google') ||
+            path.contains('/auth/apple') ||
+            path.contains('/auth/verify-otp') ||
+            path.contains('/auth/refresh-token')) {
           return handler.next(error);
         }
 
@@ -53,23 +59,27 @@ class ApiService {
             }
           } catch (_) {}
 
-          await _storage.deleteAll();
-          onUnauthorized?.call();
+          if (_refreshWasUnauthorized) {
+            await AuthStorage.clear();
+            await clearToken();
+            onUnauthorized?.call();
+          }
         }
 
         return handler.next(error);
       },
     ));
-
   }
 
   Future<bool> _sharedRefresh() {
-    _refreshFuture ??= _refreshToken().whenComplete(() => _refreshFuture = null);
+    _refreshFuture ??=
+        _refreshToken().whenComplete(() => _refreshFuture = null);
     return _refreshFuture!;
   }
 
   Future<bool> _refreshToken() async {
     try {
+      _refreshWasUnauthorized = false;
       final token = await _storage.read(key: AppConstants.tokenKey);
       if (token == null) return false;
       final res = await Dio(BaseOptions(
@@ -80,11 +90,17 @@ class ApiService {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       if (res.data['success'] == true) {
-        await _storage.write(key: AppConstants.tokenKey, value: res.data['data']['token']);
+        await _storage.write(
+            key: AppConstants.tokenKey, value: res.data['data']['token']);
         return true;
       }
       return false;
-    } catch (_) { return false; }
+    } on DioException catch (e) {
+      _refreshWasUnauthorized = e.response?.statusCode == 401;
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<Response> get(String path, {Map<String, dynamic>? params}) =>
@@ -96,19 +112,24 @@ class ApiService {
   Future<Response> put(String path, {dynamic data}) =>
       _dio.put(path, data: data);
 
-  Future<Response> delete(String path) =>
-      _dio.delete(path);
+  Future<Response> delete(String path) => _dio.delete(path);
 
-  Future<Response> uploadMultipart(String path, {required File file, required String mimeType}) async {
+  Future<Response> uploadMultipart(String path,
+      {required File file, required String mimeType}) async {
     final form = FormData.fromMap({
-      'file': await MultipartFile.fromFile(file.path, filename: file.path.split('/').last, contentType: DioMediaType.parse(mimeType)),
+      'file': await MultipartFile.fromFile(file.path,
+          filename: file.path.split('/').last,
+          contentType: DioMediaType.parse(mimeType)),
     });
-    return _dio.post(path, data: form, options: Options(contentType: 'multipart/form-data'));
+    return _dio.post(path,
+        data: form, options: Options(contentType: 'multipart/form-data'));
   }
 
-  Future<void> saveToken(String token) => _storage.write(key: AppConstants.tokenKey, value: token);
+  Future<void> saveToken(String token) =>
+      _storage.write(key: AppConstants.tokenKey, value: token);
   Future<void> clearToken() async {
     await _storage.delete(key: AppConstants.tokenKey);
   }
-  Future<String?> getToken()           => _storage.read(key: AppConstants.tokenKey);
+
+  Future<String?> getToken() => _storage.read(key: AppConstants.tokenKey);
 }
