@@ -109,6 +109,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Phone Number *',
                           hintText: '10-digit mobile number',
+                          prefixIcon: Icon(Icons.phone_outlined,
+                              color: AppColors.muted),
                           prefixText: '+91 ',
                           prefixStyle: TextStyle(color: AppColors.silver),
                         ),

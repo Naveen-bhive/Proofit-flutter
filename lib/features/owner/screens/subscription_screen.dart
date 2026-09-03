@@ -83,6 +83,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Future<void> _startPayment(Map<String, dynamic> plan) async {
     final planSlug = plan['slug'] as String? ?? '';
     final planName = plan['name'] as String? ?? 'Plan';
+    if (planSlug.toLowerCase() == 'enterprise' || planName.toLowerCase().contains('enterprise')) {
+      context.push('/owner/enterprise-request');
+      return;
+    }
     final revenueCatProductId = plan['revenueCatProductId'] as String?;
 
     // iOS must go through RevenueCat/App Store — Apple requires IAP for
@@ -448,7 +452,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text('Upgrade to $name',
+              child: Text(name.toLowerCase().contains('enterprise') ? 'Contact Sales' : 'Upgrade to $name',
                   style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,

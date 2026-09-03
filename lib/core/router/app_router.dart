@@ -44,6 +44,7 @@ import '../../features/staff/screens/staff_jobs_screen.dart';
 import '../../features/staff/screens/staff_profile_screen.dart';
 import '../../features/owner/screens/pdf_export_screen.dart';
 import '../../features/owner/screens/account_deletion_screen.dart';
+import '../../features/owner/screens/enterprise_request_screen.dart';
 import '../../shared/services/deep_link_utils.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -177,6 +178,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/owner/subscription',
           builder: (_, __) => const SubscriptionScreen()),
+      GoRoute(path: '/owner/enterprise-request', builder: (_, __) => const EnterpriseRequestScreen()),
       GoRoute(
           path: '/owner/payment-history',
           builder: (_, __) => const PaymentHistoryScreen()),

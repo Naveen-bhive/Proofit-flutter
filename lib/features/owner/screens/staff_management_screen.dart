@@ -43,6 +43,57 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
     );
   }
 
+  Future<void> _confirmRemove(Map<String, dynamic> staff, bool pending) async {
+    final name = (staff['name'] ?? 'this staff member').toString();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.dark2,
+        title: Text(pending ? 'Cancel invitation?' : 'Remove staff member?', style: const TextStyle(color: AppColors.white)),
+        content: Text('Are you sure you want to ${pending ? 'cancel this invitation' : 'remove $name'}?', style: const TextStyle(color: AppColors.silver)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(pending ? 'Cancel invite' : 'Remove', style: const TextStyle(color: AppColors.red))),
+        ],
+      ),
+    );
+    if (confirmed == true) await ref.read(ownerControllerProvider.notifier).removeStaff(staff['_id'].toString());
+  }
+
+  Future<void> _showSetTarget(Map<String, dynamic> staff) async {
+    final controller = TextEditingController(text: '${staff['dailyTarget'] ?? 0}');
+    String? error;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (_, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.dark2,
+          title: const Text('Set Daily Target', style: TextStyle(color: AppColors.white)),
+          content: TextField(controller: controller, autofocus: true, keyboardType: TextInputType.number, style: const TextStyle(color: AppColors.white), decoration: InputDecoration(labelText: 'Jobs per day', errorText: error)),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            TextButton(onPressed: () async {
+              final value = int.tryParse(controller.text.trim());
+              if (value == null || value < 0) {
+                setDialogState(() => error = 'Enter zero or a positive whole number');
+                return;
+              }
+              final result = await ref.read(ownerControllerProvider.notifier).setStaffTarget(staff['_id'].toString(), value);
+              if (!dialogContext.mounted) return;
+              if (result.ok) {
+                Navigator.pop(dialogContext);
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message), backgroundColor: AppColors.green));
+              } else {
+                setDialogState(() => error = result.message);
+              }
+            }, child: const Text('Save', style: TextStyle(color: AppColors.brand))),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(ownerControllerProvider);
@@ -124,7 +175,8 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                             ),
                           ],
                           onSelected: (val) {
-                            if (val == 'remove') ref.read(ownerControllerProvider.notifier).removeStaff(s['_id']);
+                            if (val == 'target') _showSetTarget(s);
+                            if (val == 'remove') _confirmRemove(s, pending);
                           },
                         ),
                       ]),

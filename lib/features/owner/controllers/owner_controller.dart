@@ -442,11 +442,15 @@ class OwnerController extends StateNotifier<OwnerState> {
     } catch (_) {}
   }
 
-  Future<void> setStaffTarget(String staffId, int target) async {
+  Future<({bool ok, String message})> setStaffTarget(String staffId, int target) async {
     try {
-      await _api.put('/staff/$staffId/target', data: {'target': target});
+      final res = await _api.put('/staff/$staffId/target', data: {'target': target});
       await loadStaffProfile(staffId);
-    } catch (_) {}
+      await loadStaff();
+      return (ok: true, message: res.data['message']?.toString() ?? 'Daily target updated');
+    } catch (e) {
+      return (ok: false, message: friendlyErrorMessage(e, fallback: 'Could not update daily target'));
+    }
   }
 
   Future<void> loadStaffProfile(String staffId) async {

@@ -43,6 +43,25 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
     ));
   }
 
+  Future<void> _confirmRemove() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.dark2,
+        title: const Text('Remove staff member?', style: TextStyle(color: AppColors.white)),
+        content: const Text('This staff member will no longer have access to your organisation.', style: TextStyle(color: AppColors.silver)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Remove', style: TextStyle(color: AppColors.red))),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ref.read(ownerControllerProvider.notifier).removeStaff(widget.staffId);
+      if (mounted) context.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state   = ref.watch(ownerControllerProvider);
@@ -56,10 +75,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
         title: Text(profile?['name'] ?? 'Staff Profile'),
         actions: [
           IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.red),
-            onPressed: () async {
-              await ref.read(ownerControllerProvider.notifier).removeStaff(widget.staffId);
-              if (context.mounted) context.pop();
-            }),
+            onPressed: _confirmRemove),
         ],
       ),
       body: profile == null

@@ -294,6 +294,8 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                   decoration: const InputDecoration(
                     labelText: 'Phone Number *',
                     hintText: '10-digit mobile number',
+                    prefixIcon:
+                        Icon(Icons.phone_outlined, color: AppColors.muted),
                     prefixText: '+91 ',
                     prefixStyle: TextStyle(color: AppColors.silver),
                   ),
@@ -434,7 +436,7 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
         left: 20,
         right: 20,
-        top: 24,
+        top: MediaQuery.of(context).padding.top + 24,
       ),
       child: SingleChildScrollView(
         child: Column(

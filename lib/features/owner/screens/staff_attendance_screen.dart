@@ -57,8 +57,15 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                     final r = _records[i];
                     final staff = r['staffId'];
                     final name = staff is Map ? (staff['name'] ?? '') : '';
-                    final checkIn = r['checkInTime'] != null ? DateTime.tryParse(r['checkInTime']) : null;
-                    final checkOut = r['checkOutTime'] != null ? DateTime.tryParse(r['checkOutTime']) : null;
+                    // Use organisation-local labels supplied by the API. The
+                    // raw ISO timestamps are UTC and previously shifted in the
+                    // owner view according to the owner's device timezone.
+                    final checkIn = r['checkInTimeLabel'] != null
+                        ? DateFormat('d MMM, h:mm a').tryParse(r['checkInTimeLabel'].toString())
+                        : null;
+                    final checkOut = r['checkOutTimeLabel'] != null
+                        ? DateFormat('d MMM, h:mm a').tryParse(r['checkOutTimeLabel'].toString())
+                        : null;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(16),
