@@ -83,7 +83,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Future<void> _startPayment(Map<String, dynamic> plan) async {
     final planSlug = plan['slug'] as String? ?? '';
     final planName = plan['name'] as String? ?? 'Plan';
-    if (planSlug.toLowerCase() == 'enterprise' || planName.toLowerCase().contains('enterprise')) {
+    if (planSlug.toLowerCase() == 'enterprise' ||
+        planName.toLowerCase().contains('enterprise')) {
       context.push('/owner/enterprise-request');
       return;
     }
@@ -383,6 +384,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final maxStaff = plan['maxStaff']?.toString() ?? '-';
     final name = plan['name'] as String? ?? 'Plan';
     final priceLabel = _priceLabel(plan['price'], plan['durationDays']);
+    final isEnterprise = name.toLowerCase().contains('enterprise');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -414,8 +416,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             Text('Renews ${DateFormat('d MMM yyyy').format(expiresAt)}',
                 style: const TextStyle(color: AppColors.muted, fontSize: 12)),
           ],
-          const SizedBox(height: 12),
-          _limit(Icons.people_outline, '$maxStaff staff'),
+          if (!isEnterprise) ...[
+            const SizedBox(height: 12),
+            _limit(Icons.people_outline, '$maxStaff staff'),
+          ],
           if (features.isNotEmpty) ...[
             const SizedBox(height: 12),
             ...features.map((f) => Padding(
@@ -452,7 +456,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text(name.toLowerCase().contains('enterprise') ? 'Contact Sales' : 'Upgrade to $name',
+              child: Text(
+                  name.toLowerCase().contains('enterprise')
+                      ? 'Contact Sales'
+                      : 'Upgrade to $name',
                   style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
