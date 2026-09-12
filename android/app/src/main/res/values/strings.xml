@@ -1,0 +1,6 @@
+<resources>
+    <!-- Replace these with the values from Meta for Developers before release. -->
+    <string name="facebook_app_id">1084214767332354</string>
+    <string name="facebook_client_token">010e3bd9bf7aa85d8b200b0ff4800568</string>
+    <string name="fb_login_protocol_scheme">fb1084214767332354</string>
+</resources>

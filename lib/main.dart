@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,7 @@ import 'core/theme/app_theme.dart';
 import 'shared/services/notification_service.dart';
 import 'shared/services/auth_storage.dart';
 import 'shared/services/deep_link_service.dart';
+import 'shared/services/meta_app_events_service.dart';
 import 'shared/services/revenue_cat_service.dart';
 import 'shared/services/socket_service.dart';
 import 'shared/widgets/error_boundary.dart';
@@ -50,30 +52,57 @@ void main() async {
   runApp(const ProviderScope(child: ErrorBoundary(child: ProofItApp())));
 }
 
+Future<void> _requestTrackingPermissionIfNeeded() async {
+  if (!Platform.isIOS) return;
+
+  try {
+    final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+    if (status == TrackingStatus.notDetermined) {
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      final updatedStatus =
+          await AppTrackingTransparency.requestTrackingAuthorization();
+      debugPrint('ATT permission status: $updatedStatus');
+    } else {
+      debugPrint('ATT permission status: $status');
+    }
+  } catch (e) {
+    debugPrint('ATT permission request failed: $e');
+  }
+}
+
 class ProofItApp extends ConsumerStatefulWidget {
   const ProofItApp({super.key});
   @override
   ConsumerState<ProofItApp> createState() => _ProofItAppState();
 }
 
-class _ProofItAppState extends ConsumerState<ProofItApp> with WidgetsBindingObserver {
+class _ProofItAppState extends ConsumerState<ProofItApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initNotifications();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initTrackingAndMetaEvents();
       final router = ref.read(appRouterProvider);
       DeepLinkService.listen(router);
       NotificationService.attachRouter(router);
     });
   }
 
+  Future<void> _initTrackingAndMetaEvents() async {
+    await _requestTrackingPermissionIfNeeded();
+    await MetaAppEventsService.configure();
+  }
+
   Future<void> _initNotifications() async {
     await NotificationService.init(onTokenRefresh: (token) async {
       try {
         if (!await AuthStorage.isLoggedIn()) return;
-        await ref.read(apiServiceProvider).post('/notifications/fcm-token', data: {
+        await ref
+            .read(apiServiceProvider)
+            .post('/notifications/fcm-token', data: {
           'token': token,
           'platform': Platform.isIOS ? 'ios' : 'android',
         });
@@ -99,7 +128,8 @@ class _ProofItAppState extends ConsumerState<ProofItApp> with WidgetsBindingObse
         if (!isLoggedIn) return;
         await NotificationService.clearBadge();
         await ref.read(authControllerProvider.notifier).syncFcmToken();
-        final org = await ref.read(authControllerProvider.notifier).syncOrgFromServer();
+        final org =
+            await ref.read(authControllerProvider.notifier).syncOrgFromServer();
         final user = await AuthStorage.getUser();
         if (org != null && user != null) {
           if (user.role == 'owner') {

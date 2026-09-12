@@ -12,6 +12,7 @@ import '../controllers/owner_controller.dart';
 
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../shared/services/auth_storage.dart';
+import '../../../shared/services/meta_app_events_service.dart';
 import '../../../shared/services/revenue_cat_service.dart';
 
 class SubscriptionScreen extends ConsumerStatefulWidget {
@@ -23,6 +24,8 @@ class SubscriptionScreen extends ConsumerStatefulWidget {
 class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Razorpay? _razorpay;
   String? _pendingPlanSlug;
+  String? _pendingPlanName;
+  double? _pendingPlanAmount;
   bool _loading = false;
   bool _plansLoading = true;
 
@@ -80,6 +83,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     return '\u20B9$price${durationDays == 30 ? '/mo' : '/${durationDays}d'}';
   }
 
+  double _planAmount(Map<String, dynamic> plan) {
+    final rawPrice = plan['price'];
+    if (rawPrice is num) return rawPrice.toDouble();
+    return double.tryParse('$rawPrice') ?? 0;
+  }
+
   Future<void> _startPayment(Map<String, dynamic> plan) async {
     final planSlug = plan['slug'] as String? ?? '';
     final planName = plan['name'] as String? ?? 'Plan';
@@ -95,12 +104,19 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     if (Platform.isIOS &&
         revenueCatProductId != null &&
         revenueCatProductId.isNotEmpty) {
-      await _startIosPurchase(planSlug, planName, revenueCatProductId);
+      await _startIosPurchase(
+        planSlug,
+        planName,
+        revenueCatProductId,
+        _planAmount(plan),
+      );
       return;
     }
 
     setState(() {
       _pendingPlanSlug = planSlug;
+      _pendingPlanName = planName;
+      _pendingPlanAmount = _planAmount(plan);
       _loading = true;
     });
     try {
@@ -113,6 +129,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       }
 
       final user = await AuthStorage.getUser();
+      await MetaAppEventsService.logCheckoutStarted(
+        planSlug: planSlug,
+        planName: planName,
+        amount: _pendingPlanAmount ?? 0,
+      );
 
       _razorpay!.open({
         'key': data['key'],
@@ -137,12 +158,23 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   }
 
   Future<void> _startIosPurchase(
-      String planSlug, String planName, String revenueCatProductId) async {
+    String planSlug,
+    String planName,
+    String revenueCatProductId,
+    double amount,
+  ) async {
     setState(() {
       _pendingPlanSlug = planSlug;
+      _pendingPlanName = planName;
+      _pendingPlanAmount = amount;
       _loading = true;
     });
     try {
+      await MetaAppEventsService.logCheckoutStarted(
+        planSlug: planSlug,
+        planName: planName,
+        amount: amount,
+      );
       final product = await RevenueCatService.getProduct(revenueCatProductId);
       if (product == null) {
         throw Exception('This plan is not available for purchase right now.');
@@ -160,6 +192,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         throw Exception('Verification failed');
       }
       await ref.read(ownerControllerProvider.notifier).loadAvailablePlans();
+      await MetaAppEventsService.logSubscriptionPurchased(
+        planSlug: planSlug,
+        planName: planName,
+        amount: _pendingPlanAmount ?? 0,
+        orderId: revenueCatProductId,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Plan activated!'),
@@ -200,6 +238,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         throw Exception('Verification failed');
       }
       await ref.read(ownerControllerProvider.notifier).loadAvailablePlans();
+      await MetaAppEventsService.logSubscriptionPurchased(
+        planSlug: activatedPlan,
+        planName: _pendingPlanName ?? activatedPlan,
+        amount: _pendingPlanAmount ?? 0,
+        orderId: r.orderId ?? r.paymentId ?? '',
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Plan activated!'),

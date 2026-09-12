@@ -59,6 +59,9 @@
 		<!-- ═══ LOCATION PERMISSIONS ═══ -->
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>ProofIt stamps your GPS location on each work report and shows your live position to your team manager while the app is open.</string>
+		<!-- ═══ TRACKING PERMISSION ═══ -->
+		<key>NSUserTrackingUsageDescription</key>
+		<string>This helps us measure ad performance and improve ProofIt.</string>
 		<!-- ═══ DEEP LINKS & GOOGLE SIGN-IN ═══ -->
 		<key>GIDClientID</key>
 		<string>529731801742-2vq91iudhpasqslf61m2hsq15vruudgb.apps.googleusercontent.com</string>
