@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/models/customer_model.dart';
+import '../../../shared/services/review_service.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../controllers/owner_controller.dart';
@@ -189,6 +190,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                                             content: Text(
                                                 'Customer limit reached. Upgrade your plan.'),
                                             backgroundColor: AppColors.red));
+                                  } else if (id != null) {
+                                    ReviewService.maybePromptAfterSuccess();
                                   }
                                 }
                               },

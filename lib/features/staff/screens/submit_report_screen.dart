@@ -10,6 +10,7 @@ import '../../../shared/services/location_service.dart';
 import '../../../shared/services/drive_service.dart';
 import '../../../shared/services/auth_storage.dart';
 import '../../../shared/services/camera_service.dart';
+import '../../../shared/services/review_service.dart';
 import '../controllers/staff_controller.dart';
 
 class SubmitReportScreen extends ConsumerStatefulWidget {
@@ -520,6 +521,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
           ]),
           backgroundColor: asDraft ? AppColors.yellow : AppColors.green,
           duration: const Duration(seconds: 2)));
+      if (!asDraft) ReviewService.maybePromptAfterSuccess();
       context.pop();
     } else {
       setState(() => _error = friendlyErrorMessage(

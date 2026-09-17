@@ -6,6 +6,7 @@ import '../../../core/utils/date_utils.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/services/location_service.dart';
+import '../../../shared/services/review_service.dart';
 import '../controllers/staff_controller.dart';
 import '../utils/attendance_gates.dart';
 
@@ -75,6 +76,7 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
     if (result.ok) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Checked out! Good work today.'), backgroundColor: AppColors.brand));
+      ReviewService.maybePromptAfterSuccess();
       context.pop();
       return;
     }

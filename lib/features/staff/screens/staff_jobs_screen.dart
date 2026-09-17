@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/utils/ui_feedback.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/network/api_service.dart';
+import '../../../shared/services/review_service.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../controllers/staff_controller.dart';
 
@@ -65,6 +66,7 @@ class StaffJobsScreenState extends ConsumerState<StaffJobsScreen> {
       final api = ref.read(apiServiceProvider);
       await api.put('/jobs/$jobId/status', data: {'status': status});
       refresh();
+      if (status == 'completed') ReviewService.maybePromptAfterSuccess();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(status == 'completed' ? 'Job marked complete' : 'Status updated'),

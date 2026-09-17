@@ -5,11 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/network/api_service.dart';
+import '../../shared/services/app_update_service.dart';
 import '../../shared/services/auth_storage.dart';
 import '../../shared/services/deep_link_service.dart';
 import '../../shared/services/notification_service.dart';
+import '../../shared/services/review_service.dart';
 import '../auth/controllers/auth_controller.dart';
 import '../staff/controllers/staff_controller.dart';
+import 'force_update_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -20,9 +24,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   static const _minDisplay = Duration(milliseconds: 450);
   static const _maxWait   = Duration(seconds: 2);
 
+  AppUpdateConfig? _forceUpdate;
+
   @override
   void initState() {
     super.initState();
+    unawaited(ReviewService.recordFirstSeen());
     _navigate();
   }
 
@@ -44,6 +51,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Future<void> _navigate() async {
     final started = DateTime.now();
     try {
+      final config = await AppUpdateService.fetchConfig(ref.read(apiServiceProvider))
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
+      if (config != null && await AppUpdateService.isForceUpdateRequired(config)) {
+        final elapsed = DateTime.now().difference(started);
+        if (elapsed < _minDisplay) await Future.delayed(_minDisplay - elapsed);
+        if (!mounted) {
+          FlutterNativeSplash.remove();
+          return;
+        }
+        setState(() => _forceUpdate = config);
+        FlutterNativeSplash.remove();
+        return;
+      }
+
       final inviteToken = await DeepLinkService.resolveInviteToken()
           .timeout(const Duration(seconds: 2), onTimeout: () => null);
 
@@ -96,6 +117,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_forceUpdate != null) {
+      return ForceUpdateScreen(config: _forceUpdate!);
+    }
     return Scaffold(
       backgroundColor: AppColors.dark,
       body: Center(

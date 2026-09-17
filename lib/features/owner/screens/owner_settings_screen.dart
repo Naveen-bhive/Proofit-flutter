@@ -1,8 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/network/api_service.dart';
+import '../../../shared/services/review_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../controllers/owner_controller.dart';
@@ -16,12 +19,19 @@ class OwnerSettingsScreen extends ConsumerStatefulWidget {
 class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
   final _companyCtrl = TextEditingController();
   bool _editingName = false;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     final state = ref.read(ownerControllerProvider);
     _companyCtrl.text = state.orgName;
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) setState(() => _appVersion = info.version);
   }
 
   Future<void> _logout() async {
@@ -114,9 +124,11 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
 
         _sectionTitle('SUPPORT'),
         // _settingRow(Icons.help_outline, 'Help & FAQ', '', onTap: () {}),
+        _settingRow(Icons.star_outline_rounded, 'Rate ProofIt', '',
+            onTap: () => ReviewService.requestManualReview(ref.read(apiServiceProvider))),
         _settingRow(Icons.privacy_tip_outlined, 'Privacy Policy', '', onTap: () => _openUrl('https://proofitapp.in/ProofIt_PrivacyPolicy.html')),
         _settingRow(Icons.article_outlined, 'Terms & Conditions', '', onTap: () => _openUrl('https://proofitapp.in/ProofIt_TermsConditions.html')),
-        _settingRow(Icons.info_outline, 'App Version', '1.0.0', onTap: null),
+        _settingRow(Icons.info_outline, 'App Version', _appVersion, onTap: null),
         const SizedBox(height: 24),
 
         _sectionTitle('DANGER ZONE'),

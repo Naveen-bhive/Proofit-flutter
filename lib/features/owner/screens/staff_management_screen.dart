@@ -2,6 +2,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/services/review_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../controllers/owner_controller.dart';
 
@@ -280,6 +281,7 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
       _succeeded = true;
       _successMessage = result.message;
     });
+    ReviewService.maybePromptAfterSuccess();
 
     await Future.delayed(const Duration(milliseconds: 1400));
     if (!mounted) return;

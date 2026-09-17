@@ -1,11 +1,14 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/network/api_service.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../shared/services/socket_service.dart';
 import '../../../shared/services/live_location_tracker.dart';
 import '../../../shared/services/google_auth_service.dart';
+import '../../../shared/services/review_service.dart';
 import '../controllers/staff_controller.dart';
 import '../utils/attendance_gates.dart';
 
@@ -18,6 +21,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
   bool _driveLinked   = false;
   bool _checkingDrive = true;
   bool _connectingDrive = false;
+  String _appVersion = '';
 
   @override
   void initState() {
@@ -25,6 +29,12 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
     ref.read(staffControllerProvider.notifier).loadProfileStats();
     ref.read(staffControllerProvider.notifier).syncOrgFromServer();
     _checkDriveStatus();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) setState(() => _appVersion = info.version);
   }
 
   Future<void> _checkDriveStatus() async {
@@ -141,6 +151,12 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
           _tile(Icons.lock_outline_rounded, AppColors.brand, 'Change Password',
               () => context.push('/change-password')),
           _tile(Icons.logout_rounded, AppColors.red, 'Logout', () => _logout(context, ref), textColor: AppColors.red),
+        ]),
+
+        _section('SUPPORT', [
+          _tile(Icons.star_outline_rounded, AppColors.yellow, 'Rate ProofIt',
+              () => ReviewService.requestManualReview(ref.read(apiServiceProvider))),
+          _tile(Icons.info_outline_rounded, AppColors.muted, 'App Version $_appVersion', () {}),
         ]),
 
         const SizedBox(height: 40),

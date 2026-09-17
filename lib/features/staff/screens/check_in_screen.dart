@@ -8,6 +8,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/services/location_service.dart';
 import '../../../shared/services/battery_optimization_service.dart';
+import '../../../shared/services/review_service.dart';
 import '../controllers/staff_controller.dart';
 
 class CheckInScreen extends ConsumerStatefulWidget {
@@ -194,6 +195,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
         content: Text('Checked in! Live location is now shared with your owner.'),
         backgroundColor: AppColors.green,
       ));
+      ReviewService.maybePromptAfterSuccess();
       // Soft follow-up for OEM autostart if still needed.
       await BatteryOptimizationService.maybePromptAfterCheckIn(context);
       if (!mounted) return;

@@ -10,6 +10,7 @@ import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/location_picker_field.dart';
 import '../../../shared/widgets/searchable_selection_field.dart';
 import '../../../shared/services/places_service.dart';
+import '../../../shared/services/review_service.dart';
 import '../controllers/owner_controller.dart';
 
 class JobsScreen extends ConsumerStatefulWidget {
@@ -415,6 +416,7 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
         content: Text('Job assigned successfully.'),
         backgroundColor: AppColors.green,
       ));
+      ReviewService.maybePromptAfterSuccess();
     } catch (e) {
       if (!mounted) return;
       setState(() {
