@@ -262,10 +262,14 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<bool> setupOwner(String companyName, {String? ownerName}) async {
+  Future<bool> setupOwner(String companyName, {required String mobile, required String address, required double latitude, required double longitude, String? ownerName}) async {
     try {
       final res = await _api.post('/auth/owner-setup', data: {
         'companyName': companyName,
+        'mobile': mobile,
+        'address': address,
+        'latitude': latitude,
+        'longitude': longitude,
         if (ownerName != null && ownerName.isNotEmpty) 'ownerName': ownerName,
       });
       if (res.data['success'] != true) {

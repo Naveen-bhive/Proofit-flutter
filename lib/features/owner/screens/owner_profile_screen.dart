@@ -50,7 +50,7 @@ class OwnerProfileScreen extends ConsumerWidget {
         ]),
 
         _section('SETTINGS', [
-          _tile(Icons.business_outlined,  AppColors.silver, 'Company Name',        () => _editCompanyName(context, ref, state.orgName)),
+          _tile(Icons.person_outline, AppColors.silver, 'Profile', () => context.push('/owner/profile')),
         ]),
 
         _section('ACCOUNT', [
@@ -83,22 +83,6 @@ class OwnerProfileScreen extends ConsumerWidget {
       onTap: onTap,
       dense: true,
     );
-
-  void _editCompanyName(BuildContext context, WidgetRef ref, String current) {
-    final ctrl = TextEditingController(text: current);
-    showDialog(context: context, builder: (_) => AlertDialog(
-      backgroundColor: AppColors.dark2,
-      title: const Text('Company Name', style: TextStyle(color: AppColors.white)),
-      content: TextField(controller: ctrl, style: const TextStyle(color: AppColors.white),
-        decoration: const InputDecoration(labelText: 'Company name')),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: AppColors.silver))),
-        TextButton(onPressed: () {
-          ref.read(ownerControllerProvider.notifier).updateCompanyName(ctrl.text.trim());
-          Navigator.pop(context);
-        }, child: const Text('Save', style: TextStyle(color: AppColors.brand))),
-      ]));
-  }
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
     await ref.read(authControllerProvider.notifier).logout();

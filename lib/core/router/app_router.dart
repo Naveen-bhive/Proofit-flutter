@@ -35,6 +35,7 @@ import '../../features/owner/screens/flagged_reports_screen.dart';
 import '../../features/owner/screens/search_reports_screen.dart';
 import '../../features/owner/screens/owner_notifications_screen.dart';
 import '../../features/owner/screens/owner_settings_screen.dart';
+import '../../features/owner/screens/owner_profile_details_screen.dart';
 import '../../features/owner/screens/subscription_screen.dart';
 import '../../features/owner/screens/payment_history_screen.dart';
 import '../../features/owner/screens/jobs_screen.dart';
@@ -175,6 +176,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/owner/settings',
           builder: (_, __) => const OwnerSettingsScreen()),
+      GoRoute(
+          path: '/owner/profile',
+          builder: (_, __) => const OwnerProfileDetailsScreen()),
       GoRoute(
           path: '/owner/subscription',
           builder: (_, __) => const SubscriptionScreen()),

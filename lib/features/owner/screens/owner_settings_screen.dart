@@ -17,15 +17,11 @@ class OwnerSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
-  final _companyCtrl = TextEditingController();
-  bool _editingName = false;
   String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
-    final state = ref.read(ownerControllerProvider);
-    _companyCtrl.text = state.orgName;
     _loadAppVersion();
   }
 
@@ -88,27 +84,8 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
         const SizedBox(height: 28),
 
         _sectionTitle('ACCOUNT'),
-        _settingRow(Icons.business_outlined, 'Company Name', state.orgName, onTap: () {
-          setState(() => _editingName = !_editingName);
-        }),
-        if (_editingName) ...[
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(child: TextField(
-              controller: _companyCtrl,
-              style: const TextStyle(color: AppColors.white),
-              decoration: const InputDecoration(labelText: 'Company Name'),
-            )),
-            const SizedBox(width: 10),
-            TextButton(
-              onPressed: () async {
-                await ref.read(ownerControllerProvider.notifier).updateCompanyName(_companyCtrl.text.trim());
-                setState(() => _editingName = false);
-              },
-              child: const Text('Save', style: TextStyle(color: AppColors.brand)),
-            ),
-          ]),
-        ],
+        _settingRow(Icons.person_outline, 'Profile', state.orgName,
+            onTap: () => context.push('/owner/profile')),
         _settingRow(Icons.workspace_premium_outlined, 'Current Plan',
             '${state.plan[0].toUpperCase()}${state.plan.substring(1)}',
             onTap: () => context.push('/owner/subscription')),

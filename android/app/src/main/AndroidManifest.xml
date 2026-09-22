@@ -40,7 +40,7 @@
         <!-- Google Maps -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCMWX4y7t-DGwyH6R3hDMDNNh4Ed0ZVmeI"/>
+            android:value="AIzaSyB3zLQzHUvW0GedVlsE6ElbRXjRDeYZ2iU"/>
 
         <!-- FCM channel -->
         <meta-data

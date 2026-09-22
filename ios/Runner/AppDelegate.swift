@@ -12,7 +12,7 @@ import flutter_local_notifications
   ) -> Bool {
 
     // Google Maps — replace with your API key
-    GMSServices.provideAPIKey("AIzaSyCMWX4y7t-DGwyH6R3hDMDNNh4Ed0ZVmeI")
+    GMSServices.provideAPIKey("AIzaSyB3zLQzHUvW0GedVlsE6ElbRXjRDeYZ2iU")
 
     // Firebase
     FirebaseApp.configure()

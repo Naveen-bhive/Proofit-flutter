@@ -18,7 +18,7 @@ class AppConstants {
   // Google Maps + Places — override via --dart-define=GOOGLE_MAPS_API_KEY=...
   static const String googleMapsApiKey = String.fromEnvironment(
     'GOOGLE_MAPS_API_KEY',
-    defaultValue: 'AIzaSyCMWX4y7t-DGwyH6R3hDMDNNh4Ed0ZVmeI',
+    defaultValue: 'AIzaSyB3zLQzHUvW0GedVlsE6ElbRXjRDeYZ2iU',
   );
 
   // RevenueCat public SDK key (iOS/App Store only for now — Android still uses

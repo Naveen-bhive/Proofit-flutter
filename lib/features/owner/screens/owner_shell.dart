@@ -9,6 +9,7 @@ import 'owner_dashboard_screen.dart';
 import 'owner_reports_screen.dart';
 import 'jobs_screen.dart';
 import 'owner_profile_screen.dart';
+import '../widgets/profile_completion_dialog.dart';
 
 class OwnerShell extends ConsumerStatefulWidget {
   const OwnerShell({super.key});
@@ -18,13 +19,29 @@ class OwnerShell extends ConsumerStatefulWidget {
 class _OwnerShellState extends ConsumerState<OwnerShell> {
   int _tab = 0;
   SocketListenerId? _orgSocketId;
+  bool _profileDialogOpen = false;
 
   @override
   void initState() {
     super.initState();
-    ref.read(ownerControllerProvider.notifier).syncOrgFromServer();
+    _checkProfileCompletion();
     ref.read(ownerControllerProvider.notifier).loadDashboard();
     _connectSocket();
+  }
+
+  /// Owners registered before mobile number / address existed must add them.
+  /// Decided from the server's copy of the profile, never from stale local data,
+  /// so it isn't shown to owners who already filled these in (e.g. on another device).
+  Future<void> _checkProfileCompletion() async {
+    final synced = await ref.read(ownerControllerProvider.notifier).syncOrgFromServer();
+    if (!mounted || !synced) return;
+    _promptProfileIfIncomplete();
+  }
+
+  void _promptProfileIfIncomplete() {
+    if (_profileDialogOpen || ref.read(ownerControllerProvider).isProfileComplete) return;
+    _profileDialogOpen = true;
+    ProfileCompletionDialog.show(context).whenComplete(() => _profileDialogOpen = false);
   }
 
   /// Returns true if back was handled (switched to Dashboard). False = already on Dashboard.
@@ -38,12 +55,7 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
     SocketService.connect();
     _orgSocketId = SocketService.onOrgUpdated((data) {
       if (!mounted) return;
-      final name = data['name'] as String?;
-      if (name != null && name.isNotEmpty) {
-        ref.read(ownerControllerProvider.notifier).applyOrgName(name);
-      } else {
-        ref.read(ownerControllerProvider.notifier).syncOrgFromServer();
-      }
+      ref.read(ownerControllerProvider.notifier).syncOrgFromServer();
     });
   }
 

@@ -2,6 +2,9 @@ class OrgModel {
   final String id;
   final String name;
   final String ownerPhone;
+  final String address;
+  final double? addressLatitude;
+  final double? addressLongitude;
   final String ownerName;
   final String? ownerEmail;
   final String? driveServiceEmail;
@@ -13,6 +16,9 @@ class OrgModel {
     required this.id,
     required this.name,
     required this.ownerPhone,
+    this.address = '',
+    this.addressLatitude,
+    this.addressLongitude,
     required this.ownerName,
     this.ownerEmail,
     this.driveServiceEmail,
@@ -20,6 +26,9 @@ class OrgModel {
     this.planExpiresAt,
     this.staffCount = 0,
   });
+
+  /// Mobile number and address are both required for an owner profile.
+  bool get isProfileComplete => ownerPhone.trim().isNotEmpty && address.trim().isNotEmpty;
 
   // FIX #24 — Check plan is active AND not expired
   String get activePlan {
@@ -42,6 +51,9 @@ class OrgModel {
     id:           json['_id'] ?? '',
     name:         json['name'] ?? '',
     ownerPhone:   json['ownerPhone'] ?? '',
+    address:      json['address'] ?? '',
+    addressLatitude:  (json['addressLocation']?['latitude'] as num?)?.toDouble(),
+    addressLongitude: (json['addressLocation']?['longitude'] as num?)?.toDouble(),
     ownerName:    json['ownerName'] ?? '',
     ownerEmail:   json['ownerEmail'],
     driveServiceEmail: json['driveServiceEmail'],
@@ -56,6 +68,8 @@ class OrgModel {
     '_id':         id,
     'name':        name,
     'ownerPhone':  ownerPhone,
+    'address':     address,
+    'addressLocation': {'latitude': addressLatitude, 'longitude': addressLongitude},
     'ownerName':   ownerName,
     'ownerEmail':  ownerEmail,
     'driveServiceEmail': driveServiceEmail,
@@ -68,6 +82,9 @@ class OrgModel {
     String? id,
     String? name,
     String? ownerPhone,
+    String? address,
+    double? addressLatitude,
+    double? addressLongitude,
     String? ownerName,
     String? ownerEmail,
     String? driveServiceEmail,
@@ -78,6 +95,9 @@ class OrgModel {
     id: id ?? this.id,
     name: name ?? this.name,
     ownerPhone: ownerPhone ?? this.ownerPhone,
+    address: address ?? this.address,
+    addressLatitude: addressLatitude ?? this.addressLatitude,
+    addressLongitude: addressLongitude ?? this.addressLongitude,
     ownerName: ownerName ?? this.ownerName,
     ownerEmail: ownerEmail ?? this.ownerEmail,
     driveServiceEmail: driveServiceEmail ?? this.driveServiceEmail,

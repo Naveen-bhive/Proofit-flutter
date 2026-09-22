@@ -13,6 +13,10 @@ import '../../../shared/models/org_model.dart';
 class OwnerState {
   final bool isLoading;
   final String orgName;
+  final String ownerPhone;
+  final String address;
+  final double? addressLatitude;
+  final double? addressLongitude;
   final String plan;
   final int totalReportsToday;
   final int activeStaffCount;
@@ -43,6 +47,10 @@ class OwnerState {
   const OwnerState({
     this.isLoading = false,
     this.orgName = '',
+    this.ownerPhone = '',
+    this.address = '',
+    this.addressLatitude,
+    this.addressLongitude,
     this.plan = 'free',
     this.totalReportsToday = 0,
     this.activeStaffCount = 0,
@@ -71,9 +79,16 @@ class OwnerState {
     this.ownerPhotoUrl,
   });
 
+  /// Mobile number and address are both required for an owner profile.
+  bool get isProfileComplete => ownerPhone.trim().isNotEmpty && address.trim().isNotEmpty;
+
   OwnerState copyWith({
     bool? isLoading,
     String? orgName,
+    String? ownerPhone,
+    String? address,
+    double? addressLatitude,
+    double? addressLongitude,
     String? plan,
     int? totalReportsToday,
     int? activeStaffCount,
@@ -104,6 +119,10 @@ class OwnerState {
       OwnerState(
         isLoading: isLoading ?? this.isLoading,
         orgName: orgName ?? this.orgName,
+        ownerPhone: ownerPhone ?? this.ownerPhone,
+        address: address ?? this.address,
+        addressLatitude: addressLatitude ?? this.addressLatitude,
+        addressLongitude: addressLongitude ?? this.addressLongitude,
         plan: plan ?? this.plan,
         totalReportsToday: totalReportsToday ?? this.totalReportsToday,
         activeStaffCount: activeStaffCount ?? this.activeStaffCount,
@@ -152,6 +171,10 @@ class OwnerController extends StateNotifier<OwnerState> {
     if (org != null) {
       state = state.copyWith(
         orgName: org.name,
+        ownerPhone: org.ownerPhone,
+        address: org.address,
+        addressLatitude: org.addressLatitude,
+        addressLongitude: org.addressLongitude,
         plan: org.plan,
         ownerEmail: user?.email,
         ownerPhotoUrl: user?.photoUrl,
@@ -557,20 +580,42 @@ class OwnerController extends StateNotifier<OwnerState> {
     } catch (_) {}
   }
 
-  Future<void> updateCompanyName(String name) async {
+  /// Saves company name, mobile number and address. Returns null on success,
+  /// otherwise a user-facing error message.
+  Future<String?> updateProfile({
+    required String companyName,
+    required String mobile,
+    required String address,
+    required double latitude,
+    required double longitude,
+  }) async {
     try {
-      final res = await _api.put('/owner/company-name', data: {'name': name});
-      if (res.data['success'] == true) {
-        final orgJson = res.data['data']?['org'];
-        if (orgJson is Map) {
-          final org = OrgModel.fromJson(Map<String, dynamic>.from(orgJson));
-          await AuthStorage.updateOrg(org);
-          state = state.copyWith(orgName: org.name);
-        } else {
-          await applyOrgName(name);
-        }
+      final res = await _api.put('/owner/profile', data: {
+        'companyName': companyName,
+        'mobile': mobile,
+        'address': address,
+        'latitude': latitude,
+        'longitude': longitude,
+      });
+      if (res.data['success'] != true) {
+        return (res.data['message'] as String?) ?? 'Could not save your profile.';
       }
-    } catch (_) {}
+      final orgJson = res.data['data']?['org'];
+      if (orgJson is Map) {
+        final org = OrgModel.fromJson(Map<String, dynamic>.from(orgJson));
+        await AuthStorage.updateOrg(org);
+        state = state.copyWith(
+          orgName: org.name,
+          ownerPhone: org.ownerPhone,
+          address: org.address,
+          addressLatitude: org.addressLatitude,
+          addressLongitude: org.addressLongitude,
+        );
+      }
+      return null;
+    } catch (e) {
+      return friendlyErrorMessage(e, fallback: 'Could not save your profile. Please try again.');
+    }
   }
 
   Future<void> applyOrgName(String name) async {
@@ -579,16 +624,27 @@ class OwnerController extends StateNotifier<OwnerState> {
     state = state.copyWith(orgName: name);
   }
 
-  Future<void> syncOrgFromServer() async {
+  /// Refreshes the organisation profile from the server. Returns true only when
+  /// the server's data was actually loaded.
+  Future<bool> syncOrgFromServer() async {
     try {
       final res = await _api.get('/auth/org');
       if (res.data['success'] == true && res.data['data'] != null) {
         final org =
             OrgModel.fromJson(Map<String, dynamic>.from(res.data['data']));
         await AuthStorage.updateOrg(org);
-        state = state.copyWith(orgName: org.name, plan: org.plan);
+        state = state.copyWith(
+          orgName: org.name,
+          ownerPhone: org.ownerPhone,
+          address: org.address,
+          addressLatitude: org.addressLatitude,
+          addressLongitude: org.addressLongitude,
+          plan: org.plan,
+        );
+        return true;
       }
     } catch (_) {}
+    return false;
   }
 
   // FIX #10 — Get unread notification count for badge
