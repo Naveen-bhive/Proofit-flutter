@@ -54,6 +54,7 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
                         if (n['type'] == 'draft_reminder' && n['reportId'] != null) {
                           context.push('/staff/draft/${n['reportId']}');
                         }
+                        if (n['type'] == 'leave_update') context.push('/staff/leaves');
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -92,6 +93,7 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
       'target_update'   => (Icons.flag_outlined,              AppColors.blue),
       'broadcast'       => (Icons.campaign_outlined,          AppColors.brand),
       'streak'          => (Icons.local_fire_department_outlined, AppColors.brand),
+      'leave_update'    => (Icons.event_available_outlined,   AppColors.green),
       _                 => (Icons.notifications_outlined,     AppColors.muted),
     };
     return Container(

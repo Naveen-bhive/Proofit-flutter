@@ -11,6 +11,7 @@ import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/reset_password_screen.dart';
 import '../../features/auth/screens/change_password_screen.dart';
 import '../../features/owner/screens/staff_attendance_screen.dart';
+import '../../features/leave/leave_management_screen.dart';
 import '../../features/auth/screens/invite_screen.dart';
 import '../../features/auth/screens/owner_setup_screen.dart';
 import '../../features/staff/screens/staff_shell.dart';
@@ -129,6 +130,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           builder: (_, __) => const StaffNotificationsScreen()),
       GoRoute(path: '/staff/jobs', builder: (_, __) => const StaffJobsScreen()),
       GoRoute(
+          path: '/staff/leaves',
+          builder: (_, __) => const LeaveManagementScreen(isOwner: false)),
+      GoRoute(
           path: '/staff/profile',
           builder: (_, __) => const StaffProfileScreen()),
 
@@ -190,6 +194,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           path: '/owner/customers',
           builder: (_, __) => const CustomersScreen()),
       GoRoute(path: '/owner/jobs', builder: (_, __) => const JobsScreen()),
+      GoRoute(
+          path: '/owner/leaves',
+          builder: (_, __) => const LeaveManagementScreen(isOwner: true)),
       GoRoute(
           path: '/owner/working-hours',
           builder: (_, __) => const WorkingHoursScreen()),

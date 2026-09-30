@@ -145,6 +145,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
             state.isCheckedIn ? 'Check Out' : 'Check In',
             () => _onCheckInOutTap(context, ref, state.isCheckedIn)),
           _tile(Icons.history_rounded, AppColors.blue, 'Check-in History', () => context.push('/staff/checkin-history')),
+          _tile(Icons.event_busy_outlined, AppColors.yellow, 'Leave Requests', () => context.push('/staff/leaves')),
         ]),
 
         _section('ACCOUNT', [

@@ -69,6 +69,7 @@ class _OwnerNotificationsScreenState extends ConsumerState<OwnerNotificationsScr
                           if (n['type'] == 'flagged' && n['reportId'] != null) {
                             context.push('/owner/report/${n['reportId']}');
                           }
+                          if (n['type'] == 'leave_request') context.push('/owner/leaves');
                         },
                         child: Container(
                           color: Colors.transparent,
@@ -140,6 +141,7 @@ class _OwnerNotificationsScreenState extends ConsumerState<OwnerNotificationsScr
       'tracking_impaired'  => (Icons.gpp_maybe_outlined,      AppColors.red),
       'checkin'            => (Icons.login_rounded,           AppColors.green),
       'checkout'           => (Icons.logout_rounded,          AppColors.muted),
+      'leave_request'      => (Icons.event_busy_outlined,     AppColors.yellow),
       _                    => (Icons.notifications_outlined,  AppColors.muted),
     };
     return Container(
