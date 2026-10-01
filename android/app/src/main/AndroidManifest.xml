@@ -84,7 +84,7 @@
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="app.proofitapp.in" android:pathPrefix="/invite"/>
+                <data android:scheme="https" android:host="admin.proofitapp.in" android:pathPrefix="/invite"/>
             </intent-filter>
 
             <!-- Custom scheme for invite open-from-browser -->

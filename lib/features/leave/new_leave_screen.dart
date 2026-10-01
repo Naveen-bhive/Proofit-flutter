@@ -452,6 +452,7 @@ class _NewLeaveScreenState extends ConsumerState<NewLeaveScreen> {
           ElevatedButton(
             onPressed: _saving ? null : _save,
             style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 46),
               backgroundColor: AppColors.brand,
               foregroundColor: AppColors.white,
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),

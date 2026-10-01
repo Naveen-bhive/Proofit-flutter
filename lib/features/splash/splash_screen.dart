@@ -45,6 +45,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     } finally {
       FlutterNativeSplash.remove();
     }
+    NotificationService.markAppReady();
     unawaited(NotificationService.requestPermission());
   }
 
@@ -112,6 +113,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           context.go('/signin');
         } catch (_) {}
       }
+      NotificationService.markAppReady();
     }
   }
 

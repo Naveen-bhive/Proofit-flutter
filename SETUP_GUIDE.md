@@ -67,7 +67,7 @@ Add inside `<activity>` tag:
     <action android:name="android.intent.action.VIEW"/>
     <category android:name="android.intent.category.DEFAULT"/>
     <category android:name="android.intent.category.BROWSABLE"/>
-    <data android:scheme="https" android:host="app.proofitapp.in"/>
+    <data android:scheme="https" android:host="admin.proofitapp.in"/>
 </intent-filter>
 ```
 
@@ -84,7 +84,7 @@ Add inside `<activity>` tag:
 
 ### iOS — Associated Domains (Xcode)
 - Signing & Capabilities → + → Associated Domains
-- Add: `applinks:app.proofitapp.in`
+- Add: `applinks:admin.proofitapp.in`
 
 ---
 

@@ -70,6 +70,13 @@ class _OwnerNotificationsScreenState extends ConsumerState<OwnerNotificationsScr
                             context.push('/owner/report/${n['reportId']}');
                           }
                           if (n['type'] == 'leave_request') context.push('/owner/leaves');
+                          if (n['type'] == 'staff_login') {
+                            final data = n['data'] is Map ? n['data'] as Map : const {};
+                            final staffId = (data['staffId'] ?? n['staffId'])?.toString();
+                            context.push(staffId == null || staffId.isEmpty
+                                ? '/owner/map'
+                                : '/owner/map?staffId=${Uri.encodeComponent(staffId)}');
+                          }
                         },
                         child: Container(
                           color: Colors.transparent,
@@ -142,6 +149,7 @@ class _OwnerNotificationsScreenState extends ConsumerState<OwnerNotificationsScr
       'checkin'            => (Icons.login_rounded,           AppColors.green),
       'checkout'           => (Icons.logout_rounded,          AppColors.muted),
       'leave_request'      => (Icons.event_busy_outlined,     AppColors.yellow),
+      'staff_login'        => (Icons.how_to_reg_outlined,     AppColors.brand),
       _                    => (Icons.notifications_outlined,  AppColors.muted),
     };
     return Container(

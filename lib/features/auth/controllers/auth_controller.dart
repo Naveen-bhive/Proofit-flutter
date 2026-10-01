@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io' show Platform;
+import 'package:geolocator/geolocator.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/api_error_utils.dart';
@@ -10,6 +12,7 @@ import '../../../shared/services/apple_auth_service.dart';
 import '../../../shared/services/drive_service.dart';
 import '../../../shared/services/google_auth_service.dart';
 import '../../../shared/services/notification_service.dart';
+import '../../../shared/services/location_service.dart';
 import '../../../shared/services/revenue_cat_service.dart';
 
 final authControllerProvider = StateNotifierProvider<AuthController, AsyncValue<void>>(
@@ -58,6 +61,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       final data = res.data['data'] as Map<String, dynamic>?;
       if (data == null) return null;
       await _saveSession(data);
+      _afterLogin(data);
       return data['user']['role'] ?? 'owner';
     } catch (_) {
       return null;
@@ -91,6 +95,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
 
       await _saveSession(data);
       state = const AsyncData(null);
+      _afterLogin(data);
       return data['user']['role'] ?? 'owner';
     } catch (e, st) {
       state = AsyncError(friendlyErrorMessage(e, fallback: 'Sign in failed. Please try again.'), st);
@@ -202,7 +207,37 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       return 'new_owner';
     }
     await _saveSession(data);
+    _afterLogin(data);
     return data['user']['role'] ?? 'owner';
+  }
+
+  /// Fresh staff sign-in: share one position so the owner's "logged in"
+  /// notification can open the live map on this staff member.
+  void _afterLogin(Map<String, dynamic> data) {
+    if (data['user']?['role'] == 'staff') unawaited(_shareLoginLocation());
+  }
+
+  /// Best effort and silent: only uses an already-granted permission (no
+  /// prompt during sign-in) and never surfaces errors to the user.
+  Future<void> _shareLoginLocation() async {
+    try {
+      if (!await LocationService.isLocationServiceOn()) return;
+      if (!await LocationService.hasForegroundPermission()) return;
+      Position? pos;
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 10),
+        );
+      } catch (_) {
+        pos = await Geolocator.getLastKnownPosition();
+      }
+      if (pos == null) return;
+      await _api.post('/location/login-ping', data: {
+        'latitude': pos.latitude,
+        'longitude': pos.longitude,
+      });
+    } catch (_) {}
   }
 
   Future<String?> restoreSession() async {

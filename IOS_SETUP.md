@@ -80,11 +80,11 @@ In Google Cloud Console:
 
 ```
 Xcode → Signing & Capabilities → + Capability → Associated Domains
-Add: applinks:app.proofitapp.in
+Add: applinks:admin.proofitapp.in
 ```
 
 Also add to your domain server (Hostinger):
-Create file at: `https://app.proofitapp.in/.well-known/apple-app-site-association`
+Create file at: `https://admin.proofitapp.in/.well-known/apple-app-site-association`
 
 ```json
 {

@@ -12,11 +12,11 @@ import '../../core/utils/ui_feedback.dart';
 import 'leave_common.dart';
 import 'new_leave_screen.dart';
 
-/// Owner: "Leaves" management table for the whole organisation.
-/// Staff:  the same screen scoped to their own leave requests.
+/// Owner "Leaves" management table for the whole organisation. Staff use
+/// [StaffLeaveRequestsScreen] instead; `isOwner: false` is kept only for reuse.
 class LeaveManagementScreen extends ConsumerStatefulWidget {
   final bool isOwner;
-  const LeaveManagementScreen({super.key, required this.isOwner});
+  const LeaveManagementScreen({super.key, this.isOwner = true});
 
   @override
   ConsumerState<LeaveManagementScreen> createState() => _LeaveManagementScreenState();
@@ -281,6 +281,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
               ElevatedButton.icon(
                 onPressed: _openNewLeave,
                 style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 46),
                   backgroundColor: AppColors.brand,
                   foregroundColor: AppColors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -835,6 +836,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
                         _setStatus([l.id], 'approved');
                       },
                       style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 46),
                         backgroundColor: AppColors.green,
                         foregroundColor: AppColors.white,
                         padding: const EdgeInsets.symmetric(vertical: 13),
@@ -987,6 +989,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
                       child: ElevatedButton(
                         onPressed: () => Navigator.pop(ctx, true),
                         style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 46),
                           backgroundColor: AppColors.brand,
                           foregroundColor: AppColors.white,
                           padding: const EdgeInsets.symmetric(vertical: 15),

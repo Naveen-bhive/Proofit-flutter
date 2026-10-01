@@ -3,7 +3,7 @@ class DeepLinkUtils {
   DeepLinkUtils._();
 
   /// Supports:
-  /// - https://app.proofitapp.in/invite/:token
+  /// - https://admin.proofitapp.in/invite.html?token=:token
   /// - proofit://invite/:token
   /// - intent://invite/:token#Intent;scheme=proofit;...
   static String? inviteTokenFromUri(Uri? uri) {

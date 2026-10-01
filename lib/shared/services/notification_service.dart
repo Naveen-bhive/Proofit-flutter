@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -19,6 +20,19 @@ Future<bool> _shouldShowPush(RemoteMessage message) async {
   final user = await AuthStorage.getUser();
   if (user == null || user.id.isEmpty) return false;
   return user.id == targetUserId;
+}
+
+/// Local-notification payload: the whole FCM data map as JSON, so a tap can
+/// route with ids (e.g. staffId), not just the type.
+String _payloadFor(RemoteMessage message) => jsonEncode(message.data);
+
+Map<String, dynamic> _decodePayload(String payload) {
+  try {
+    final decoded = jsonDecode(payload);
+    if (decoded is Map) return Map<String, dynamic>.from(decoded);
+  } catch (_) {}
+  // Older notifications stored only the type string.
+  return {'type': payload};
 }
 
 DarwinNotificationDetails _iosDetails(RemoteMessage message) {
@@ -49,7 +63,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     n?.title ?? message.data['title'] ?? 'ProofIt',
     n?.body ?? message.data['body'] ?? '',
     NotificationDetails(android: androidDetails, iOS: _iosDetails(message)),
-    payload: message.data['type'],
+    payload: _payloadFor(message),
   );
 }
 
@@ -60,6 +74,9 @@ class NotificationService {
   static FcmTokenHandler? _onTokenRefresh;
   static GoRouter? _router;
   static Map<String, dynamic>? _pendingTapData;
+  /// False until the splash screen has routed to its first destination, so a
+  /// cold-start tap isn't overwritten by the splash's own navigation.
+  static bool _appReady = false;
 
   static Future<void> init({FcmTokenHandler? onTokenRefresh}) async {
     _onTokenRefresh = onTokenRefresh;
@@ -76,8 +93,8 @@ class NotificationService {
     await _local.initialize(
       const InitializationSettings(android: androidSettings, iOS: iosSettings),
       onDidReceiveNotificationResponse: (response) {
-        final type = response.payload;
-        if (type != null && type.isNotEmpty) _handleTap({'type': type});
+        final payload = response.payload;
+        if (payload != null && payload.isNotEmpty) _handleTap(_decodePayload(payload));
       },
     );
 
@@ -99,7 +116,7 @@ class NotificationService {
       showLocalNotification(
         title: n?.title ?? message.data['title'] ?? 'ProofIt',
         body:  n?.body  ?? message.data['body']  ?? '',
-        payload: message.data['type'],
+        payload: _payloadFor(message),
         badge: int.tryParse(message.data['badge'] ?? ''),
       );
     });
@@ -122,8 +139,21 @@ class NotificationService {
   /// still navigate, then keep using [router] for any tap that follows.
   static void attachRouter(GoRouter router) {
     _router = router;
+    _flushPendingTap();
+    // Safety net: never hold taps forever if a splash path skips markAppReady.
+    Timer(const Duration(seconds: 8), markAppReady);
+  }
+
+  /// Called by the splash screen once it has navigated, after which a pending
+  /// cold-start tap can be applied on top.
+  static void markAppReady() {
+    _appReady = true;
+    _flushPendingTap();
+  }
+
+  static void _flushPendingTap() {
     final pending = _pendingTapData;
-    if (pending != null) {
+    if (pending != null && _router != null && _appReady) {
       _pendingTapData = null;
       _handleTap(pending);
     }
@@ -131,19 +161,33 @@ class NotificationService {
 
   static void _handleTap(Map<String, dynamic> data) {
     final router = _router;
-    if (router == null) {
+    if (router == null || !_appReady) {
       _pendingTapData = data;
       return;
     }
-    unawaited(_routeForTap(data).then(router.go));
+    unawaited(_routeForTap(data).then((route) {
+      if (route == null) return; // signed out — nothing to open
+      if (route.startsWith('/owner/map')) {
+        // Keep the owner shell underneath so Back returns to the app.
+        router.go('/owner');
+        router.push(route);
+      } else {
+        router.go(route);
+      }
+    }));
   }
 
-  static Future<String> _routeForTap(Map<String, dynamic> data) async {
+  static Future<String?> _routeForTap(Map<String, dynamic> data) async {
     final user = await AuthStorage.getUser();
-    final isStaff = user?.role == 'staff';
+    if (user == null) return null;
+    final isStaff = user.role == 'staff';
     final reportId = data['reportId'] as String?;
     final type = data['type'] as String?;
 
+    if (type == 'staff_login' && !isStaff) {
+      final staffId = data['staffId']?.toString() ?? '';
+      return staffId.isEmpty ? '/owner/map' : '/owner/map?staffId=${Uri.encodeComponent(staffId)}';
+    }
     if (reportId != null && reportId.isNotEmpty) {
       if (type == 'draft_reminder' && isStaff) return '/staff/draft/$reportId';
       return isStaff ? '/staff/report/$reportId' : '/owner/report/$reportId';
