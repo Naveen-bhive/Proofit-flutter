@@ -92,6 +92,8 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
   Map<String, Map<String, List<Map<String, dynamic>>>> _byStaff = {};
   /// staffId -> yyyy-MM-dd -> approved leave type name for that day.
   Map<String, Map<String, String>> _leaves = {};
+  /// yyyy-MM-dd -> occasion, for holidays the owner has added.
+  Map<String, String> _holidays = {};
   String? _selectedId;
   late int _month;
   late int _year;
@@ -141,8 +143,10 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
           .get('/leaves', params: {...range, 'status': 'approved', 'limit': '1000'})
           .then<dynamic>((r) => r)
           .catchError((_) => null);
+      final holidaysFuture = api.get('/holidays', params: range).then<dynamic>((r) => r).catchError((_) => null);
       final res = await api.get('/location/staff-attendance', params: {...range, 'limit': '5000'});
       _leaves = _groupLeaves(await leavesFuture);
+      _holidays = _groupHolidays(await holidaysFuture);
       if (res.data['success'] == true) {
         final records = List<Map<String, dynamic>>.from(res.data['data']['records'] ?? []);
         final grouped = <String, Map<String, List<Map<String, dynamic>>>>{};
@@ -179,6 +183,17 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     return out;
   }
 
+  Map<String, String> _groupHolidays(dynamic res) {
+    final rows = res?.data is Map ? res.data['data'] : null;
+    if (rows is! List) return {};
+    return {
+      for (final h in rows)
+        if (h is Map && h['date'] != null) h['date'].toString(): (h['occasion'] ?? 'Holiday').toString(),
+    };
+  }
+
+  bool _isHoliday(DateTime day) => _holidays.containsKey(_dayFmt.format(day));
+
   List<Map<String, dynamic>> _recordsFor(String staffId, DateTime day) =>
       _byStaff[staffId]?[_dayFmt.format(day)] ?? const [];
 
@@ -191,7 +206,7 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
       return ongoing || minutes >= _halfDayThresholdMinutes ? _Status.present : _Status.halfDay;
     }
     if (s.joined != null && day.isBefore(s.joined!)) return _Status.unmarked;
-    if (day.weekday == DateTime.sunday) return _Status.holiday;
+    if (_isHoliday(day)) return _Status.holiday;
     if (_leaves[s.id]?.containsKey(_dayFmt.format(day)) ?? false) return _Status.leave;
     if (!day.isBefore(today)) return _Status.pending;
     return _Status.absent;
@@ -648,7 +663,7 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                               const SizedBox(height: 2),
                               Text(DateFormat('E').format(d).substring(0, 2),
                                   style: TextStyle(
-                                    color: d.weekday == DateTime.sunday ? AppColors.yellow : AppColors.muted,
+                                    color: _isHoliday(d) ? AppColors.yellow : AppColors.muted,
                                     fontSize: 10,
                                   )),
                             ]),
@@ -876,7 +891,9 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
             Text(
               _leaves[s.id]?[_dayFmt.format(d)] != null
                   ? 'Approved ${_leaves[s.id]![_dayFmt.format(d)]} leave'
-                  : 'No check-in recorded',
+                  : _holidays[_dayFmt.format(d)] != null
+                      ? 'Holiday: ${_holidays[_dayFmt.format(d)]}'
+                      : 'No check-in recorded',
               style: const TextStyle(color: AppColors.muted),
             )
           else

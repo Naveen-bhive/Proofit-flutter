@@ -94,6 +94,7 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
       'broadcast'       => (Icons.campaign_outlined,          AppColors.brand),
       'streak'          => (Icons.local_fire_department_outlined, AppColors.brand),
       'leave_update'    => (Icons.event_available_outlined,   AppColors.green),
+      'holiday'         => (Icons.celebration_outlined,       AppColors.yellow),
       _                 => (Icons.notifications_outlined,     AppColors.muted),
     };
     return Container(

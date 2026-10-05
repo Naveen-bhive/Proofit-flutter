@@ -42,6 +42,7 @@ class OwnerProfileScreen extends ConsumerWidget {
           _tile(Icons.access_time_outlined,     AppColors.blue,   'Working Hours',     () => context.push('/owner/working-hours')),
           _tile(Icons.calendar_today_outlined,  AppColors.green,  'Staff Attendance',  () => context.push('/owner/staff-attendance')),
           _tile(Icons.event_busy_outlined,      AppColors.red,    'Leave Management',  () => context.push('/owner/leaves')),
+          _tile(Icons.celebration_outlined,     AppColors.yellow, 'Holidays',          () => context.push('/owner/holidays')),
           _tile(Icons.people_outline,           AppColors.yellow, 'Staff Management',  () => context.push('/owner/staff')),
         ]),
 

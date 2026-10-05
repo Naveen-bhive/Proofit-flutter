@@ -53,10 +53,13 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     requestBadgePermission: false,
     requestSoundPermission: false,
   );
-  await plugin.initialize(const InitializationSettings(android: androidSettings, iOS: iosSettings));
+  await plugin.initialize(
+      const InitializationSettings(android: androidSettings, iOS: iosSettings));
   const androidDetails = AndroidNotificationDetails(
-    'proofit_channel', 'ProofIt Notifications',
-    importance: Importance.high, priority: Priority.high,
+    'proofit_channel',
+    'ProofIt Notifications',
+    importance: Importance.high,
+    priority: Priority.high,
   );
   await plugin.show(
     DateTime.now().millisecondsSinceEpoch ~/ 1000,
@@ -74,6 +77,7 @@ class NotificationService {
   static FcmTokenHandler? _onTokenRefresh;
   static GoRouter? _router;
   static Map<String, dynamic>? _pendingTapData;
+
   /// False until the splash screen has routed to its first destination, so a
   /// cold-start tap isn't overwritten by the splash's own navigation.
   static bool _appReady = false;
@@ -81,7 +85,8 @@ class NotificationService {
   static Future<void> init({FcmTokenHandler? onTokenRefresh}) async {
     _onTokenRefresh = onTokenRefresh;
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     // Don't let the plugin fire its own OS permission prompt at init time — the
     // app requests permission deliberately later via requestPermission(), and a
     // second/earlier prompt here would either double-ask or jump the gun on timing.
@@ -94,16 +99,20 @@ class NotificationService {
       const InitializationSettings(android: androidSettings, iOS: iosSettings),
       onDidReceiveNotificationResponse: (response) {
         final payload = response.payload;
-        if (payload != null && payload.isNotEmpty) _handleTap(_decodePayload(payload));
+        if (payload != null && payload.isNotEmpty) {
+          _handleTap(_decodePayload(payload));
+        }
       },
     );
 
     const channel = AndroidNotificationChannel(
-      'proofit_channel', 'ProofIt Notifications',
+      'proofit_channel',
+      'ProofIt Notifications',
       importance: Importance.high,
     );
     await _local
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
     if (_fcm == null) return;
@@ -115,14 +124,15 @@ class NotificationService {
       final n = message.notification;
       showLocalNotification(
         title: n?.title ?? message.data['title'] ?? 'ProofIt',
-        body:  n?.body  ?? message.data['body']  ?? '',
+        body: n?.body ?? message.data['body'] ?? '',
         payload: _payloadFor(message),
         badge: int.tryParse(message.data['badge'] ?? ''),
       );
     });
 
     // Tapped while backgrounded.
-    FirebaseMessaging.onMessageOpenedApp.listen((message) => _handleTap(message.data));
+    FirebaseMessaging.onMessageOpenedApp
+        .listen((message) => _handleTap(message.data));
 
     // Tapped from a terminated state (cold start).
     final initialMessage = await _fcm!.getInitialMessage();
@@ -184,9 +194,11 @@ class NotificationService {
     final reportId = data['reportId'] as String?;
     final type = data['type'] as String?;
 
-    if (type == 'staff_login' && !isStaff) {
+    if ((type == 'staff_login' || type == 'staff_logout') && !isStaff) {
       final staffId = data['staffId']?.toString() ?? '';
-      return staffId.isEmpty ? '/owner/map' : '/owner/map?staffId=${Uri.encodeComponent(staffId)}';
+      return staffId.isEmpty
+          ? '/owner/map'
+          : '/owner/map?staffId=${Uri.encodeComponent(staffId)}';
     }
     if (reportId != null && reportId.isNotEmpty) {
       if (type == 'draft_reminder' && isStaff) return '/staff/draft/$reportId';
@@ -217,13 +229,16 @@ class NotificationService {
     int? badge,
   }) async {
     const androidDetails = AndroidNotificationDetails(
-      'proofit_channel', 'ProofIt Notifications',
-      importance: Importance.high, priority: Priority.high,
+      'proofit_channel',
+      'ProofIt Notifications',
+      importance: Importance.high,
+      priority: Priority.high,
     );
     final iosDetails = DarwinNotificationDetails(badgeNumber: badge);
     await _local.show(
       DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title, body,
+      title,
+      body,
       NotificationDetails(android: androidDetails, iOS: iosDetails),
       payload: payload,
     );

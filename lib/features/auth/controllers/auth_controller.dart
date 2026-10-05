@@ -15,8 +15,9 @@ import '../../../shared/services/notification_service.dart';
 import '../../../shared/services/location_service.dart';
 import '../../../shared/services/revenue_cat_service.dart';
 
-final authControllerProvider = StateNotifierProvider<AuthController, AsyncValue<void>>(
-  (ref) => AuthController(ref.read(apiServiceProvider)));
+final authControllerProvider =
+    StateNotifierProvider<AuthController, AsyncValue<void>>(
+        (ref) => AuthController(ref.read(apiServiceProvider)));
 
 class AuthController extends StateNotifier<AsyncValue<void>> {
   final ApiService _api;
@@ -69,20 +70,22 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   }
 
   // Returns: 'owner' | 'new_owner' | 'staff' | null
-  Future<String?> signInWithPassword(String email, String password, {String? inviteToken}) async {
+  Future<String?> signInWithPassword(String email, String password,
+      {String? inviteToken}) async {
     try {
       state = const AsyncLoading();
       final fcmToken = await _fcmToken();
 
       final res = await _api.post('/auth/login', data: {
-        'email':    email.trim(),
+        'email': email.trim(),
         'password': password,
         if (fcmToken != null) 'fcmToken': fcmToken,
         if (inviteToken != null) 'inviteToken': inviteToken,
       });
 
       if (res.data['success'] != true) {
-        state = AsyncError(res.data['message'] ?? 'Login failed', StackTrace.current);
+        state = AsyncError(
+            res.data['message'] ?? 'Login failed', StackTrace.current);
         return null;
       }
 
@@ -98,7 +101,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       _afterLogin(data);
       return data['user']['role'] ?? 'owner';
     } catch (e, st) {
-      state = AsyncError(friendlyErrorMessage(e, fallback: 'Sign in failed. Please try again.'), st);
+      state = AsyncError(
+          friendlyErrorMessage(e,
+              fallback: 'Sign in failed. Please try again.'),
+          st);
       return null;
     }
   }
@@ -133,9 +139,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       final fcmToken = await _fcmToken();
       final res = await _api.post('/auth/google', data: {
         if (googleData['idToken'] != null) 'idToken': googleData['idToken'],
-        if (googleData['accessToken'] != null) 'accessToken': googleData['accessToken'],
-        'email':    googleData['email'],
-        'name':     googleData['name'],
+        if (googleData['accessToken'] != null)
+          'accessToken': googleData['accessToken'],
+        'email': googleData['email'],
+        'name': googleData['name'],
         'photoUrl': googleData['photoUrl'],
         'googleId': googleData['googleId'],
         if (fcmToken != null) 'fcmToken': fcmToken,
@@ -143,7 +150,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       });
 
       if (res.data['success'] != true) {
-        state = AsyncError(res.data['message'] ?? 'Google sign-in failed', StackTrace.current);
+        state = AsyncError(
+            res.data['message'] ?? 'Google sign-in failed', StackTrace.current);
         return null;
       }
 
@@ -152,7 +160,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       state = const AsyncData(null);
       return route;
     } catch (e, st) {
-      state = AsyncError(friendlyErrorMessage(e, fallback: 'Google sign-in failed. Please try again.'), st);
+      state = AsyncError(
+          friendlyErrorMessage(e,
+              fallback: 'Google sign-in failed. Please try again.'),
+          st);
       return null;
     }
   }
@@ -187,7 +198,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       });
 
       if (res.data['success'] != true) {
-        state = AsyncError(res.data['message'] ?? 'Apple sign-in failed', StackTrace.current);
+        state = AsyncError(
+            res.data['message'] ?? 'Apple sign-in failed', StackTrace.current);
         return null;
       }
 
@@ -196,7 +208,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       state = const AsyncData(null);
       return route;
     } catch (e, st) {
-      state = AsyncError(friendlyErrorMessage(e, fallback: 'Apple sign-in failed. Please try again.'), st);
+      state = AsyncError(
+          friendlyErrorMessage(e,
+              fallback: 'Apple sign-in failed. Please try again.'),
+          st);
       return null;
     }
   }
@@ -214,12 +229,14 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   /// Fresh staff sign-in: share one position so the owner's "logged in"
   /// notification can open the live map on this staff member.
   void _afterLogin(Map<String, dynamic> data) {
-    if (data['user']?['role'] == 'staff') unawaited(_shareLoginLocation());
+    if (data['user']?['role'] == 'staff') {
+      unawaited(_shareSessionLocation('/location/login-ping'));
+    }
   }
 
   /// Best effort and silent: only uses an already-granted permission (no
-  /// prompt during sign-in) and never surfaces errors to the user.
-  Future<void> _shareLoginLocation() async {
+  /// prompt during sign-in/logout) and never surfaces errors to the user.
+  Future<void> _shareSessionLocation(String endpoint) async {
     try {
       if (!await LocationService.isLocationServiceOn()) return;
       if (!await LocationService.hasForegroundPermission()) return;
@@ -233,7 +250,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         pos = await Geolocator.getLastKnownPosition();
       }
       if (pos == null) return;
-      await _api.post('/location/login-ping', data: {
+      await _api.post(endpoint, data: {
         'latitude': pos.latitude,
         'longitude': pos.longitude,
       });
@@ -251,8 +268,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         if (data['user'] != null) {
           await _saveSession({
             'token': data['token'],
-            'user':  data['user'],
-            'org':   data['org'] ?? {},
+            'user': data['user'],
+            'org': data['org'] ?? {},
           });
         }
         await syncFcmToken();
@@ -289,7 +306,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       if (!await AuthStorage.isLoggedIn()) return null;
       final res = await _api.get('/auth/org');
       if (res.data['success'] != true || res.data['data'] == null) return null;
-      final org = OrgModel.fromJson(Map<String, dynamic>.from(res.data['data']));
+      final org =
+          OrgModel.fromJson(Map<String, dynamic>.from(res.data['data']));
       await AuthStorage.updateOrg(org);
       return org;
     } catch (_) {
@@ -297,7 +315,12 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<bool> setupOwner(String companyName, {required String mobile, required String address, required double latitude, required double longitude, String? ownerName}) async {
+  Future<bool> setupOwner(String companyName,
+      {required String mobile,
+      required String address,
+      required double latitude,
+      required double longitude,
+      String? ownerName}) async {
     try {
       final res = await _api.post('/auth/owner-setup', data: {
         'companyName': companyName,
@@ -316,7 +339,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       return true;
     } catch (e, st) {
       state = AsyncError(
-        friendlyErrorMessage(e, fallback: 'Could not create your account. Please try again.'),
+        friendlyErrorMessage(e,
+            fallback: 'Could not create your account. Please try again.'),
         st,
       );
       return false;
@@ -327,27 +351,50 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     try {
       final res = await _api.get('/auth/invite/$token');
       return res.data['success'] == true ? res.data['data'] : null;
-    } catch (_) { return null; }
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<bool> acceptInvite(String token) async {
     try {
-      return (await _api.post('/auth/invite/$token/accept')).data['success'] == true;
-    } catch (_) { return false; }
+      return (await _api.post('/auth/invite/$token/accept')).data['success'] ==
+          true;
+    } catch (_) {
+      return false;
+    }
   }
 
-  Future<({bool success, String message})> requestPasswordReset(String email) async {
+  Future<({bool success, String message})> requestPasswordReset(
+      String email) async {
     try {
-      final res = await _api.post('/auth/forgot-password', data: {'email': email.trim()});
+      final res = await _api
+          .post('/auth/forgot-password', data: {'email': email.trim()});
       if (res.data['success'] == true) {
-        return (success: true, message: res.data['message'] as String? ?? 'Reset code sent if the account exists.');
+        return (
+          success: true,
+          message: res.data['message'] as String? ??
+              'Reset code sent if the account exists.'
+        );
       }
-      return (success: false, message: res.data['message'] as String? ?? 'Could not send reset code');
+      return (
+        success: false,
+        message: res.data['message'] as String? ?? 'Could not send reset code'
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data is Map ? e.response?.data['message'] as String? : null;
-      return (success: false, message: friendlyErrorMessage(msg ?? e, fallback: 'Could not send reset code'));
+      final msg = e.response?.data is Map
+          ? e.response?.data['message'] as String?
+          : null;
+      return (
+        success: false,
+        message: friendlyErrorMessage(msg ?? e,
+            fallback: 'Could not send reset code')
+      );
     } catch (e) {
-      return (success: false, message: friendlyErrorMessage(e, fallback: 'Could not send reset code'));
+      return (
+        success: false,
+        message: friendlyErrorMessage(e, fallback: 'Could not send reset code')
+      );
     }
   }
 
@@ -358,19 +405,34 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   }) async {
     try {
       final res = await _api.post('/auth/reset-password', data: {
-        'email':    email.trim(),
-        'code':     code.trim(),
+        'email': email.trim(),
+        'code': code.trim(),
         'password': password,
       });
       if (res.data['success'] == true) {
-        return (success: true, message: res.data['message'] as String? ?? 'Password updated');
+        return (
+          success: true,
+          message: res.data['message'] as String? ?? 'Password updated'
+        );
       }
-      return (success: false, message: res.data['message'] as String? ?? 'Could not reset password');
+      return (
+        success: false,
+        message: res.data['message'] as String? ?? 'Could not reset password'
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data is Map ? e.response?.data['message'] as String? : null;
-      return (success: false, message: friendlyErrorMessage(msg ?? e, fallback: 'Could not reset password'));
+      final msg = e.response?.data is Map
+          ? e.response?.data['message'] as String?
+          : null;
+      return (
+        success: false,
+        message:
+            friendlyErrorMessage(msg ?? e, fallback: 'Could not reset password')
+      );
     } catch (e) {
-      return (success: false, message: friendlyErrorMessage(e, fallback: 'Could not reset password'));
+      return (
+        success: false,
+        message: friendlyErrorMessage(e, fallback: 'Could not reset password')
+      );
     }
   }
 
@@ -396,22 +458,45 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   }) async {
     try {
       final res = await _api.put('/auth/change-password', data: {
-        if (currentPassword != null && currentPassword.isNotEmpty) 'currentPassword': currentPassword,
+        if (currentPassword != null && currentPassword.isNotEmpty)
+          'currentPassword': currentPassword,
         'newPassword': newPassword,
       });
       if (res.data['success'] == true) {
-        return (success: true, message: res.data['message'] as String? ?? 'Password updated');
+        return (
+          success: true,
+          message: res.data['message'] as String? ?? 'Password updated'
+        );
       }
-      return (success: false, message: res.data['message'] as String? ?? 'Could not update password');
+      return (
+        success: false,
+        message: res.data['message'] as String? ?? 'Could not update password'
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data is Map ? e.response?.data['message'] as String? : null;
-      return (success: false, message: friendlyErrorMessage(msg ?? e, fallback: 'Could not update password'));
+      final msg = e.response?.data is Map
+          ? e.response?.data['message'] as String?
+          : null;
+      return (
+        success: false,
+        message: friendlyErrorMessage(msg ?? e,
+            fallback: 'Could not update password')
+      );
     } catch (e) {
-      return (success: false, message: friendlyErrorMessage(e, fallback: 'Could not update password'));
+      return (
+        success: false,
+        message: friendlyErrorMessage(e, fallback: 'Could not update password')
+      );
     }
   }
 
   Future<void> logout() async {
+    try {
+      final user = await AuthStorage.getUser();
+      if (user?.role == 'staff') {
+        await _shareSessionLocation('/location/logout-ping')
+            .timeout(const Duration(seconds: 12));
+      }
+    } catch (_) {}
     try {
       final fcm = await _fcmToken();
       if (fcm != null) {
@@ -430,7 +515,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   Future<void> _saveSession(Map<String, dynamic> data) async {
     await _api.saveToken(data['token']);
     final user = UserModel.fromJson(data['user']);
-    final org  = OrgModel.fromJson(data['org'] ?? {});
+    final org = OrgModel.fromJson(data['org'] ?? {});
     await AuthStorage.saveSession(token: data['token'], user: user, org: org);
     await syncFcmToken();
     // Ties this device's RevenueCat identity to the org so IAP webhooks/sync

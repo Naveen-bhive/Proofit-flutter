@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/network/api_service.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/report_card.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
@@ -25,6 +26,8 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
     with WidgetsBindingObserver {
   Timer? _refreshTimer;
   int _unreadCount = 0;
+  /// Today's org holiday ({date, occasion}) when the owner has marked one.
+  Map<String, dynamic>? _holiday;
   bool _backgroundLocationPrompted = false;
 
   @override
@@ -39,6 +42,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
     // Shell already loads today's reports; only refresh check-in / unread here.
     unawaited(notifier.loadCheckInStatus());
     unawaited(_loadUnreadCount());
+    unawaited(_loadHoliday());
     _startAutoRefresh();
     SocketService.connect();
     // Defer permission dialogs so the home screen paints first.
@@ -80,12 +84,23 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
     if (mounted) setState(() => _unreadCount = c);
   }
 
+  Future<void> _loadHoliday() async {
+    try {
+      final res = await ref.read(apiServiceProvider).get('/holidays/today');
+      final data = res.data['success'] == true ? res.data['data'] : null;
+      if (mounted) setState(() => _holiday = data is Map ? Map<String, dynamic>.from(data) : null);
+    } catch (_) {
+      // Holiday banner is informational only — never block the home screen.
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.read(staffControllerProvider.notifier).loadTodayReports(silent: true);
       ref.read(staffControllerProvider.notifier).loadCheckInStatus();
       _loadUnreadCount();
+      _loadHoliday();
       if (!SocketService.isConnected) SocketService.connect();
       _ensureBackgroundLocationIfCheckedIn();
     }
@@ -112,6 +127,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
           await ref.read(staffControllerProvider.notifier).loadTodayReports();
           await ref.read(staffControllerProvider.notifier).loadCheckInStatus();
           await _loadUnreadCount();
+          await _loadHoliday();
         },
         child: CustomScrollView(slivers: [
           SliverPadding(
@@ -178,6 +194,11 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                       ]),
                     ]),
                 const SizedBox(height: 20),
+
+                if (_holiday != null) ...[
+                  _holidayBanner(_holiday!),
+                  const SizedBox(height: 16),
+                ],
 
                 // FIX #5 Check-in row
                 _checkInRow(state, context),
@@ -366,6 +387,42 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
                           fontSize: 13)))),
+        ]),
+      );
+
+  Widget _holidayBanner(Map<String, dynamic> holiday) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.yellow.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.yellow.withValues(alpha: 0.45)),
+        ),
+        child: Row(children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+                color: AppColors.yellow.withValues(alpha: 0.18),
+                shape: BoxShape.circle),
+            child: const Icon(Icons.celebration_outlined,
+                color: AppColors.yellow, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                const Text('Today is a holiday',
+                    style: TextStyle(
+                        color: AppColors.yellow,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text('${holiday['occasion'] ?? 'Holiday'} — enjoy your day off!',
+                    style: const TextStyle(
+                        color: AppColors.light, fontSize: 13)),
+              ])),
         ]),
       );
 

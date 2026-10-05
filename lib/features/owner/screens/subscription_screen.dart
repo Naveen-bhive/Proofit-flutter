@@ -124,6 +124,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           .read(ownerControllerProvider.notifier)
           .createOrder(planSlug);
       final data = result.data;
+      debugPrint('Razorpay create-order: data=$data error=${result.error}');
       if (data == null) {
         throw Exception(result.error ?? 'Could not start payment');
       }
@@ -147,7 +148,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         'prefill': {'contact': user?.phone ?? '', 'email': user?.email ?? ''},
         'theme': {'color': '#2F80ED'},
       });
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('Razorpay start failed: $e\n$st');
       if (mounted) {
         showErrorSnackBar(context, e,
             fallback: 'Could not start payment. Please try again.');
@@ -259,6 +261,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   }
 
   void _handleError(PaymentFailureResponse r) {
+    debugPrint('Razorpay error: code=${r.code} message=${r.message}');
     if (mounted) {
       final msg = friendlyErrorMessage(
         r.message ?? 'Payment cancelled',

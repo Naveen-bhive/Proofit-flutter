@@ -47,13 +47,15 @@ class ApiService {
           return handler.next(error);
         }
 
-        if (error.response?.statusCode == 401) {
+        if (error.response?.statusCode == 401 &&
+            error.requestOptions.extra['retriedAfterRefresh'] != true) {
           try {
             final refreshed = await _sharedRefresh()
                 .timeout(const Duration(seconds: 8), onTimeout: () => false);
             if (refreshed) {
               final token = await _storage.read(key: AppConstants.tokenKey);
               error.requestOptions.headers['Authorization'] = 'Bearer $token';
+              error.requestOptions.extra['retriedAfterRefresh'] = true;
               final retry = await _dio.fetch(error.requestOptions);
               return handler.resolve(retry);
             }

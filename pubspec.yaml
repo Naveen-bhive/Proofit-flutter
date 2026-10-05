@@ -1,7 +1,9 @@
 name: proofit
 description: ProofIt — Work Done. Proved Instantly.
 publish_to: 'none'
-version: 1.0.6+12
+# version: 1.0.10+13  #play store
+version: 1.0.8+14 #app store
+
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

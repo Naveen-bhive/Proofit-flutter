@@ -43,6 +43,7 @@ import '../../features/owner/screens/payment_history_screen.dart';
 import '../../features/owner/screens/jobs_screen.dart';
 import '../../features/owner/screens/customers_screen.dart';
 import '../../features/owner/screens/working_hours_screen.dart';
+import '../../features/owner/screens/holiday_screen.dart';
 import '../../features/staff/screens/staff_jobs_screen.dart';
 import '../../features/staff/screens/staff_profile_screen.dart';
 import '../../features/owner/screens/pdf_export_screen.dart';
@@ -201,6 +202,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/owner/leaves',
           builder: (_, __) => const LeaveManagementScreen(isOwner: true)),
+      GoRoute(
+          path: '/owner/holidays',
+          builder: (_, __) => const HolidayScreen()),
       GoRoute(
           path: '/owner/working-hours',
           builder: (_, __) => const WorkingHoursScreen()),
