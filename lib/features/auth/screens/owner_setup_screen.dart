@@ -68,13 +68,13 @@ class _OwnerSetupScreenState extends ConsumerState<OwnerSetupScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const SizedBox(height: 40),
               const Text('Set up your account',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.white, letterSpacing: -0.5)),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.text, letterSpacing: -0.5)),
               const SizedBox(height: 8),
               const Text('This takes 30 seconds', style: TextStyle(color: AppColors.silver)),
               const SizedBox(height: 36),
               TextFormField(
                 controller: _companyCtrl,
-                style: const TextStyle(color: AppColors.white),
+                style: const TextStyle(color: AppColors.text),
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
                 validator: ProfileValidators.companyName,
@@ -83,7 +83,7 @@ class _OwnerSetupScreenState extends ConsumerState<OwnerSetupScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _mobileCtrl,
-                style: const TextStyle(color: AppColors.white),
+                style: const TextStyle(color: AppColors.text),
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.next,
                 inputFormatters: [MobileInputFormatter()],

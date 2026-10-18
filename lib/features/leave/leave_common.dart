@@ -199,7 +199,7 @@ Future<T?> showLeavePicker<T>(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text(title, style: const TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+            child: Text(title, style: const TextStyle(color: AppColors.text, fontSize: 17, fontWeight: FontWeight.w700)),
           ),
         ),
         Flexible(
@@ -225,7 +225,7 @@ Future<T?> showLeavePicker<T>(
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(label(v),
-                              style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+                              style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 15)),
                           if ((subtitle?.call(v) ?? '').isNotEmpty)
                             Text(subtitle!(v)!, style: const TextStyle(color: AppColors.silver, fontSize: 12)),
                         ]),
@@ -294,7 +294,7 @@ class LeaveSelectBox extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: value == null ? AppColors.muted : AppColors.white,
+                color: value == null ? AppColors.muted : AppColors.text,
                 fontSize: 15,
                 fontWeight: value == null ? FontWeight.w400 : FontWeight.w600,
               ),

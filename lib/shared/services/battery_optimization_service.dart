@@ -240,7 +240,7 @@ class BatteryOptimizationService {
         title: const Text(
           'Keep location running in background',
           style: TextStyle(
-              color: AppColors.white,
+              color: AppColors.text,
               fontWeight: FontWeight.w700,
               fontSize: 18),
         ),
@@ -272,7 +272,7 @@ class BatteryOptimizationService {
                     Text(
                       'On ${guide.brandLabel}:',
                       style: const TextStyle(
-                          color: AppColors.white,
+                          color: AppColors.text,
                           fontWeight: FontWeight.w700,
                           fontSize: 14),
                     ),

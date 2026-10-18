@@ -96,18 +96,22 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
           child: _body(),
         ),
         bottomNavigationBar: Container(
-          decoration: const BoxDecoration(color: AppColors.dark2, border: Border(top: BorderSide(color: AppColors.border))),
+          decoration: const BoxDecoration(
+            color: AppColors.white,
+            border: Border(top: BorderSide(color: AppColors.border)),
+            boxShadow: [BoxShadow(color: Color(0x0A0F172A), blurRadius: 12, offset: Offset(0, -2))],
+          ),
           child: SafeArea(
             child: MediaQuery.withClampedTextScaling(
               maxScaleFactor: 1.2,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: const EdgeInsets.only(top: 10, bottom: 6),
                 child: Row(children: [
-                  _item(0, Icons.dashboard_outlined,  Icons.dashboard_rounded,  'Dashboard'),
-                  _item(1, Icons.assignment_outlined, Icons.assignment_rounded, 'Reports'),
-                  _item(2, Icons.map_outlined,        Icons.map_rounded,        'Map'),
-                  _item(3, Icons.work_outline,        Icons.work_rounded,       'Jobs'),
-                  _item(4, Icons.person_outline,      Icons.person_rounded,     'Profile',
+                  _item(0, Icons.grid_view_outlined,         Icons.grid_view_rounded,      'Dashboard'),
+                  _item(1, Icons.content_paste_outlined,     Icons.content_paste_rounded,  'Reports'),
+                  _item(2, Icons.map_outlined,               Icons.map_rounded,            'Map'),
+                  _item(3, Icons.business_center_outlined,   Icons.business_center_rounded,'Jobs'),
+                  _item(4, Icons.person_outline_rounded,     Icons.person_rounded,         'Profile',
                     badge: unread > 0 ? unread : null),
                 ]),
               ),
@@ -131,19 +135,19 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
       behavior: HitTestBehavior.opaque,
       child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
         Stack(clipBehavior: Clip.none, children: [
-          Icon(active ? activeIcon : icon, color: active ? AppColors.brand : AppColors.muted, size: 24),
-          if (badge != null) Positioned(top: -2, right: -6,
-            child: Container(width: 14, height: 14, decoration: const BoxDecoration(color: AppColors.brand, shape: BoxShape.circle),
+          Icon(active ? activeIcon : icon, color: active ? AppColors.brand : AppColors.muted, size: 25),
+          if (badge != null) Positioned(top: -3, right: -6,
+            child: Container(width: 15, height: 15, decoration: BoxDecoration(color: AppColors.red, shape: BoxShape.circle, border: Border.all(color: AppColors.white, width: 1.5)),
               child: Center(child: Text(badge > 9 ? '9+' : '$badge',
                 style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800))))),
         ]),
-        const SizedBox(height: 3),
+        const SizedBox(height: 5),
         Text(
           label,
           maxLines: 1,
           softWrap: false,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: active ? AppColors.brand : AppColors.muted, fontSize: 10, fontWeight: active ? FontWeight.w700 : FontWeight.w400),
+          style: TextStyle(color: active ? AppColors.brand : AppColors.muted, fontSize: 11, fontWeight: active ? FontWeight.w600 : FontWeight.w500),
         ),
       ]),
     ));

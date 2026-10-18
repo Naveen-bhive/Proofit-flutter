@@ -5,12 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../shared/widgets/app_button.dart';
 import '../../staff/controllers/staff_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../utils/auth_helpers.dart';
 import '../widgets/apple_sign_in_button.dart';
 import '../widgets/auth_shell.dart';
+import '../../../shared/widgets/ui_kit.dart' show PrimaryButton;
 import '../widgets/google_sign_in_button.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
@@ -96,10 +96,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Open invite link', style: TextStyle(color: AppColors.white)),
+        title: const Text('Open invite link', style: TextStyle(color: AppColors.text)),
         content: TextField(
           controller: ctrl,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           decoration: const InputDecoration(
             hintText: 'Paste invite URL or token',
             hintStyle: TextStyle(color: AppColors.muted),
@@ -132,26 +132,40 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       title: 'Welcome back',
       subtitle: 'Sign in to manage your team and reports.',
       footer: Column(children: [
-        TextButton(
-          onPressed: () => context.go('/signup'),
+        GestureDetector(
+          onTap: () => context.go('/signup'),
           child: const Text.rich(
             TextSpan(
-              text: 'New business? ',
-              style: TextStyle(color: AppColors.silver, fontSize: 14),
+              text: 'New business?  ',
+              style: TextStyle(color: AppColors.silver, fontSize: 13.5),
               children: [
                 TextSpan(
                   text: 'Create account',
-                  style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700),
+                  style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
         ),
-        TextButton(
-          onPressed: _showInviteDialog,
-          child: const Text(
-            'Staff member? Open your invite link',
-            style: TextStyle(color: AppColors.muted, fontSize: 13),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: _showInviteDialog,
+          child: const Text.rich(
+            TextSpan(
+              text: 'Staff member?  ',
+              style: TextStyle(color: AppColors.silver, fontSize: 13.5),
+              children: [
+                TextSpan(
+                  text: 'Open your invite link',
+                  style: TextStyle(
+                    color: AppColors.light,
+                    fontWeight: FontWeight.w500,
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppColors.muted,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         if (kDebugMode)
@@ -165,26 +179,35 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           ),
       ]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const AuthFieldLabel('Work Email'),
         TextField(
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           textInputAction: TextInputAction.next,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           decoration: const InputDecoration(
-            labelText: 'Email',
-            prefixIcon: Icon(Icons.email_outlined, color: AppColors.muted),
+            hintText: 'name@company.com',
+            prefixIcon: Icon(Icons.mail_outline_rounded, color: AppColors.muted),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
+        AuthFieldLabel(
+          'Password',
+          trailing: GestureDetector(
+            onTap: _loading || _googleLoading ? null : () => context.push('/forgot-password'),
+            child: const Text('Forgot password?',
+                style: TextStyle(color: AppColors.brand, fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+        ),
         TextField(
           controller: _passCtrl,
           obscureText: _obscure,
           textInputAction: TextInputAction.done,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           decoration: InputDecoration(
-            labelText: 'Password',
-            prefixIcon: const Icon(Icons.lock_outline, color: AppColors.muted),
+            hintText: 'Enter your password',
+            prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.muted),
             suffixIcon: IconButton(
               icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                   color: AppColors.muted),
@@ -193,26 +216,16 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           ),
           onSubmitted: (_) => _signInWithPassword(),
         ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: _loading || _googleLoading ? null : () => context.push('/forgot-password'),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Text('Forgot password?', style: TextStyle(color: AppColors.brand, fontSize: 13)),
-          ),
-        ),
         if (_error != null) ...[
           const SizedBox(height: 14),
           AuthErrorBanner(message: _error!),
         ],
         const SizedBox(height: 22),
-        AppButton(
+        PrimaryButton(
           label: 'Sign in',
-          isLoading: _loading,
+          trailingIcon: Icons.arrow_forward_rounded,
+          gradient: AppColors.brandGradient,
+          loading: _loading,
           onPressed: (_loading || _googleLoading || _appleLoading) ? null : _signInWithPassword,
         ),
         const AuthDivider(),

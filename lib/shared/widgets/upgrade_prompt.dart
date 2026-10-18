@@ -37,7 +37,7 @@ class UpgradePrompt extends StatelessWidget {
         Container(width: 64, height: 64, decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.1), shape: BoxShape.circle),
           child: const Icon(Icons.workspace_premium_outlined, color: AppColors.brand, size: 32)),
         const SizedBox(height: 16),
-        Text('Upgrade to $requiredPlan', style: const TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+        Text('Upgrade to $requiredPlan', style: const TextStyle(color: AppColors.text, fontSize: 20, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         Text(description, style: const TextStyle(color: AppColors.silver, fontSize: 14, height: 1.5), textAlign: TextAlign.center),
         const SizedBox(height: 24),

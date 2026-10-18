@@ -150,7 +150,7 @@ class _ProofItAppState extends ConsumerState<ProofItApp>
     return MaterialApp.router(
       title: 'ProofIt',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       routerConfig: router,
     );
   }

@@ -26,7 +26,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
               child: const Icon(Icons.error_outline, color: AppColors.red, size: 40),
             ),
             const SizedBox(height: 20),
-            const Text('Something went wrong', style: TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+            const Text('Something went wrong', style: TextStyle(color: AppColors.text, fontSize: 20, fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             const Text(
               'The app hit an unexpected error.\nPlease restart to continue.',

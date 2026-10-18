@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../services/camera_service.dart';
 import 'drive_photo_widget.dart';
+import 'ui_kit.dart' show DashedBorderPainter;
 
 enum _CaptureChoice { camera, gallery, remove }
 
@@ -85,7 +86,7 @@ class CameraCaptureWidget extends StatelessWidget {
             Text(
               _hasPreview ? 'Replace $label Photo' : 'Capture $label Photo',
               style: const TextStyle(
-                color: AppColors.white,
+                color: AppColors.text,
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
               ),
@@ -164,7 +165,7 @@ class CameraCaptureWidget extends StatelessWidget {
           child: Icon(icon, color: color, size: 22)),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+          Text(title, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 15)),
           Text(sub,   style: const TextStyle(color: AppColors.silver, fontSize: 12)),
         ])),
         Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: 0.5), size: 20),
@@ -172,11 +173,11 @@ class CameraCaptureWidget extends StatelessWidget {
 
   Widget _previewStack({required Widget child}) {
     return Stack(fit: StackFit.expand, children: [
-      ClipRRect(borderRadius: BorderRadius.circular(13), child: child),
+      ClipRRect(borderRadius: BorderRadius.circular(17), child: child),
       Positioned(bottom: 0, left: 0, right: 0,
         child: Container(padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12))),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(17))),
           child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(Icons.camera_alt_outlined, color: Colors.white70, size: 14),
             SizedBox(width: 6),
@@ -218,44 +219,55 @@ class CameraCaptureWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Text(label, style: const TextStyle(color: AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600)),
-        if (isRequired) const Text(' *', style: TextStyle(color: AppColors.red, fontSize: 13)),
+        Text(label, style: const TextStyle(fontFamily: 'Poppins', color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w600)),
+        if (isRequired) const Text(' *', style: TextStyle(color: AppColors.red, fontSize: 14, fontWeight: FontWeight.w700)),
         const SizedBox(width: 8),
-        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(100)),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: AppColors.brandSoft,
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: AppColors.brandBorder),
+          ),
           child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.access_time_rounded, color: AppColors.brand, size: 10),
-            SizedBox(width: 3),
-            Text('Auto-stamped', style: TextStyle(color: AppColors.brand, fontSize: 10, fontWeight: FontWeight.w600)),
+            Icon(Icons.schedule_rounded, color: AppColors.brand, size: 11),
+            SizedBox(width: 4),
+            Text('Auto-stamped', style: TextStyle(color: AppColors.brand, fontSize: 11, fontWeight: FontWeight.w600)),
           ])),
         const Spacer(),
         if (_hasPreview && !isUploading)
           GestureDetector(
             onTap: uploadFailed ? onRetry : () => _showOptions(context),
-            child: Text(
-              uploadFailed ? 'Retry upload' : 'Retake',
-              style: TextStyle(
-                color: uploadFailed ? AppColors.red : AppColors.brand,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(uploadFailed ? Icons.refresh_rounded : Icons.flip_camera_ios_outlined,
+                  size: 15, color: uploadFailed ? AppColors.red : AppColors.brand),
+              const SizedBox(width: 4),
+              Text(
+                uploadFailed ? 'Retry upload' : 'Retake',
+                style: TextStyle(
+                  color: uploadFailed ? AppColors.red : AppColors.brand,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+            ]),
           ),
       ]),
-      const SizedBox(height: 8),
+      const SizedBox(height: 10),
       GestureDetector(
         onTap: isUploading
             ? null
             : uploadFailed
                 ? onRetry
                 : () => _showOptions(context),
-        child: AnimatedContainer(
+        child: CustomPaint(
+          foregroundPainter: _hasPreview ? null : const DashedBorderPainter(color: Color(0xFFCBD5E1), radius: 18),
+          child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          height: 185, width: double.infinity,
+          height: 175, width: double.infinity,
           decoration: BoxDecoration(
-            color:        _hasPreview ? Colors.transparent : AppColors.dark3,
-            borderRadius: BorderRadius.circular(14),
-            border:       Border.all(color: _hasPreview ? AppColors.brand : AppColors.border, width: _hasPreview ? 2 : 1)),
+            color:        _hasPreview ? AppColors.dark4 : AppColors.white,
+            borderRadius: BorderRadius.circular(18),
+            border:       _hasPreview ? Border.all(color: AppColors.border) : null),
           child: isUploading
             ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const CircularProgressIndicator(color: AppColors.brand, strokeWidth: 2),
@@ -295,13 +307,14 @@ class CameraCaptureWidget extends StatelessWidget {
               : image != null
               ? _previewStack(child: Image.file(image!, fit: BoxFit.cover))
               : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(width: 60, height: 60, decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.1), shape: BoxShape.circle),
-                    child: Icon(label == 'Before' ? Icons.camera_alt_outlined : Icons.camera_enhance_outlined, color: AppColors.brand, size: 30)),
-                  const SizedBox(height: 12),
-                  Text('Tap to capture $label photo', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+                  Container(width: 56, height: 56, decoration: BoxDecoration(color: AppColors.brandSoft, borderRadius: BorderRadius.circular(16)),
+                    child: const Icon(Icons.photo_camera_outlined, color: AppColors.brand, size: 26)),
+                  const SizedBox(height: 14),
+                  Text('Tap to capture $label photo', style: const TextStyle(fontFamily: 'Poppins', color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 14.5)),
                   const SizedBox(height: 4),
-                  const Text('Location: Timestamp + GPS · saved to Drive', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                  const Text('Location: Timestamp + GPS • saved to Drive', style: TextStyle(color: AppColors.muted, fontSize: 11.5)),
                 ]),
+        ),
         ),
       ),
     ]);

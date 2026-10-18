@@ -28,7 +28,7 @@ class PlanGate extends StatelessWidget {
             const Icon(Icons.lock_outline, color: AppColors.brand, size: 28),
             const SizedBox(height: 8),
             Text('Requires $requiredPlan Plan',
-              style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
+              style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             const Text('Upgrade to unlock', style: TextStyle(color: AppColors.silver, fontSize: 12)),
           ]),

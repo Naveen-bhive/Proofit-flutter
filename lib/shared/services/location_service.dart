@@ -291,7 +291,7 @@ class LocationService {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Allow location all the time',
-          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 18),
+          style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 18),
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -316,7 +316,7 @@ class LocationService {
                   children: [
                     Text(
                       'On the next screen, choose:',
-                      style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                      style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14),
                     ),
                     SizedBox(height: 10),
                     Text(
@@ -365,7 +365,7 @@ class LocationService {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.dark2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
+        title: Text(title, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
         content: Text(message, style: const TextStyle(color: AppColors.silver, height: 1.5)),
         actions: [
           if (secondaryLabel != null)

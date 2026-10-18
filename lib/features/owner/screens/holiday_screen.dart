@@ -141,7 +141,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(h.occasion,
-                    style: const TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+                    style: const TextStyle(color: AppColors.text, fontSize: 17, fontWeight: FontWeight.w700)),
               ),
             ]),
             const SizedBox(height: 4),
@@ -151,7 +151,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.edit_outlined, color: AppColors.brand),
-              title: const Text('Edit', style: TextStyle(color: AppColors.white)),
+              title: const Text('Edit', style: TextStyle(color: AppColors.text)),
               onTap: () => Navigator.pop(ctx, 'edit'),
             ),
             ListTile(
@@ -185,7 +185,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Delete holiday?', style: TextStyle(color: AppColors.white)),
+        title: const Text('Delete holiday?', style: TextStyle(color: AppColors.text)),
         content: Text('${h.occasion} on ${DateFormat('d MMM yyyy').format(h.date)} will be removed.',
             style: const TextStyle(color: AppColors.silver)),
         actions: [
@@ -217,7 +217,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
       appBar: AppBar(
         titleSpacing: 0,
         title: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Holiday', style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+          Text('Holiday', style: TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w700)),
           SizedBox(height: 2),
           Text('Home • Holiday', style: TextStyle(color: AppColors.silver, fontSize: 12)),
         ]),
@@ -316,7 +316,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
             border: Border.all(color: AppColors.border),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: AppColors.white, size: 20),
+          child: Icon(icon, color: AppColors.text, size: 20),
         ),
       );
 
@@ -342,7 +342,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
           Expanded(
             child: Text(DateFormat('MMMM yyyy').format(_month),
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 15)),
           ),
           TextButton(onPressed: _goToday, child: const Text('Today')),
         ]),
@@ -396,7 +396,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text('${d.day}',
               style: TextStyle(
-                color: h != null ? AppColors.yellow : AppColors.white,
+                color: h != null ? AppColors.yellow : AppColors.text,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               )),
@@ -441,7 +441,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
         Expanded(
           child: Text('${_month.year}  ·  ${items.length} holiday${items.length == 1 ? '' : 's'}',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+              style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 15)),
         ),
         _navButton(Icons.chevron_right_rounded, () => _shiftYear(1)),
       ]),
@@ -468,7 +468,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
         child: ListTile(
           onTap: _openWeeklyOffs,
           leading: const Icon(Icons.event_repeat_rounded, color: AppColors.yellow),
-          title: const Text('Weekly Off', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
+          title: const Text('Weekly Off', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
           subtitle: Text(
             _weeklyOffs.isEmpty ? 'Not set — every day is a working day' : 'Every ${_weeklyLabel.substring(12)}',
             style: const TextStyle(color: AppColors.silver, fontSize: 12),
@@ -500,7 +500,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
                   style: const TextStyle(color: AppColors.yellow, fontSize: 10)),
             ]),
           ),
-          title: Text(h.occasion, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
+          title: Text(h.occasion, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
           subtitle: Text(DateFormat('d MMM yyyy').format(h.date),
               style: const TextStyle(color: AppColors.silver, fontSize: 12)),
           trailing: const Icon(Icons.more_vert_rounded, color: AppColors.silver),
@@ -564,7 +564,7 @@ Widget _dateField(BuildContext context, DateTime value, ValueChanged<DateTime> o
         decoration: _input('').copyWith(
           suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.silver),
         ),
-        child: Text(DateFormat('dd-MM-yyyy').format(value), style: const TextStyle(color: AppColors.white)),
+        child: Text(DateFormat('dd-MM-yyyy').format(value), style: const TextStyle(color: AppColors.text)),
       ),
     );
 
@@ -577,7 +577,7 @@ Widget _sheetHeader(BuildContext context, String title) => Column(children: [
       ),
       Row(children: [
         Expanded(
-          child: Text(title, style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+          child: Text(title, style: const TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w700)),
         ),
         IconButton(
           onPressed: () => Navigator.pop(context),
@@ -725,7 +725,7 @@ class _AddHolidaySheetState extends ConsumerState<_AddHolidaySheet> {
               controller: r.occasion,
               maxLength: 80,
               textCapitalization: TextCapitalization.words,
-              style: const TextStyle(color: AppColors.white),
+              style: const TextStyle(color: AppColors.text),
               decoration: _input('Occasion').copyWith(counterText: ''),
             ),
           ]),

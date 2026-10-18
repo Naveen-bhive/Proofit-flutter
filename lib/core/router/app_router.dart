@@ -12,7 +12,6 @@ import '../../features/auth/screens/reset_password_screen.dart';
 import '../../features/auth/screens/change_password_screen.dart';
 import '../../features/owner/screens/staff_attendance_screen.dart';
 import '../../features/leave/leave_management_screen.dart';
-import '../../features/leave/staff_leave_requests_screen.dart';
 import '../../features/auth/screens/invite_screen.dart';
 import '../../features/auth/screens/owner_setup_screen.dart';
 import '../../features/staff/screens/staff_shell.dart';
@@ -133,7 +132,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/staff/jobs', builder: (_, __) => const StaffJobsScreen()),
       GoRoute(
           path: '/staff/leaves',
-          builder: (_, __) => const StaffLeaveRequestsScreen()),
+          builder: (_, __) => const LeaveManagementScreen(isOwner: false)),
       GoRoute(
           path: '/staff/profile',
           builder: (_, __) => const StaffProfileScreen()),

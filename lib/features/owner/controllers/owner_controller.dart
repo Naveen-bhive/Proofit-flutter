@@ -730,11 +730,12 @@ class OwnerController extends StateNotifier<OwnerState> {
   }
 
   Future<String?> addCustomer(String name, String phone, String address,
-      String city, String notes) async {
+      String city, String notes, {String? email}) async {
     try {
       final res = await _api.post('/customers', data: {
         'name': name,
         'phone': phone,
+        if (email != null && email.isNotEmpty) 'email': email,
         'address': address,
         'city': city,
         'notes': notes

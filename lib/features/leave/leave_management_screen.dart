@@ -7,13 +7,15 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_text_styles.dart';
+import '../../shared/widgets/ui_kit.dart' show PageHeader;
 import '../../core/network/api_service.dart';
 import '../../core/utils/ui_feedback.dart';
 import 'leave_common.dart';
 import 'new_leave_screen.dart';
 
-/// Owner "Leaves" management table for the whole organisation. Staff use
-/// [StaffLeaveRequestsScreen] instead; `isOwner: false` is kept only for reuse.
+/// "Leaves" table. Owners (`isOwner: true`) manage the whole organisation;
+/// staff (`isOwner: false`) see "My Leaves" — their own requests.
 class LeaveManagementScreen extends ConsumerStatefulWidget {
   final bool isOwner;
   const LeaveManagementScreen({super.key, this.isOwner = true});
@@ -149,7 +151,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: Text(isOwner ? 'Delete leave?' : 'Cancel request?', style: const TextStyle(color: AppColors.white)),
+        title: Text(isOwner ? 'Delete leave?' : 'Cancel request?', style: const TextStyle(color: AppColors.text)),
         content: Text(
           isOwner ? 'This leave record will be removed permanently.' : 'Your leave request will be withdrawn.',
           style: const TextStyle(color: AppColors.silver),
@@ -180,7 +182,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
       lastDate: DateTime(now.year + 1, 12, 31),
       initialDateRange: _range,
       builder: (ctx, child) => Theme(
-        data: ThemeData.dark().copyWith(colorScheme: const ColorScheme.dark(primary: AppColors.brand)),
+        data: Theme.of(ctx),
         child: child!,
       ),
     );
@@ -239,66 +241,67 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.dark,
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(widget.isOwner ? 'Leave Management' : 'My Leaves',
-              style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 2),
-          const Text('Home • Leaves', style: TextStyle(color: AppColors.silver, fontSize: 12)),
-        ]),
-        bottom: const PreferredSize(preferredSize: Size.fromHeight(1), child: Divider(height: 1, color: AppColors.border)),
-      ),
-      body: RefreshIndicator(
+      backgroundColor: widget.isOwner ? AppColors.dark : AppColors.page,
+      body: SafeArea(
+        child: Column(children: [
+          PageHeader(
+            title: widget.isOwner ? 'Leave Management' : 'My Leaves',
+            subtitle: widget.isOwner ? null : 'Home • Leaves',
+            titleSize: 21,
+          ),
+          Expanded(
+            child: RefreshIndicator(
         color: AppColors.brand,
-        backgroundColor: AppColors.dark2,
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
             _durationRow(),
             const SizedBox(height: 14),
             _searchRow(),
             const SizedBox(height: 12),
             _chips(),
-            const SizedBox(height: 18),
+            const SizedBox(height: 22),
             Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              const Text('Leaves', style: TextStyle(color: AppColors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+              Text('Leaves', style: AppTextStyles.h2.copyWith(fontSize: 21)),
               const SizedBox(width: 10),
               const Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Text('Home · Leaves', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                child: Text('Home • Leaves', style: TextStyle(color: AppColors.silver, fontSize: 12)),
               ),
               const Spacer(),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text('$_total total', style: const TextStyle(color: AppColors.silver, fontSize: 12)),
+              Container(
+                margin: const EdgeInsets.only(bottom: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: AppColors.dark4, borderRadius: BorderRadius.circular(6)),
+                child: Text('$_total total', style: const TextStyle(color: AppColors.light, fontSize: 12, fontWeight: FontWeight.w600)),
               ),
             ]),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Row(children: [
               ElevatedButton.icon(
                 onPressed: _openNewLeave,
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(0, 46),
+                  minimumSize: const Size(0, 44),
                   backgroundColor: AppColors.brand,
                   foregroundColor: AppColors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.add_rounded, size: 20),
                 label: Text(widget.isOwner ? 'New Leave' : 'Request Leave',
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
               ),
               const SizedBox(width: 10),
               OutlinedButton.icon(
                 onPressed: _exporting ? null : _export,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.white,
+                  foregroundColor: AppColors.text,
+                  backgroundColor: AppColors.white,
                   side: const BorderSide(color: AppColors.border),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  minimumSize: const Size(0, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: _exporting
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand))
@@ -314,51 +317,63 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
             _table(),
           ],
         ),
+            ),
+          ),
+        ]),
       ),
     );
   }
 
   Widget _durationRow() {
     final fmt = DateFormat('d MMM yyyy');
-    return Row(children: [
-      const Text('Duration', style: TextStyle(color: AppColors.silver, fontSize: 13)),
-      const SizedBox(width: 10),
-      Expanded(
-        child: InkWell(
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppColors.softShadow,
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 2, bottom: 8),
+          child: Text('DURATION', style: TextStyle(color: AppColors.silver, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.8)),
+        ),
+        InkWell(
           onTap: _pickRange,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.dark3,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _range == null ? AppColors.border : AppColors.brand),
+            ),
             child: Row(children: [
-              const Icon(Icons.date_range_outlined, color: AppColors.brand, size: 16),
-              const SizedBox(width: 6),
-              Flexible(
+              const Icon(Icons.calendar_month_outlined, color: AppColors.brand, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
                 child: Text(
                   _range == null ? 'Start Date To End Date' : '${fmt.format(_range!.start)}  To  ${fmt.format(_range!.end)}',
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: _range == null ? AppColors.light : AppColors.brand,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ),
+              if (_range != null)
+                InkWell(
+                  onTap: () {
+                    setState(() => _range = null);
+                    _load(resetPage: true);
+                  },
+                  child: const Icon(Icons.close_rounded, color: AppColors.silver, size: 18),
+                )
+              else
+                const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.silver),
             ]),
           ),
         ),
-      ),
-      if (_range != null)
-        InkWell(
-          onTap: () {
-            setState(() => _range = null);
-            _load(resetPage: true);
-          },
-          child: const Padding(
-            padding: EdgeInsets.all(4),
-            child: Icon(Icons.close_rounded, color: AppColors.silver, size: 18),
-          ),
-        ),
-    ]);
+      ]),
+    );
   }
 
   Widget _searchRow() => Row(children: [
@@ -368,13 +383,13 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
             child: TextField(
               controller: _searchCtrl,
               onChanged: _onSearchChanged,
-              style: const TextStyle(color: AppColors.white, fontSize: 14),
+              style: const TextStyle(color: AppColors.text, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Start typing to search...',
                 hintStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
                 prefixIcon: const Icon(Icons.search_rounded, color: AppColors.silver, size: 20),
                 filled: true,
-                fillColor: AppColors.dark2,
+                fillColor: AppColors.white,
                 contentPadding: EdgeInsets.zero,
                 enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
@@ -392,9 +407,10 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
             height: 46,
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: _activeFilterCount > 0 ? AppColors.brand.withValues(alpha: 0.12) : AppColors.dark2,
+              color: _activeFilterCount > 0 ? AppColors.brandSoft : AppColors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _activeFilterCount > 0 ? AppColors.brand : AppColors.border),
+              boxShadow: AppColors.softShadow,
             ),
             child: Row(children: [
               Icon(Icons.filter_alt_outlined,
@@ -414,10 +430,13 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
   Widget _chips() {
     const chips = [('all', 'All Leaves'), ('half', 'Half Day'), ('approved', 'Approved'), ('pending', 'Pending'), ('rejected', 'Rejected')];
     final active = _activeChip;
+    final selectedColor = widget.isOwner ? AppColors.text : AppColors.brand;
     return SizedBox(
-      height: 34,
+      height: 40,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        padding: const EdgeInsets.symmetric(vertical: 3),
         itemCount: chips.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
@@ -430,9 +449,10 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: on ? AppColors.brand : AppColors.dark2,
+                color: on ? selectedColor : AppColors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: on ? AppColors.brand : AppColors.border),
+                border: Border.all(color: on ? selectedColor : AppColors.border),
+                boxShadow: AppColors.softShadow,
               ),
               child: Text(label,
                   style: TextStyle(
@@ -457,7 +477,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
         child: Row(children: [
           Expanded(
             child: Text('${_selected.length} selected',
-                style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
+                style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
           ),
           TextButton(
             onPressed: () => _setStatus(_selected.toList(), 'approved'),
@@ -489,15 +509,16 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
     final leftWidth = isOwner ? 190.0 : 110.0;
     final allSelected = _leaves.isNotEmpty && _leaves.every((l) => _selected.contains(l.id));
 
-    Widget headerCell(String text) => Text(text,
-        style: const TextStyle(color: AppColors.silver, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.3));
-    const rowBorder = BoxDecoration(border: Border(top: BorderSide(color: AppColors.border)));
+    Widget headerCell(String text) => Text(isOwner ? text : text.toUpperCase(),
+        style: const TextStyle(color: AppColors.silver, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.4));
+    const rowBorder = BoxDecoration(border: Border(top: BorderSide(color: AppColors.borderSoft)));
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.dark2,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
+        boxShadow: AppColors.cardShadow,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -509,10 +530,10 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
               height: 220,
               child: Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.event_available_outlined, color: AppColors.muted, size: 44),
-                  const SizedBox(height: 10),
+                  const Icon(Icons.event_available_outlined, color: AppColors.muted, size: 46),
+                  const SizedBox(height: 12),
                   Text(isOwner ? 'No leave records found' : 'No leave requests yet',
-                      style: const TextStyle(color: AppColors.silver)),
+                      style: const TextStyle(color: AppColors.light, fontSize: 14.5, fontWeight: FontWeight.w500)),
                 ]),
               ),
             )
@@ -631,7 +652,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
           Text(title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
+              style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5)),
           if (subtitle.isNotEmpty)
             Text(subtitle,
                 maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.silver, fontSize: 11)),
@@ -651,7 +672,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
       Flexible(
         child: Text(l.leaveTypeName,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+            style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600)),
       ),
     ]);
   }
@@ -688,7 +709,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
     final to = ((_page - 1) * _pageSize + _leaves.length);
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.border))),
+      decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.borderSoft))),
       child: Row(children: [
         const Text('Show', style: TextStyle(color: AppColors.silver, fontSize: 13)),
         const SizedBox(width: 8),
@@ -705,7 +726,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
               value: _pageSize,
               dropdownColor: AppColors.dark3,
               iconEnabledColor: AppColors.silver,
-              style: const TextStyle(color: AppColors.white, fontSize: 13),
+              style: const TextStyle(color: AppColors.text, fontSize: 13),
               items: const [10, 25, 50, 100].map((n) => DropdownMenuItem(value: n, child: Text('$n'))).toList(),
               onChanged: (n) {
                 if (n == null) return;
@@ -728,7 +749,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
                 }
               : null,
           icon: const Icon(Icons.chevron_left_rounded),
-          color: AppColors.white,
+          color: AppColors.text,
           disabledColor: AppColors.dark4,
         ),
         IconButton(
@@ -740,7 +761,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
                 }
               : null,
           icon: const Icon(Icons.chevron_right_rounded),
-          color: AppColors.white,
+          color: AppColors.text,
           disabledColor: AppColors.dark4,
         ),
       ]),
@@ -755,7 +776,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
           padding: const EdgeInsets.only(bottom: 10),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SizedBox(width: 96, child: Text(k, style: const TextStyle(color: AppColors.silver, fontSize: 13))),
-            Expanded(child: Text(v, style: const TextStyle(color: AppColors.white, fontSize: 13.5, fontWeight: FontWeight.w500))),
+            Expanded(child: Text(v, style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w500))),
           ]),
         );
 
@@ -873,9 +894,9 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
 
     final applied = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: AppColors.dark2,
+      backgroundColor: AppColors.white,
       isScrollControlled: true,
-      barrierColor: Colors.black.withValues(alpha: 0.6),
+      barrierColor: const Color(0x660F172A),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
@@ -883,7 +904,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Row(children: [
                   Expanded(
-                    child: Text(text, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                    child: Text(text, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14)),
                   ),
                   if (hint != null) Text(hint, style: const TextStyle(color: AppColors.muted, fontSize: 11)),
                 ]),
@@ -901,13 +922,14 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
                     Container(
                       width: 36, height: 36,
                       decoration: BoxDecoration(
-                          color: AppColors.brand.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.filter_alt_outlined, color: AppColors.brand, size: 20),
+                          color: AppColors.redSoft, borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.red.withValues(alpha: 0.15))),
+                      child: const Icon(Icons.filter_alt_outlined, color: AppColors.red, size: 20),
                     ),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('Filter Leaves', style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+                        Text('Filter Leaves', style: TextStyle(fontFamily: 'Poppins', color: AppColors.text, fontSize: 17, fontWeight: FontWeight.w700)),
                         SizedBox(height: 2),
                         Text('Refine leave records & approvals', style: TextStyle(color: AppColors.silver, fontSize: 12)),
                       ]),
@@ -975,7 +997,8 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
                           statuses.clear();
                         }),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.white,
+                          foregroundColor: AppColors.text,
+                          backgroundColor: AppColors.white,
                           side: const BorderSide(color: AppColors.border),
                           padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -989,13 +1012,13 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
                       child: ElevatedButton(
                         onPressed: () => Navigator.pop(ctx, true),
                         style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(0, 46),
-                          backgroundColor: AppColors.brand,
+                          minimumSize: const Size(0, 46),
+                          backgroundColor: const Color(0xFFE8394F),
                           foregroundColor: AppColors.white,
                           padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.w800)),
+                        child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ),
                   ]),
@@ -1026,9 +1049,10 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
           width: width,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
           decoration: BoxDecoration(
-            color: on ? t.color.withValues(alpha: 0.14) : AppColors.dark3,
+            color: t.color.withValues(alpha: on ? 0.12 : 0.04),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: on ? t.color : AppColors.border, width: on ? 1.5 : 1),
+            boxShadow: AppColors.softShadow,
           ),
           child: Column(children: [
             Container(width: 9, height: 9, decoration: BoxDecoration(color: t.color, shape: BoxShape.circle)),
@@ -1036,12 +1060,12 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
             Text(t.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: on ? t.color : AppColors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                style: TextStyle(color: t.color, fontWeight: FontWeight.w600, fontSize: 13.5)),
             const SizedBox(height: 2),
             Text(t.description.isEmpty ? ' ' : t.description,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: on ? t.color.withValues(alpha: 0.85) : AppColors.muted, fontSize: 10.5)),
+                style: TextStyle(color: t.color.withValues(alpha: 0.75), fontSize: 10.5)),
           ]),
         ),
       );
@@ -1055,9 +1079,10 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
         duration: const Duration(milliseconds: 150),
         height: 42,
         decoration: BoxDecoration(
-          color: on ? c.withValues(alpha: 0.14) : AppColors.dark3,
+          color: on ? c.withValues(alpha: 0.10) : AppColors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: on ? c : AppColors.border, width: on ? 1.5 : 1),
+          boxShadow: AppColors.softShadow,
         ),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Container(width: 7, height: 7, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),

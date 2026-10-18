@@ -2,7 +2,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
-import '../../../shared/widgets/empty_state.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../shared/widgets/ui_kit.dart';
 import '../controllers/staff_controller.dart';
 
 class CheckinHistoryScreen extends ConsumerStatefulWidget {
@@ -62,107 +63,133 @@ class _CheckinHistoryScreenState extends ConsumerState<CheckinHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.dark,
-      appBar: AppBar(title: const Text('Check-in History')),
-      body: Column(children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Row(children: [
-            for (final f in _filters)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () => _setFilter(f.$1),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: _filter == f.$1 ? AppColors.brand : AppColors.dark3,
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(color: _filter == f.$1 ? AppColors.brand : AppColors.border),
-                    ),
-                    child: Text(f.$2,
-                      style: TextStyle(
-                        color: _filter == f.$1 ? Colors.white : AppColors.silver,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      )),
-                  ),
+      backgroundColor: AppColors.page,
+      body: SafeArea(
+        child: Column(children: [
+          Container(
+            color: AppColors.white,
+            padding: const EdgeInsets.fromLTRB(8, 8, 16, 14),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded, color: AppColors.text),
+                  onPressed: () => Navigator.of(context).maybePop(),
                 ),
-              ),
-          ]),
-        ),
-        Expanded(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
-              : _records.isEmpty
-                  ? const EmptyState(type: EmptyType.history)
-                  : RefreshIndicator(
-                      color: AppColors.brand,
-                      onRefresh: _load,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _records.length,
-                        itemBuilder: (_, i) {
-                          final r = _records[i];
-                          final hasCheckout = r['checkOutTime'] != null || r['checkOutTimeLabel'] != null;
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.dark2,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: hasCheckout ? AppColors.border : AppColors.yellow.withValues(alpha: 0.4)),
-                            ),
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Row(children: [
-                                Text(_dateLabel(r), style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: hasCheckout ? AppColors.green.withValues(alpha: 0.12) : AppColors.yellow.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(100),
-                                  ),
-                                  child: Text(_duration(r),
-                                    style: TextStyle(color: hasCheckout ? AppColors.green : AppColors.yellow, fontSize: 12, fontWeight: FontWeight.w700)),
-                                ),
-                              ]),
-                              const SizedBox(height: 12),
-                              Row(children: [
-                                _timeBox('Check In', _timeLabel(r, 'checkInTimeLabel', 'checkInTime'), AppColors.green),
-                                const SizedBox(width: 10),
-                                _timeBox('Check Out', hasCheckout ? _timeLabel(r, 'checkOutTimeLabel', 'checkOutTime') : '--:--', AppColors.brand),
-                              ]),
-                              const SizedBox(height: 10),
-                              Row(children: [
-                                const Icon(Icons.assignment_outlined, color: AppColors.muted, size: 14),
-                                const SizedBox(width: 6),
-                                Text('${r['reportsSubmitted'] ?? 0} reports submitted', style: const TextStyle(color: AppColors.silver, fontSize: 13)),
-                                if (r['checkInLocation']?['address'] != null) ...[
-                                  const SizedBox(width: 12),
-                                  const Icon(Icons.location_on_outlined, color: AppColors.muted, size: 14),
-                                  const SizedBox(width: 4),
-                                  Expanded(child: Text(r['checkInLocation']['address'], style: const TextStyle(color: AppColors.muted, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                                ],
-                              ]),
-                            ]),
-                          );
-                        },
+                const SizedBox(width: 4),
+                Text('Check-in History', style: AppTextStyles.pageTitle.copyWith(fontSize: 21)),
+              ]),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Row(children: [
+                  for (final f in _filters) ...[
+                    GestureDetector(
+                      onTap: () => _setFilter(f.$1),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: _filter == f.$1 ? AppColors.brand : AppColors.dark4,
+                          borderRadius: BorderRadius.circular(100),
+                          boxShadow: _filter == f.$1 ? AppColors.glow(AppColors.brand) : null,
+                        ),
+                        child: Text(f.$2,
+                            style: TextStyle(
+                              color: _filter == f.$1 ? AppColors.white : AppColors.light,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            )),
                       ),
                     ),
-        ),
+                    const SizedBox(width: 8),
+                  ],
+                ]),
+              ),
+            ]),
+          ),
+          const Divider(height: 1, color: AppColors.border),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
+                : _records.isEmpty
+                    ? const SoftEmptyState(
+                        icon: Icons.history_rounded,
+                        title: 'No check-ins yet',
+                        subtitle: 'Your check-in and check-out times will appear here.',
+                      )
+                    : RefreshIndicator(
+                        color: AppColors.brand,
+                        onRefresh: _load,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                          itemCount: _records.length,
+                          itemBuilder: (_, i) => _card(_records[i]),
+                        ),
+                      ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _card(Map<String, dynamic> r) {
+    final hasCheckout = r['checkOutTime'] != null || r['checkOutTimeLabel'] != null;
+    final address = r['checkInLocation'] is Map ? r['checkInLocation']['address']?.toString() : null;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: hasCheckout ? AppColors.border : const Color(0xFFFDE68A)),
+        boxShadow: AppColors.softShadow,
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(
+            child: Text(_dateLabel(r), style: AppTextStyles.h3.copyWith(fontSize: 15.5, fontWeight: FontWeight.w700)),
+          ),
+          hasCheckout
+              ? SoftBadge(label: _duration(r), color: AppColors.greenDark, background: AppColors.greenSoft, fontSize: 12)
+              : const SoftBadge(label: 'No checkout', color: AppColors.amberDark, background: AppColors.amberSoft, fontSize: 12),
+        ]),
+        const SizedBox(height: 14),
+        Row(children: [
+          _timeBox('CHECK IN', _timeLabel(r, 'checkInTimeLabel', 'checkInTime'), AppColors.greenDark, AppColors.greenSoft),
+          const SizedBox(width: 10),
+          hasCheckout
+              ? _timeBox('CHECK OUT', _timeLabel(r, 'checkOutTimeLabel', 'checkOutTime'), AppColors.brand, AppColors.brandSoft)
+              : _timeBox('CHECK OUT', '--:--', AppColors.silver, AppColors.dark3),
+        ]),
+        const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: AppColors.borderSoft)),
+        Row(children: [
+          const Icon(Icons.description_outlined, color: AppColors.muted, size: 15),
+          const SizedBox(width: 6),
+          Text('${r['reportsSubmitted'] ?? 0} reports submitted', style: const TextStyle(color: AppColors.light, fontSize: 12.5)),
+          if (address != null) ...[
+            const SizedBox(width: 12),
+            const Spacer(),
+            const Icon(Icons.location_on_outlined, color: AppColors.muted, size: 15),
+            const SizedBox(width: 4),
+            Flexible(
+              flex: 3,
+              child: Text(address, style: const TextStyle(color: AppColors.light, fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ]),
       ]),
     );
   }
 
-  Widget _timeBox(String label, String time, Color color) => Expanded(child: Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withValues(alpha: 0.2))),
+  Widget _timeBox(String label, String time, Color color, Color bg) => Expanded(child: Container(
+    padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.18))),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 4),
-      Text(time, style: TextStyle(color: time == '--:--' ? AppColors.muted : AppColors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+      Text(label, style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+      const SizedBox(height: 6),
+      Text(time,
+          style: AppTextStyles.h3.copyWith(
+              color: time == '--:--' ? AppColors.muted : AppColors.text, fontSize: 17, fontWeight: FontWeight.w700)),
     ]),
   ));
 }

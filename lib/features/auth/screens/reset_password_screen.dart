@@ -88,7 +88,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           decoration: const InputDecoration(
             labelText: 'Email',
             prefixIcon: Icon(Icons.email_outlined, color: AppColors.muted),
@@ -99,7 +99,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           controller: _codeCtrl,
           keyboardType: TextInputType.number,
           maxLength: 6,
-          style: const TextStyle(color: AppColors.white, letterSpacing: 4, fontWeight: FontWeight.w700),
+          style: const TextStyle(color: AppColors.text, letterSpacing: 4, fontWeight: FontWeight.w700),
           decoration: const InputDecoration(
             labelText: 'Reset code',
             prefixIcon: Icon(Icons.pin_outlined, color: AppColors.muted),
@@ -110,7 +110,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         TextField(
           controller: _passCtrl,
           obscureText: _obscure,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           decoration: InputDecoration(
             labelText: 'New password',
             prefixIcon: const Icon(Icons.lock_outline, color: AppColors.muted),
@@ -125,7 +125,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           controller: _confirmCtrl,
           obscureText: _obscureConfirm,
           textInputAction: TextInputAction.done,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           decoration: InputDecoration(
             labelText: 'Confirm password',
             prefixIcon: const Icon(Icons.lock_outline, color: AppColors.muted),

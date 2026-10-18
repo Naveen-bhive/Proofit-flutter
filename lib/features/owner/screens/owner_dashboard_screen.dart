@@ -6,7 +6,8 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/report_card.dart';
 import '../../../shared/widgets/status_badge.dart';
-import '../../../shared/widgets/empty_state.dart';
+import '../../../shared/widgets/ui_kit.dart';
+import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/services/socket_service.dart';
 import '../controllers/owner_controller.dart';
 
@@ -113,7 +114,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(ownerControllerProvider);
-    final today = DateFormat('EEEE, d MMM').format(DateTime.now());
+    final today = DateFormat('EEEE, d MMM').format(DateTime.now()).toUpperCase();
 
     return Scaffold(
       backgroundColor: AppColors.dark,
@@ -122,59 +123,70 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
         onRefresh: () async { await _loadDashboard(); await _loadUnreadCount(); },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [SliverPadding(padding: const EdgeInsets.all(20),
+          slivers: [SliverPadding(padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
           sliver: SliverList(delegate: SliverChildListDelegate([
 
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(state.orgName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.white)),
-                  Text(today, style: const TextStyle(color: AppColors.silver, fontSize: 13)),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(state.orgName, maxLines: 1,
+                      style: AppTextStyles.h2.copyWith(fontSize: 21)),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.brand, shape: BoxShape.circle)),
+                    const SizedBox(width: 6),
+                    Text(today, style: const TextStyle(color: AppColors.silver, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.6)),
+                  ]),
                 ]),
               ),
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                Stack(children: [
-                  IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 36, minHeight: 36), icon: const Icon(Icons.notifications_outlined, color: AppColors.white),
-                    onPressed: () async { await context.push('/owner/notifications'); _loadUnreadCount(); }),
-                  if (_unreadCount > 0) Positioned(top: 8, right: 8,
-                    child: Container(width: 16, height: 16,
-                      decoration: const BoxDecoration(color: AppColors.brand, shape: BoxShape.circle),
-                      child: Center(child: Text(_unreadCount > 9 ? '9+' : '$_unreadCount',
-                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800))))),
-                ]),
-                GestureDetector(onTap: () => context.push('/owner/subscription'),
-                  child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(100), border: Border.all(color: AppColors.brand.withValues(alpha: 0.3))),
-                    child: Text(state.plan.toUpperCase(), style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700, fontSize: 11)))),
-                const SizedBox(width: 6),
-                GestureDetector(onTap: () => context.push('/owner/settings'),
-                  child: const Icon(Icons.settings_outlined, color: AppColors.silver, size: 22)),
-              ]),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => context.push('/owner/subscription'),
+                child: Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF2FF),
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(color: const Color(0xFFC7D2FE)),
+                    boxShadow: AppColors.softShadow,
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.star_rounded, size: 12, color: AppColors.indigo),
+                    const SizedBox(width: 3),
+                    Text(state.plan.toUpperCase(), style: const TextStyle(color: AppColors.indigo, fontWeight: FontWeight.w700, fontSize: 10, letterSpacing: 0.5)),
+                  ]),
+                ),
+              ),
+              const SizedBox(width: 6),
+              HeaderIconButton(
+                icon: Icons.notifications_none_rounded,
+                badge: _unreadCount,
+                onTap: () async { await context.push('/owner/notifications'); _loadUnreadCount(); },
+              ),
+              const SizedBox(width: 8),
+              HeaderIconButton(icon: Icons.settings_outlined, onTap: () => context.push('/owner/settings')),
             ]),
-            const SizedBox(height: 16),
-            Row(children: [
-              _shortcut(Icons.people_outline, 'Staff', () => context.push('/owner/staff')),
-              const SizedBox(width: 10),
-              _shortcut(Icons.history, 'History', () => context.push('/owner/history')),
-              const SizedBox(width: 10),
-              _shortcut(Icons.map_outlined, 'Live Map', () => context.push('/owner/map')),
-            ]),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
             Row(children: [
-              _statCard('Reports', '${state.totalReportsToday}', AppColors.brand, Icons.assignment_outlined),
-              const SizedBox(width: 10),
-              _statCard('Active', '${state.activeStaffCount}/${state.totalStaff}', AppColors.green, Icons.people_outline),
-              const SizedBox(width: 10),
-              _statCard(
-                'Drafts',
-                '${state.pendingDraftCount}',
-                AppColors.yellow,
-                Icons.drafts_outlined,
-                onTap: () => context.push('/owner/history?status=draft'),
-              ),
+              _tile(Icons.groups_2_outlined, 'Staff', 'Manage your team members', const Color(0xFF2563EB), const Color(0xFFEFF6FF), () => context.push('/owner/staff')),
+              const SizedBox(width: 12),
+              _tile(Icons.map_outlined, 'Live Map', 'Track staff in real-time', const Color(0xFF7C3AED), const Color(0xFFF5F3FF), () => context.push('/owner/map')),
             ]),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            Row(children: [
+              _tile(Icons.event_note_outlined, 'Leave management', 'Approve & track time off', const Color(0xFF059669), const Color(0xFFECFDF5), () => context.push('/owner/leaves')),
+              const SizedBox(width: 12),
+              _tile(Icons.summarize_outlined, 'Reports', 'View and download reports', const Color(0xFFEA580C), const Color(0xFFFFF7ED), () => context.push('/owner/history')),
+            ]),
+            const SizedBox(height: 12),
+            _wideTile(),
+            const SizedBox(height: 22),
 
             if (_loading && state.staffStatuses.isEmpty && state.recentReports.isEmpty)
               Padding(
@@ -201,44 +213,63 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
                 ),
               )
             else ...[
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text('Staff Status', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 16)),
-                GestureDetector(onTap: () => context.push('/owner/staff'),
-                  child: const Text('Manage', style: TextStyle(color: AppColors.brand, fontSize: 13))),
-              ]),
+              _sectionHeader('Staff Status', 'Manage', () => context.push('/owner/staff')),
               const SizedBox(height: 12),
               ...state.staffStatuses.map((s) {
                 final staffId = s['_id']?.toString() ?? '';
                 final name = _asString(s['name']);
                 final lastReport = _asString(s['lastReport']);
-                return Container(
-                margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-                child: Row(children: [
-                  GestureDetector(onTap: staffId.isEmpty ? null : () => context.push('/owner/staff/$staffId'),
-                    child: CircleAvatar(backgroundColor: AppColors.brand.withValues(alpha: 0.2), radius: 18,
-                      child: Text(_nameInitial(name),
-                        style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700)))),
-                  const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(name.isEmpty ? 'Staff' : name, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
-                    Text(lastReport.isEmpty ? 'No report yet' : lastReport, style: const TextStyle(color: AppColors.silver, fontSize: 12)),
-                  ])),
-                  StatusBadge(status: _staffBadgeStatus(s['status'])),
-                ]));
+                final status = _staffBadgeStatus(s['status']);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SurfaceCard(
+                    color: AppColors.dark3,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    onTap: staffId.isEmpty ? null : () => context.push('/owner/staff/$staffId'),
+                    child: Row(children: [
+                      InitialAvatar(name: name.isEmpty ? 'Staff' : name, size: 42, color: AppColors.brand,
+                        online: status == StaffStatus.active),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(name.isEmpty ? 'Staff' : name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 15)),
+                        const SizedBox(height: 2),
+                        Text(lastReport.isEmpty ? 'No report yet' : lastReport, maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: AppColors.silver, fontSize: 12.5)),
+                      ])),
+                      StatusBadge(status: status),
+                    ]),
+                  ),
+                );
               }),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
 
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text('Recent Reports', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 16)),
-                GestureDetector(onTap: () => context.push('/owner/history'),
-                  child: const Text('View All', style: TextStyle(color: AppColors.brand, fontSize: 13))),
-              ]),
+              _sectionHeader('Recent Reports', 'View All', () => context.push('/owner/history')),
               const SizedBox(height: 12),
-              if (state.recentReports.isEmpty) const EmptyState(type: EmptyType.reports)
+              if (state.recentReports.isEmpty)
+                SurfaceCard(
+                  color: const Color(0xFFF1F5F9),
+                  radius: 22,
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 26),
+                  child: SoftEmptyState(
+                    icon: Icons.assignment_outlined,
+                    title: 'No reports yet',
+                    subtitle: 'Reports your staff submit will appear here so you can track field activity in real-time.',
+                    action: SizedBox(
+                      width: 220,
+                      child: PrimaryButton(
+                        label: 'Assign New Job',
+                        icon: Icons.add_rounded,
+                        height: 46,
+                        gradient: AppColors.brandGradient,
+                        onPressed: () => context.push('/owner/jobs'),
+                      ),
+                    ),
+                  ),
+                )
               else ...state.recentReports.map((r) => ReportCard(
                 report: r,
                 showStaffName: true,
+                actionLabel: 'View',
                 onTap: () => context.push('/owner/report/${r.id}'),
               )),
             ],
@@ -248,10 +279,87 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
     );
   }
 
-  String _nameInitial(String? raw) {
-    final name = raw?.trim();
-    if (name == null || name.isEmpty) return '?';
-    return name[0].toUpperCase();
+  Widget _sectionHeader(String title, String action, VoidCallback onTap) {
+    return Row(children: [
+      Expanded(child: Text(title, style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w700))),
+      GestureDetector(
+        onTap: onTap,
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(action, style: const TextStyle(color: AppColors.brand, fontSize: 13.5, fontWeight: FontWeight.w600)),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.brand, size: 18),
+        ]),
+      ),
+    ]);
+  }
+
+  /// Pastel quick-action tile with a coloured icon disc and a status dot.
+  Widget _tile(IconData icon, String title, String subtitle, Color color, Color tint, VoidCallback onTap) {
+    return Expanded(
+      child: SurfaceCard(
+        radius: 22,
+        padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
+        borderColor: color.withValues(alpha: 0.14),
+        gradient: LinearGradient(
+          colors: [tint, Color.lerp(tint, AppColors.white, 0.35)!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        onTap: onTap,
+        child: SizedBox(
+          height: 108,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle, boxShadow: AppColors.glow(color)),
+                child: Icon(icon, color: AppColors.white, size: 22),
+              ),
+              const Spacer(),
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: color.withValues(alpha: 0.45), shape: BoxShape.circle)),
+            ]),
+            const Spacer(),
+            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.h3.copyWith(fontSize: 14.5, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.silver, fontSize: 11.5, height: 1.3)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _wideTile() {
+    const color = Color(0xFFEA580C);
+    return SurfaceCard(
+      radius: 22,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      borderColor: color.withValues(alpha: 0.16),
+      gradient: const LinearGradient(colors: [Color(0xFFFFF1F2), Color(0xFFFFF7ED), Color(0xFFFEFCE8)]),
+      onTap: () => context.push('/owner/staff-attendance'),
+      child: Row(children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle, boxShadow: AppColors.glow(color)),
+          child: const Icon(Icons.how_to_reg_outlined, color: AppColors.white, size: 22),
+        ),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Attendance management', style: AppTextStyles.h3.copyWith(fontSize: 14.5, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 2),
+          const Text('Daily presence & monthly attendance matrix', maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: AppColors.silver, fontSize: 11.5)),
+        ])),
+        Container(
+          width: 30,
+          height: 30,
+          decoration: const BoxDecoration(color: AppColors.white, shape: BoxShape.circle, boxShadow: AppColors.softShadow),
+          child: const Icon(Icons.chevron_right_rounded, color: color, size: 20),
+        ),
+      ]),
+    );
   }
 
   String _asString(dynamic value) => value?.toString().trim() ?? '';
@@ -262,54 +370,4 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
     if (status == 'slow') return StaffStatus.slow;
     return StaffStatus.missing;
   }
-
-  Widget _statCard(
-    String label,
-    String value,
-    Color color,
-    IconData icon, {
-    VoidCallback? onTap,
-  }) {
-    final card = Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.w800)),
-          Text(label, style: const TextStyle(color: AppColors.silver, fontSize: 11)),
-        ],
-      ),
-    );
-    return Expanded(
-      child: onTap == null
-          ? card
-          : GestureDetector(onTap: onTap, behavior: HitTestBehavior.opaque, child: card),
-    );
-  }
-
-  Widget _shortcut(IconData icon, String label, VoidCallback onTap) => Expanded(
-    child: GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.dark2,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(children: [
-          Icon(icon, color: AppColors.brand, size: 22),
-          const SizedBox(height: 6),
-          Text(label, style: const TextStyle(color: AppColors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-        ]),
-      ),
-    ),
-  );
 }

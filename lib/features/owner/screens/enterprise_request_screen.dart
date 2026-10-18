@@ -120,7 +120,7 @@ class _EnterpriseRequestScreenState
                       DropdownButtonFormField(
                           initialValue: _billing,
                           dropdownColor: AppColors.dark2,
-                          style: const TextStyle(color: AppColors.white),
+                          style: const TextStyle(color: AppColors.text),
                           decoration: const InputDecoration(
                               labelText: 'Preferred billing cycle'),
                           items: const [
@@ -171,7 +171,7 @@ class _EnterpriseRequestScreenState
                   LengthLimitingTextInputFormatter(phone ? 10 : 6)
                 ]
               : null,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           decoration:
               InputDecoration(labelText: '$label${required ? ' *' : ''}'),
           validator: (v) {
@@ -227,7 +227,7 @@ class _EnterpriseRequestScreenState
                       ? 'Enterprise plan active'
                       : 'Pending approval',
               style: const TextStyle(
-                  color: AppColors.white,
+                  color: AppColors.text,
                   fontSize: 22,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),

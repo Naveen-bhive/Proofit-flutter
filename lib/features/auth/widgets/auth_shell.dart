@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_text_styles.dart';
 
 class AuthShell extends StatelessWidget {
   final String title;
@@ -22,87 +23,92 @@ class AuthShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.dark,
-      body: Stack(children: [
-        Positioned(
-          top: -120,
-          left: -80,
-          right: -80,
-          child: Container(
-            height: 320,
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                colors: [
-                  AppColors.brand.withValues(alpha: 0.18),
-                  AppColors.dark.withValues(alpha: 0),
-                ],
-              ),
-            ),
-          ),
-        ),
-        SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              if (onBack != null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    onPressed: onBack,
-                    icon: const Icon(Icons.arrow_back_rounded, color: AppColors.silver),
-                  ),
-                )
-              else
-                const SizedBox(height: 8),
-              if (showWordmark) ...[
-                Center(
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    width: MediaQuery.of(context).size.width * 0.52,
-                    fit: BoxFit.contain,
-                  ),
+      backgroundColor: onBack != null ? AppColors.page : AppColors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            if (onBack != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  onPressed: onBack,
+                  icon: const Icon(Icons.arrow_back_rounded, color: AppColors.light),
                 ),
-                const SizedBox(height: 28),
-              ],
+              )
+            else
+              const SizedBox(height: 48),
+            if (showWordmark) ...[
+              Center(
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: MediaQuery.of(context).size.width * 0.58,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 20),
+            ] else
+              const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.h1.copyWith(fontSize: 26),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 10),
               Text(
-                title,
+                subtitle!,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.white,
-                  letterSpacing: -0.5,
+                  color: AppColors.silver,
+                  fontSize: 15,
+                  height: 1.45,
                 ),
               ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  subtitle!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.silver,
-                    fontSize: 15,
-                    height: 1.45,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 28),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.dark2,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.border),
+            ],
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F4F9),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: AppColors.border),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x1F0F172A), blurRadius: 24, offset: Offset(0, 12)),
+                ],
+              ),
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  inputDecorationTheme: Theme.of(context).inputDecorationTheme.copyWith(fillColor: AppColors.white),
                 ),
                 child: child,
               ),
-              if (footer != null) ...[
-                const SizedBox(height: 24),
-                footer!,
-              ],
-            ]),
-          ),
+            ),
+            if (footer != null) ...[
+              const SizedBox(height: 28),
+              footer!,
+            ],
+          ]),
         ),
+      ),
+    );
+  }
+}
+
+/// Label shown above an auth text field, with an optional trailing action.
+class AuthFieldLabel extends StatelessWidget {
+  final String text;
+  final Widget? trailing;
+  const AuthFieldLabel(this.text, {super.key, this.trailing});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 2),
+      child: Row(children: [
+        Text(text, style: const TextStyle(color: AppColors.light, fontSize: 14.5, fontWeight: FontWeight.w500)),
+        const Spacer(),
+        if (trailing != null) trailing!,
       ]),
     );
   }
@@ -118,8 +124,8 @@ class AuthDivider extends StatelessWidget {
       child: Row(children: [
         Expanded(child: Divider(color: AppColors.border)),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text('or', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+          padding: EdgeInsets.symmetric(horizontal: 14),
+          child: Text('OR', style: TextStyle(color: AppColors.muted, fontSize: 12.5, fontWeight: FontWeight.w600, letterSpacing: 1.5)),
         ),
         Expanded(child: Divider(color: AppColors.border)),
       ]),
@@ -136,7 +142,7 @@ class AuthErrorBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.red.withValues(alpha: 0.1),
+        color: AppColors.redSoft,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.red.withValues(alpha: 0.3)),
       ),

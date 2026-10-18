@@ -15,6 +15,10 @@ class SearchableSelectionField extends StatefulWidget {
   final String Function(Map<String, dynamic>) itemSubtitle;
   final bool Function(Map<String, dynamic>)? itemEnabled;
   final ValueChanged<String?> onSelected;
+  /// Optional widget shown at the right of the section label (e.g. "Search or create").
+  final Widget? labelTrailing;
+  /// Optional widget shown to the right of the "Type to search" helper.
+  final Widget? helperTrailing;
 
   const SearchableSelectionField({
     super.key,
@@ -29,6 +33,8 @@ class SearchableSelectionField extends StatefulWidget {
     required this.itemSubtitle,
     required this.onSelected,
     this.itemEnabled,
+    this.labelTrailing,
+    this.helperTrailing,
   });
 
   @override
@@ -82,23 +88,28 @@ class _SearchableSelectionFieldState extends State<SearchableSelectionField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.sectionLabel,
-          style: const TextStyle(
-            color: AppColors.muted,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
+        Row(children: [
+          Text(
+            widget.sectionLabel,
+            style: const TextStyle(
+              color: AppColors.silver,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
           ),
-        ),
+          const Spacer(),
+          if (widget.labelTrailing != null) widget.labelTrailing!,
+        ]),
         const SizedBox(height: 8),
         TextField(
           controller: _searchCtrl,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           decoration: InputDecoration(
             hintText: widget.searchHint,
             hintStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
-            prefixIcon: const Icon(Icons.search, color: AppColors.muted),
+            fillColor: AppColors.white,
+            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.muted),
             suffixIcon: _searchCtrl.text.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.clear, color: AppColors.muted),
@@ -128,7 +139,7 @@ class _SearchableSelectionFieldState extends State<SearchableSelectionField> {
                       Text(
                         widget.itemTitle(selected),
                         style: const TextStyle(
-                          color: AppColors.white,
+                          color: AppColors.text,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -156,11 +167,12 @@ class _SearchableSelectionFieldState extends State<SearchableSelectionField> {
             constraints: const BoxConstraints(maxHeight: 180),
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.border),
+              boxShadow: AppColors.cardShadow,
             ),
             child: Material(
-              color: AppColors.dark3,
+              color: AppColors.white,
               child: filtered.isEmpty
                 ? Padding(
                     padding: const EdgeInsets.all(16),
@@ -173,7 +185,7 @@ class _SearchableSelectionFieldState extends State<SearchableSelectionField> {
                     shrinkWrap: true,
                     padding: EdgeInsets.zero,
                     itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.border),
+                    separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.borderSoft),
                     itemBuilder: (_, i) {
                       final item = filtered[i];
                       final id = widget.itemId(item);
@@ -202,7 +214,7 @@ class _SearchableSelectionFieldState extends State<SearchableSelectionField> {
                           widget.itemTitle(item),
                           style: TextStyle(
                             color: enabled
-                                ? (isSelected ? AppColors.brand : AppColors.white)
+                                ? (isSelected ? AppColors.brand : AppColors.text)
                                 : AppColors.muted,
                             fontSize: 14,
                             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -227,11 +239,18 @@ class _SearchableSelectionFieldState extends State<SearchableSelectionField> {
             ),
           ),
         ] else if (selected == null) ...[
-          const SizedBox(height: 6),
-          Text(
-            widget.typeToSearchMessage,
-            style: const TextStyle(color: AppColors.muted, fontSize: 12),
-          ),
+          const SizedBox(height: 8),
+          Row(children: [
+            Text(
+              widget.typeToSearchMessage,
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
+            const Spacer(),
+            if (widget.helperTrailing != null) widget.helperTrailing!,
+          ]),
+        ] else if (widget.helperTrailing != null) ...[
+          const SizedBox(height: 8),
+          Align(alignment: Alignment.centerRight, child: widget.helperTrailing!),
         ],
       ],
     );

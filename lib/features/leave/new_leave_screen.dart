@@ -123,7 +123,7 @@ class _NewLeaveScreenState extends ConsumerState<NewLeaveScreen> {
       firstDate: firstDate,
       lastDate: today.add(const Duration(days: 365)),
       builder: (ctx, child) => Theme(
-        data: ThemeData.dark().copyWith(colorScheme: const ColorScheme.dark(primary: AppColors.brand)),
+        data: Theme.of(ctx),
         child: child!,
       ),
     );
@@ -140,19 +140,19 @@ class _NewLeaveScreenState extends ConsumerState<NewLeaveScreen> {
           builder: (ctx, setLocal) => AlertDialog(
             backgroundColor: AppColors.dark2,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Add Leave Type', style: TextStyle(color: AppColors.white, fontSize: 17)),
+            title: const Text('Add Leave Type', style: TextStyle(color: AppColors.text, fontSize: 17)),
             content: Column(mainAxisSize: MainAxisSize.min, children: [
               TextField(
                 controller: nameCtrl,
                 autofocus: true,
                 maxLength: 40,
-                style: const TextStyle(color: AppColors.white),
+                style: const TextStyle(color: AppColors.text),
                 decoration: const InputDecoration(labelText: 'Name', hintText: 'e.g. Maternity'),
               ),
               TextField(
                 controller: descCtrl,
                 maxLength: 60,
-                style: const TextStyle(color: AppColors.white),
+                style: const TextStyle(color: AppColors.text),
                 decoration: const InputDecoration(labelText: 'Description (optional)', hintText: 'e.g. Paid'),
               ),
             ]),
@@ -259,7 +259,7 @@ class _NewLeaveScreenState extends ConsumerState<NewLeaveScreen> {
       backgroundColor: AppColors.dark,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('New Leave', style: TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+        title: const Text('New Leave', style: TextStyle(color: AppColors.text, fontSize: 20, fontWeight: FontWeight.w800)),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -269,7 +269,7 @@ class _NewLeaveScreenState extends ConsumerState<NewLeaveScreen> {
               child: Container(
                 width: 34, height: 34,
                 decoration: BoxDecoration(color: AppColors.red, borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.close_rounded, color: AppColors.white, size: 20),
+                child: const Icon(Icons.close_rounded, color: AppColors.text, size: 20),
               ),
             ),
           ),
@@ -289,7 +289,7 @@ class _NewLeaveScreenState extends ConsumerState<NewLeaveScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                 child: Text(widget.isOwner ? 'Assign Leave' : 'Request Leave',
-                    style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                    style: const TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w800)),
               ),
               const Divider(height: 1, color: AppColors.border),
               Padding(
@@ -344,7 +344,7 @@ class _NewLeaveScreenState extends ConsumerState<NewLeaveScreen> {
                     bottom: BorderSide(color: AppColors.border),
                   ),
                 ),
-                child: const Text('Add', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
+                child: const Text('Add', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
               ),
             ),
         ]),
@@ -406,7 +406,7 @@ class _NewLeaveScreenState extends ConsumerState<NewLeaveScreen> {
           onChanged: (_) {
             if (_submitted) setState(() {});
           },
-          style: const TextStyle(color: AppColors.white, fontSize: 15),
+          style: const TextStyle(color: AppColors.text, fontSize: 15),
           decoration: InputDecoration(
             hintText: 'e.g. Feeling not well',
             hintStyle: const TextStyle(color: AppColors.muted),
@@ -495,7 +495,7 @@ class _NewLeaveScreenState extends ConsumerState<NewLeaveScreen> {
           const SizedBox(width: 12),
           Text(label,
               style: TextStyle(
-                color: selected ? AppColors.white : AppColors.light,
+                color: selected ? AppColors.text : AppColors.light,
                 fontSize: 14,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
               )),

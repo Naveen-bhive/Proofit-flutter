@@ -40,6 +40,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
   double _zoom = _defaultZoom;
   String? _address;
   String? _coordError;
+  String? _searchError;
   bool _loading = true;
   bool _resolving = false;
   bool _showCoords = false;
@@ -93,6 +94,21 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
         await _moveCamera(_pinPosition, zoom: _zoom);
       }
     }
+  }
+
+  Future<void> _useCurrentGps() async {
+    final pos = await LocationService.getCurrentPosition();
+    if (pos == null) {
+      if (mounted) setState(() => _searchError = 'Could not get your current location.');
+      return;
+    }
+    final target = LatLng(pos.latitude, pos.longitude);
+    setState(() {
+      _searchError = null;
+      _zoom = 16;
+    });
+    _onPinMoved(target);
+    _moveCamera(target, zoom: 16);
   }
 
   void _syncCoordFields() {
@@ -164,17 +180,32 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
           setState(() {
             _suggestions = [];
             _searchLoading = false;
+            _searchError = null;
           });
         }
         return;
       }
       if (!mounted || requestId != _searchRequestId) return;
-      setState(() => _searchLoading = true);
-      final results = await PlacesService.autocomplete(q);
+      setState(() {
+        _searchLoading = true;
+        _suggestions = [];
+        _searchError = null;
+      });
+      List<PlaceSuggestion> results;
+      String? searchError;
+      try {
+        results = await PlacesService.autocomplete(q);
+      } catch (error) {
+        results = [];
+        searchError = error is PlacesServiceException
+            ? error.message
+            : 'Address search failed. Please try again.';
+      }
       if (mounted && requestId == _searchRequestId) {
         setState(() {
           _suggestions = results;
           _searchLoading = false;
+          _searchError = searchError;
         });
       }
     });
@@ -191,24 +222,34 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
       _searchLoading = true;
       _searchCtrl.text = suggestion.description;
     });
-    final place = await PlacesService.placeDetails(suggestion.placeId);
+    SelectedPlace? place;
+    String? searchError;
+    try {
+      place = await PlacesService.placeDetails(suggestion.placeId);
+    } catch (error) {
+      searchError = error is PlacesServiceException
+          ? error.message
+          : 'Could not load this address. Please try another.';
+    }
     if (!mounted) return;
-    if (place == null) {
+    final selectedPlace = place;
+    if (searchError != null || selectedPlace == null) {
       setState(() {
         _searchLoading = false;
         _suggestions = [];
-        _suggestionsDismissed = true;
+        _suggestionsDismissed = false;
+        _searchError = searchError ?? 'Could not load this address.';
       });
       return;
     }
 
-    final target = LatLng(place.latitude, place.longitude);
+    final target = LatLng(selectedPlace.latitude, selectedPlace.longitude);
     setState(() {
       _searchLoading = false;
       _suggestions = [];
       _suggestionsDismissed = true;
       _pinPosition = target;
-      _address = place.address;
+      _address = selectedPlace.address;
       _zoom = 14;
       _coordError = null;
     });
@@ -219,7 +260,10 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
 
   void _clearSearch() {
     _searchCtrl.clear();
-    setState(() => _suggestions = []);
+    setState(() {
+      _suggestions = [];
+      _searchError = null;
+    });
   }
 
   void _applyManualCoords() {
@@ -249,24 +293,37 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'JOB LOCATION',
-          style: TextStyle(
-            color: AppColors.muted,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
+        Row(children: [
+          const Text(
+            'JOB LOCATION',
+            style: TextStyle(
+              color: AppColors.silver,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
           ),
-        ),
+          const Spacer(),
+          GestureDetector(
+            onTap: _useCurrentGps,
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.my_location_rounded, size: 14, color: AppColors.brand),
+              SizedBox(width: 4),
+              Text('Current GPS',
+                  style: TextStyle(color: AppColors.brand, fontSize: 12.5, fontWeight: FontWeight.w600)),
+            ]),
+          ),
+        ]),
         const SizedBox(height: 8),
         TextField(
           controller: _searchCtrl,
           focusNode: _searchFocus,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           decoration: InputDecoration(
             hintText: 'Search city, district, or address',
             hintStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
-            prefixIcon: const Icon(Icons.search, color: AppColors.muted),
+            fillColor: AppColors.white,
+            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.muted),
             suffixIcon: _searchLoading
                 ? const Padding(
                     padding: EdgeInsets.all(12),
@@ -285,6 +342,21 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                     : null),
           ),
         ),
+        if (_searchError != null ||
+            (_searchCtrl.text.trim().length >= 3 &&
+                !_searchLoading &&
+                _suggestions.isEmpty &&
+                !_suggestionsDismissed))
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              _searchError ?? 'No addresses found. Try a different search.',
+              style: TextStyle(
+                color: _searchError == null ? AppColors.muted : AppColors.red,
+                fontSize: 12,
+              ),
+            ),
+          ),
         if (_suggestions.isNotEmpty && !_suggestionsDismissed)
           Container(
             margin: const EdgeInsets.only(top: 4),
@@ -311,7 +383,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                     title: Text(
                       s.description,
                       style:
-                          const TextStyle(color: AppColors.white, fontSize: 13),
+                          const TextStyle(color: AppColors.text, fontSize: 13),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -327,10 +399,16 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
           style: TextStyle(color: AppColors.silver, fontSize: 12),
         ),
         const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppColors.cardShadow,
+          ),
+          child: ClipRRect(
+          borderRadius: BorderRadius.circular(17),
           child: SizedBox(
-            height: 260,
+            height: 230,
             child: _loading
                 ? const ColoredBox(
                     color: AppColors.dark3,
@@ -382,6 +460,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                   ),
           ),
         ),
+        ),
         const SizedBox(height: 8),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,16 +468,16 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
             Icon(
               _resolving ? Icons.hourglass_empty : Icons.location_on_outlined,
               color: AppColors.brand,
-              size: 16,
+              size: 17,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 _resolving
                     ? 'Getting address...'
                     : (_address ?? 'Move the map to set the job location'),
                 style: const TextStyle(
-                    color: AppColors.silver, fontSize: 12, height: 1.4),
+                    color: AppColors.light, fontSize: 13, height: 1.4),
               ),
             ),
           ],
@@ -434,7 +513,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                   controller: _latCtrl,
                   keyboardType: const TextInputType.numberWithOptions(
                       decimal: true, signed: true),
-                  style: const TextStyle(color: AppColors.white, fontSize: 13),
+                  style: const TextStyle(color: AppColors.text, fontSize: 13),
                   decoration: const InputDecoration(
                     labelText: 'Latitude',
                     hintText: 'e.g. 12.971600',
@@ -447,7 +526,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                   controller: _lngCtrl,
                   keyboardType: const TextInputType.numberWithOptions(
                       decimal: true, signed: true),
-                  style: const TextStyle(color: AppColors.white, fontSize: 13),
+                  style: const TextStyle(color: AppColors.text, fontSize: 13),
                   decoration: const InputDecoration(
                     labelText: 'Longitude',
                     hintText: 'e.g. 77.594600',

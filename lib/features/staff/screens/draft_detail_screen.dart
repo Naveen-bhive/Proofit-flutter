@@ -45,7 +45,7 @@ class _DraftDetailScreenState extends ConsumerState<DraftDetailScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Delete Draft?', style: TextStyle(color: AppColors.white)),
+        title: const Text('Delete Draft?', style: TextStyle(color: AppColors.text)),
         content: const Text('This cannot be undone.', style: TextStyle(color: AppColors.silver)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppColors.silver))),
@@ -103,7 +103,7 @@ class _DraftDetailScreenState extends ConsumerState<DraftDetailScreen> {
                         const SizedBox(height: 16),
                         const Text(
                           'Could not load this draft.',
-                          style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w600),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 8),
@@ -140,7 +140,7 @@ class _DraftDetailScreenState extends ConsumerState<DraftDetailScreen> {
                         ]),
                       ),
                       const SizedBox(height: 20),
-                      Text(report.jobTitle, style: const TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+                      Text(report.jobTitle, style: const TextStyle(color: AppColors.text, fontSize: 20, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 8),
                       if (report.location?.address != null)
                         Row(children: [

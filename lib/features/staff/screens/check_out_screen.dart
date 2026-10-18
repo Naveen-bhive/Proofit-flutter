@@ -131,7 +131,7 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(DateFormat('hh:mm a').format(_now),
-                            style: const TextStyle(color: AppColors.white, fontSize: 28, fontWeight: FontWeight.w800)),
+                            style: const TextStyle(color: AppColors.text, fontSize: 28, fontWeight: FontWeight.w800)),
                       ),
                       Text(DateFormat('d MMM yyyy').format(_now),
                           style: const TextStyle(color: AppColors.silver, fontSize: 13)),

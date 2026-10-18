@@ -83,7 +83,7 @@ class _MultiPhotoReportScreenState extends ConsumerState<MultiPhotoReportScreen>
       backgroundColor: AppColors.dark,
       appBar: AppBar(title: const Text('New Report (Multi-Photo)')),
       body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        TextFormField(controller: _titleCtrl, style: const TextStyle(color: AppColors.white),
+        TextFormField(controller: _titleCtrl, style: const TextStyle(color: AppColors.text),
           decoration: const InputDecoration(labelText: 'Job Title *', prefixIcon: Icon(Icons.work_outline_rounded, color: AppColors.muted))),
         const SizedBox(height: 16),
 
@@ -103,7 +103,7 @@ class _MultiPhotoReportScreenState extends ConsumerState<MultiPhotoReportScreen>
         _photoSection('AFTER PHOTOS',  _afterPhotos,  false),
         const SizedBox(height: 16),
 
-        TextFormField(controller: _notesCtrl, maxLines: 3, style: const TextStyle(color: AppColors.white),
+        TextFormField(controller: _notesCtrl, maxLines: 3, style: const TextStyle(color: AppColors.text),
           decoration: const InputDecoration(labelText: 'Notes (optional)')),
 
         if (_error != null) ...[

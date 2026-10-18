@@ -114,9 +114,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
             controller: _currentCtrl,
             obscureText: _obscureCurrent,
             textInputAction: TextInputAction.next,
-            style: const TextStyle(color: AppColors.white),
+            style: const TextStyle(color: AppColors.text),
             decoration: InputDecoration(
-              labelText: 'Current password',
+              hintText: 'Current password',
               prefixIcon: const Icon(Icons.lock_outline, color: AppColors.muted),
               suffixIcon: IconButton(
                 icon: Icon(
@@ -133,9 +133,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           controller: _passCtrl,
           obscureText: _obscureNew,
           textInputAction: TextInputAction.next,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           decoration: InputDecoration(
-            labelText: 'New password',
+            hintText: 'New password',
             prefixIcon: const Icon(Icons.lock_outline, color: AppColors.muted),
             suffixIcon: IconButton(
               icon: Icon(
@@ -151,9 +151,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           controller: _confirmCtrl,
           obscureText: _obscureConfirm,
           textInputAction: TextInputAction.done,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           decoration: InputDecoration(
-            labelText: 'Confirm new password',
+            hintText: 'Confirm new password',
             prefixIcon: const Icon(Icons.lock_outline, color: AppColors.muted),
             suffixIcon: IconButton(
               icon: Icon(

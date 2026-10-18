@@ -25,9 +25,9 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
     final ctrl = TextEditingController(text: '$current');
     showDialog(context: context, builder: (_) => AlertDialog(
       backgroundColor: AppColors.dark2,
-      title: const Text('Set Daily Target', style: TextStyle(color: AppColors.white)),
+      title: const Text('Set Daily Target', style: TextStyle(color: AppColors.text)),
       content: TextField(controller: ctrl, keyboardType: TextInputType.number,
-        style: const TextStyle(color: AppColors.white),
+        style: const TextStyle(color: AppColors.text),
         decoration: const InputDecoration(labelText: 'Jobs per day')),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: AppColors.silver))),
@@ -48,7 +48,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Remove staff member?', style: TextStyle(color: AppColors.white)),
+        title: const Text('Remove staff member?', style: TextStyle(color: AppColors.text)),
         content: const Text('This staff member will no longer have access to your organisation.', style: TextStyle(color: AppColors.silver)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
@@ -86,7 +86,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
                 child: Text((profile['name'] as String? ?? '?')[0].toUpperCase(),
                   style: const TextStyle(color: AppColors.brand, fontSize: 30, fontWeight: FontWeight.w800))),
               const SizedBox(height: 14),
-              Text(profile['name'] ?? '', style: const TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+              Text(profile['name'] ?? '', style: const TextStyle(color: AppColors.text, fontSize: 20, fontWeight: FontWeight.w700)),
               Text(profile['phone'] ?? '', style: const TextStyle(color: AppColors.silver, fontSize: 14)),
               const SizedBox(height: 8),
               if ((profile['streak'] ?? 0) > 0)
@@ -113,7 +113,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
                   const SizedBox(width: 12),
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     const Text('Daily Target', style: TextStyle(color: AppColors.silver, fontSize: 12)),
-                    Text('${profile['dailyTarget'] ?? 0} jobs/day', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                    Text('${profile['dailyTarget'] ?? 0} jobs/day', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 16)),
                   ]),
                   const Spacer(),
                   TextButton(onPressed: () => _showSetTargetDialog(context, profile['dailyTarget'] ?? 0),
@@ -122,7 +122,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
               const SizedBox(height: 24),
 
               const Align(alignment: Alignment.centerLeft,
-                child: Text('Recent Reports', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 16))),
+                child: Text('Recent Reports', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 16))),
               const SizedBox(height: 12),
               if (staffReports.isEmpty)
                 const EmptyState(type: EmptyType.reports)

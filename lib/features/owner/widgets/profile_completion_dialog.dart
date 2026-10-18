@@ -79,7 +79,7 @@ class _ProfileCompletionDialogState extends ConsumerState<ProfileCompletionDialo
       child: AlertDialog(
         backgroundColor: AppColors.dark2,
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        title: const Text('Complete your profile', style: TextStyle(color: AppColors.white)),
+        title: const Text('Complete your profile', style: TextStyle(color: AppColors.text)),
         content: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -91,7 +91,7 @@ class _ProfileCompletionDialogState extends ConsumerState<ProfileCompletionDialo
               const SizedBox(height: 18),
               TextFormField(
                 controller: _mobileCtrl,
-                style: const TextStyle(color: AppColors.white),
+                style: const TextStyle(color: AppColors.text),
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.next,
                 inputFormatters: [MobileInputFormatter()],

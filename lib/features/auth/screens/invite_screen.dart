@@ -110,7 +110,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
               const Text("You're invited!", style: TextStyle(color: AppColors.silver, fontSize: 16)),
               const SizedBox(height: 6),
               Text(_invite?['orgName'] ?? '',
-                style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: AppColors.white)),
+                style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: AppColors.text)),
               const SizedBox(height: 8),
               Text('Sign in as ${_invite?['email'] ?? ''}',
                 style: const TextStyle(color: AppColors.silver, fontSize: 14)),
@@ -118,7 +118,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
               TextField(
                 controller: _passCtrl,
                 obscureText: _obscure,
-                style: const TextStyle(color: AppColors.white),
+                style: const TextStyle(color: AppColors.text),
                 decoration: InputDecoration(
                   labelText: 'Password',
                   prefixIcon: const Icon(Icons.lock_outline, color: AppColors.muted),

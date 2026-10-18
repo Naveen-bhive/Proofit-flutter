@@ -106,7 +106,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                     style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w800, fontSize: 18))),
                 const SizedBox(width: 14),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(report.staffName, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                  Text(report.staffName, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 16)),
                   if (report.submittedAt != null)
                     Text(DateFormat('d MMM yyyy, h:mm a').format(report.submittedAt!),
                       style: const TextStyle(color: AppColors.silver, fontSize: 13)),
@@ -129,7 +129,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                   const SizedBox(width: 10),
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     const Text('Customer', style: TextStyle(color: AppColors.muted, fontSize: 11)),
-                    Text(customer['name'] ?? '', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+                    Text(customer['name'] ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 14)),
                   ]),
                   const Spacer(),
                   // Quick WhatsApp button
@@ -192,7 +192,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
               backgroundColor: AppColors.brand,
               minimumSize: const Size(double.infinity, 54),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700))),
+              textStyle: const TextStyle(fontFamily: 'Inter', fontSize: 15, fontWeight: FontWeight.w700))),
 
           const SizedBox(height: 40),
         ])),

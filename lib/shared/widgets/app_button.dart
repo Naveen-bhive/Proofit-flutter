@@ -21,6 +21,7 @@ class AppButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
     if (isOutlined) {
       return OutlinedButton.icon(
         onPressed: isLoading ? null : onPressed,
@@ -32,29 +33,41 @@ class AppButton extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2))
             : Text(label),
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(double.infinity, 56),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          side: BorderSide(color: color ?? AppColors.border),
-          foregroundColor: color ?? AppColors.white,
+          minimumSize: const Size(double.infinity, 52),
+          shape: shape,
+          backgroundColor: AppColors.white,
+          side: BorderSide(color: color?.withValues(alpha: 0.6) ?? AppColors.border),
+          foregroundColor: color ?? AppColors.text,
+          textStyle: const TextStyle(fontFamily: 'Inter', fontSize: 15, fontWeight: FontWeight.w600),
         ),
       );
     }
-    return ElevatedButton.icon(
-      onPressed: isLoading ? null : onPressed,
-      icon: icon != null ? Icon(icon, size: 18) : const SizedBox.shrink(),
-      label: isLoading
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Colors.white))
-          : Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color ?? AppColors.brand,
-        foregroundColor: AppColors.white,
-        minimumSize: const Size(double.infinity, 56),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    final bg = color ?? AppColors.brand;
+    final enabled = onPressed != null && !isLoading;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: enabled ? AppColors.glow(bg) : null,
+      ),
+      child: ElevatedButton.icon(
+        onPressed: isLoading ? null : onPressed,
+        icon: icon != null ? Icon(icon, size: 19) : const SizedBox.shrink(),
+        label: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white))
+            : Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: bg,
+          foregroundColor: AppColors.white,
+          disabledBackgroundColor: bg.withValues(alpha: 0.5),
+          disabledForegroundColor: AppColors.white,
+          minimumSize: const Size(double.infinity, 54),
+          shape: shape,
+          textStyle: const TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }

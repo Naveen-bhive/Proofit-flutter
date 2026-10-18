@@ -98,28 +98,49 @@ class _StaffShellState extends ConsumerState<StaffShell> {
         body: IndexedStack(index: _tab == 2 ? 0 : _tab, children: _screens),
         bottomNavigationBar: Container(
           decoration: const BoxDecoration(
-            color: AppColors.dark2,
+            color: AppColors.white,
             border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+            boxShadow: [BoxShadow(color: Color(0x0A0F172A), blurRadius: 12, offset: Offset(0, -2))],
           ),
           child: SafeArea(
             child: MediaQuery.withClampedTextScaling(
               maxScaleFactor: 1.2,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(children: [
-                  _navItem(0, Icons.home_outlined,          Icons.home_rounded,         'Home'),
-                  _navItem(1, Icons.work_outline,           Icons.work_rounded,         'Jobs'),
+                padding: const EdgeInsets.only(top: 10, bottom: 6),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  _navItem(0, Icons.home_outlined,            Icons.home_rounded,            'Home'),
+                  _navItem(1, Icons.business_center_outlined, Icons.business_center_rounded, 'Jobs'),
                   Expanded(child: GestureDetector(
                     onTap: () => context.push('/staff/jobs'),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-                      height: 44,
-                      decoration: BoxDecoration(color: AppColors.brand, borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: AppColors.brand.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4))]),
-                      child: const Center(child: Icon(Icons.add_a_photo_rounded, color: Colors.white, size: 26))),
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      height: 46,
+                      child: OverflowBox(
+                        maxHeight: 80,
+                        alignment: Alignment.bottomCenter,
+                        child: Transform.translate(
+                          offset: const Offset(0, -14),
+                          child: Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: AppColors.white, width: 3),
+                              boxShadow: AppColors.glow(AppColors.brand),
+                            ),
+                            child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 26),
+                          ),
+                        ),
+                      ),
+                    ),
                   )),
-                  _navItem(3, Icons.history_outlined,       Icons.history_rounded,      'History'),
-                  _navItem(4, Icons.person_outline_rounded, Icons.person_rounded,       'Profile',
+                  _navItem(3, Icons.history_toggle_off_rounded, Icons.history_rounded,        'History'),
+                  _navItem(4, Icons.person_outline_rounded,   Icons.person_rounded,          'Profile',
                     badge: unread > 0 ? unread : null),
                 ]),
               ),
@@ -137,18 +158,18 @@ class _StaffShellState extends ConsumerState<StaffShell> {
       behavior: HitTestBehavior.opaque,
       child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
         Stack(clipBehavior: Clip.none, children: [
-          Icon(active ? activeIcon : icon, color: active ? AppColors.brand : AppColors.muted, size: 24),
-          if (badge != null) Positioned(top: -2, right: -6,
-            child: Container(width: 14, height: 14, decoration: const BoxDecoration(color: AppColors.brand, shape: BoxShape.circle),
+          Icon(active ? activeIcon : icon, color: active ? AppColors.brand : AppColors.muted, size: 25),
+          if (badge != null) Positioned(top: -3, right: -6,
+            child: Container(width: 15, height: 15, decoration: BoxDecoration(color: AppColors.red, shape: BoxShape.circle, border: Border.all(color: AppColors.white, width: 1.5)),
               child: Center(child: Text(badge > 9 ? '9+' : '$badge', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800))))),
         ]),
-        const SizedBox(height: 3),
+        const SizedBox(height: 5),
         Text(
           label,
           maxLines: 1,
           softWrap: false,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: active ? AppColors.brand : AppColors.muted, fontSize: 10, fontWeight: active ? FontWeight.w700 : FontWeight.w400),
+          style: TextStyle(color: active ? AppColors.brand : AppColors.muted, fontSize: 11, fontWeight: active ? FontWeight.w600 : FontWeight.w500),
         ),
       ]),
     ));

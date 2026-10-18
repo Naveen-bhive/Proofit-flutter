@@ -102,14 +102,14 @@ class _ForceUpdateScreenState extends State<ForceUpdateScreen>
                       ],
                     ),
                     child: const Icon(Icons.system_update_alt_rounded,
-                        color: AppColors.white, size: 38),
+                        color: AppColors.text, size: 38),
                   ),
                 ),
                 const SizedBox(height: 28),
                 const Text(
                   'Update Required',
                   style: TextStyle(
-                      color: AppColors.white,
+                      color: AppColors.text,
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.3),

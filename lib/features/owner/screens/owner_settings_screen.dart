@@ -35,7 +35,7 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Log Out?', style: TextStyle(color: AppColors.white)),
+        title: const Text('Log Out?', style: TextStyle(color: AppColors.text)),
         content: const Text('You will need to sign in again.', style: TextStyle(color: AppColors.silver)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppColors.silver))),
@@ -76,7 +76,7 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
                   style: const TextStyle(color: AppColors.brand, fontSize: 22, fontWeight: FontWeight.w800))),
             const SizedBox(width: 16),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(state.orgName, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+              Text(state.orgName, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 16)),
               Text(state.plan.toUpperCase(), style: const TextStyle(color: AppColors.brand, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
             ])),
           ]),

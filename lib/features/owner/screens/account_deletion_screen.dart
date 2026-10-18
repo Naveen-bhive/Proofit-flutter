@@ -77,7 +77,7 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Delete account?', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
+        title: const Text('Delete account?', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
         content: const Text(
           'This will submit a request to permanently delete your organisation. If approved, you and all your staff will lose access immediately. This cannot be undone.',
           style: TextStyle(color: AppColors.silver),
@@ -116,7 +116,7 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Cancel deletion request?', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
+        title: const Text('Cancel deletion request?', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
         content: const Text('Your account and organisation will remain active.', style: TextStyle(color: AppColors.silver)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep request', style: TextStyle(color: AppColors.silver))),
@@ -160,7 +160,7 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
           const Row(children: [
             Icon(Icons.hourglass_top_rounded, color: AppColors.brand, size: 20),
             SizedBox(width: 10),
-            Text('Pending review', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+            Text('Pending review', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 16)),
           ]),
           const SizedBox(height: 12),
           const Text('Your deletion request has been submitted and is awaiting super admin review.',
@@ -211,7 +211,7 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
       TextField(
         controller: _reasonCtrl,
         maxLines: 4,
-        style: const TextStyle(color: AppColors.white),
+        style: const TextStyle(color: AppColors.text),
         decoration: const InputDecoration(
           labelText: 'Reason *',
           hintText: 'Tell us why you want to delete your account',
@@ -224,7 +224,7 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
         readOnly: _emailReadOnly,
         enabled: !_emailReadOnly,
         keyboardType: TextInputType.emailAddress,
-        style: TextStyle(color: _emailReadOnly ? AppColors.muted : AppColors.white),
+        style: TextStyle(color: _emailReadOnly ? AppColors.muted : AppColors.text),
         decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined, color: AppColors.muted)),
       ),
       const SizedBox(height: 14),
@@ -233,7 +233,7 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
         readOnly: _phoneReadOnly,
         enabled: !_phoneReadOnly,
         keyboardType: TextInputType.phone,
-        style: TextStyle(color: _phoneReadOnly ? AppColors.muted : AppColors.white),
+        style: TextStyle(color: _phoneReadOnly ? AppColors.muted : AppColors.text),
         decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone_outlined, color: AppColors.muted)),
       ),
       if (_error != null) ...[

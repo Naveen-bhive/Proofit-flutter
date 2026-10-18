@@ -12,6 +12,8 @@ import '../../../core/network/api_service.dart';
 import '../../../shared/widgets/plan_gate.dart';
 import '../../../shared/services/socket_service.dart';
 import '../../leave/leave_common.dart' show LeaveAvatar, SheetHandle;
+import '../../../core/constants/app_text_styles.dart';
+import '../../../shared/widgets/ui_kit.dart' show IconTile, SoftBadge, SecondaryButton;
 import '../controllers/owner_controller.dart';
 
 /// Owner live map. Shows every staff member with a known location ("All
@@ -33,6 +35,7 @@ class _StaffOption {
 
 class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
   GoogleMapController? _mapCtrl;
+  MapType _mapType = MapType.normal;
   bool _showMap = true;
   final Map<String, Map<String, dynamic>> _liveLocations = {};
   Timer? _fallbackTimer;
@@ -540,7 +543,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
 
     final picked = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: AppColors.dark2,
+      backgroundColor: AppColors.white,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => ConstrainedBox(
@@ -552,7 +555,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text('Show on map',
-                  style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+                  style: TextStyle(fontFamily: 'Poppins', color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w700)),
             ),
           ),
           Flexible(
@@ -627,7 +630,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(title,
-                    style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+                    style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 15)),
                 const SizedBox(height: 2),
                 Row(children: [
                   if (statusColor != null) ...[
@@ -661,48 +664,16 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
         ref.read(ownerControllerProvider.notifier).hasFeature('liveMap');
     final total = _liveLocations.length;
     final badgeLabel = total == 0
-        ? 'No one on map'
+        ? '0 live'
         : (_liveCount == total ? '$total live' : '$_liveCount live · ${total - _liveCount} other');
     final badgeColor = _liveCount > 0
-        ? AppColors.green
-        : (total > 0 ? AppColors.yellow : AppColors.muted);
+        ? AppColors.greenDark
+        : (total > 0 ? AppColors.amberDark : AppColors.brand);
     final selected = _selectedLocation;
+    final top = MediaQuery.paddingOf(context).top;
 
     return Scaffold(
-      backgroundColor: AppColors.dark,
-      appBar: AppBar(
-          title: Row(children: [
-            const Text('Live Map'),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Text(
-                  badgeLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: badgeColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ]),
-          actions: [
-            IconButton(
-                icon: const Icon(Icons.refresh_rounded),
-                onPressed: _loadInitial),
-            if (_selectedId == null && _liveLocations.isNotEmpty)
-              IconButton(
-                  icon: const Icon(Icons.fit_screen_outlined),
-                  onPressed: _fitToMarkers),
-          ]),
+      backgroundColor: AppColors.dark3,
       body: PlanGate(
         hasAccess: hasAccess,
         requiredPlan: 'Pro',
@@ -720,32 +691,181 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
               },
               initialCameraPosition: _initialCamera,
               markers: _markers,
-              padding: EdgeInsets.only(top: 64, bottom: _selectedId != null ? 120 : 56),
+              mapType: _mapType,
+              padding: EdgeInsets.only(top: top + 120, bottom: _selectedId != null || _liveLocations.isEmpty ? 190 : 40),
               myLocationEnabled: false,
               myLocationButtonEnabled: false,
-              zoomControlsEnabled: true,
+              zoomControlsEnabled: false,
               mapToolbarEnabled: false,
             )
           else
-            const ColoredBox(color: AppColors.dark, child: SizedBox.expand()),
-          Positioned(top: 12, left: 12, right: 12, child: _filterBar()),
+            const ColoredBox(color: AppColors.dark3, child: SizedBox.expand()),
+
+          // Header
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: EdgeInsets.fromLTRB(12, top + 8, 16, 10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [AppColors.white, AppColors.white.withValues(alpha: 0.85)],
+                ),
+              ),
+              child: Row(children: [
+                if (Navigator.of(context).canPop()) ...[
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.text),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Text('Live Map', style: AppTextStyles.pageTitle.copyWith(fontSize: 21)),
+                const SizedBox(width: 10),
+                Flexible(child: SoftBadge(label: badgeLabel, color: badgeColor, fontSize: 12)),
+                const Spacer(),
+                _roundControl(Icons.sync_rounded, _loadInitial),
+              ]),
+            ),
+          ),
+
+          // Staff filter pill
+          Positioned(top: top + 68, left: 16, right: 76, child: _filterBar()),
+
+          // Map controls
+          Positioned(
+            top: top + 68,
+            right: 16,
+            child: Column(children: [
+              _roundControl(
+                _mapType == MapType.normal ? Icons.map_outlined : Icons.satellite_alt_outlined,
+                () => setState(() => _mapType = _mapType == MapType.normal ? MapType.hybrid : MapType.normal),
+                square: true,
+              ),
+              const SizedBox(height: 12),
+              _roundControl(Icons.gps_fixed_rounded, () {
+                if (_selectedId != null) {
+                  _pendingFocus = true;
+                  _focusSelected();
+                } else {
+                  _fitToMarkers();
+                }
+              }, square: true, tint: true),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.borderSoft),
+                  boxShadow: AppColors.cardShadow,
+                ),
+                child: Column(children: [
+                  _zoomBtn(Icons.add_rounded, () => _mapCtrl?.animateCamera(CameraUpdate.zoomIn())),
+                  Container(width: 24, height: 1, color: AppColors.border),
+                  _zoomBtn(Icons.remove_rounded, () => _mapCtrl?.animateCamera(CameraUpdate.zoomOut())),
+                ]),
+              ),
+            ]),
+          ),
+
           if (_selectedId != null)
             Positioned(
               left: 16,
               right: 16,
               bottom: 24,
-              child: selected != null ? _selectedCard(selected) : _unavailableCard(),
+              child: SafeArea(top: false, child: selected != null ? _selectedCard(selected) : _unavailableCard()),
             )
           else if (_liveLocations.isEmpty)
             Positioned(
               left: 16,
               right: 16,
               bottom: 24,
-              child: _messageCard(
-                Icons.location_off_outlined,
-                'No staff locations yet. Staff appear here when they check in, or briefly after they sign in with location enabled.',
-              ),
+              child: SafeArea(top: false, child: _emptyCard()),
             ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _roundControl(IconData icon, VoidCallback onTap, {bool square = false, bool tint = false}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          shape: square ? BoxShape.rectangle : BoxShape.circle,
+          borderRadius: square ? BorderRadius.circular(12) : null,
+          border: Border.all(color: AppColors.borderSoft),
+          boxShadow: AppColors.cardShadow,
+        ),
+        child: Icon(icon, size: 21, color: tint ? AppColors.brand : AppColors.light),
+      ),
+    );
+  }
+
+  Widget _zoomBtn(IconData icon, VoidCallback onTap) => InkWell(
+        onTap: onTap,
+        child: SizedBox(width: 42, height: 42, child: Icon(icon, size: 22, color: AppColors.text)),
+      );
+
+  Widget _emptyCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [BoxShadow(color: Color(0x1F0F172A), blurRadius: 24, offset: Offset(0, 8))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Container(height: 4, decoration: const BoxDecoration(gradient: AppColors.brandGradient)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            child: Column(children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const IconTile(icon: Icons.location_off_outlined, color: AppColors.brand, size: 48, iconSize: 24),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(
+                        child: Text('No Staff Checked In',
+                            style: AppTextStyles.h3.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.dark4,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Text('Offline', style: TextStyle(color: AppColors.silver, fontSize: 11.5, fontWeight: FontWeight.w500)),
+                      ),
+                    ]),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Staff appear here in real time as soon as they check in, or briefly after they sign in with location enabled.',
+                      style: TextStyle(color: AppColors.silver, fontSize: 13, height: 1.45),
+                    ),
+                  ]),
+                ),
+              ]),
+              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: AppColors.borderSoft)),
+              Padding(
+                padding: const EdgeInsets.only(left: 62),
+                child: SecondaryButton(label: 'Sync', icon: Icons.sync_rounded, height: 42, onPressed: _loadInitial),
+              ),
+            ]),
+          ),
         ]),
       ),
     );
@@ -756,29 +876,32 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
     return Row(children: [
       Flexible(
         child: Material(
-          color: AppColors.dark2.withValues(alpha: 0.96),
-          elevation: 4,
-          shadowColor: Colors.black54,
-          borderRadius: BorderRadius.circular(14),
+          color: AppColors.white,
+          elevation: 3,
+          shadowColor: const Color(0x330F172A),
+          borderRadius: BorderRadius.circular(100),
           child: InkWell(
             onTap: _openStaffFilter,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(100),
             child: Container(
-              height: 46,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: isAll ? AppColors.border : AppColors.brand),
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: isAll ? AppColors.borderSoft : AppColors.brand),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(isAll ? Icons.groups_rounded : Icons.person_pin_circle_outlined,
-                    color: AppColors.brand, size: 20),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: _liveCount > 0 ? AppColors.green : AppColors.brand, shape: BoxShape.circle),
+                ),
                 const SizedBox(width: 8),
                 Flexible(
-                  child: Text(_selectedName(),
+                  child: Text(isAll ? (_liveCount > 0 ? 'All Staff • $_liveCount live' : 'All Staff • Syncing') : _selectedName(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                      style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w500, fontSize: 13)),
                 ),
                 const SizedBox(width: 4),
                 const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.silver),
@@ -790,19 +913,19 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
       if (!isAll) ...[
         const SizedBox(width: 8),
         Material(
-          color: AppColors.dark2.withValues(alpha: 0.96),
-          elevation: 4,
-          shadowColor: Colors.black54,
-          borderRadius: BorderRadius.circular(14),
+          color: AppColors.white,
+          elevation: 3,
+          shadowColor: const Color(0x330F172A),
+          borderRadius: BorderRadius.circular(100),
           child: InkWell(
             onTap: () => _select(null),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(100),
             child: Container(
-              height: 46,
+              height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: AppColors.borderSoft),
               ),
               child: const Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.close_rounded, color: AppColors.silver, size: 18),
@@ -824,9 +947,10 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
       decoration: BoxDecoration(
-        color: AppColors.dark2.withValues(alpha: 0.97),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+        boxShadow: const [BoxShadow(color: Color(0x1F0F172A), blurRadius: 24, offset: Offset(0, 8))],
       ),
       child: Row(children: [
         LeaveAvatar(name: _displayName(l), photoUrl: option?.photoUrl ?? l['photoUrl']?.toString(), size: 42),
@@ -836,7 +960,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
             Text(_displayName(l),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 15)),
             const SizedBox(height: 3),
             Row(children: [
               Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
@@ -873,9 +997,10 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
   Widget _messageCard(IconData icon, String text, {Widget? trailing}) => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.dark2.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(14),
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.border),
+          boxShadow: const [BoxShadow(color: Color(0x1F0F172A), blurRadius: 24, offset: Offset(0, 8))],
         ),
         child: Row(children: [
           Icon(icon, color: AppColors.muted, size: 22),

@@ -48,7 +48,7 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           const Icon(Icons.wifi_off_rounded, color: AppColors.muted, size: 80),
           const SizedBox(height: 24),
-          const Text('No Internet', style: TextStyle(color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+          const Text('No Internet', style: TextStyle(color: AppColors.text, fontSize: 26, fontWeight: FontWeight.w800)),
           const SizedBox(height: 10),
           const Text(
             'You\'re offline. Drafts you save will sync automatically when you reconnect.',

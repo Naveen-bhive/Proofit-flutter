@@ -46,7 +46,7 @@ class _SearchReportsScreenState extends ConsumerState<SearchReportsScreen> {
         title: TextField(
           controller: _ctrl,
           autofocus: true,
-          style: const TextStyle(color: AppColors.white, fontSize: 16),
+          style: const TextStyle(color: AppColors.text, fontSize: 16),
           decoration: InputDecoration(
             hintText: 'Search by job title, staff name...',
             hintStyle: const TextStyle(color: AppColors.muted),

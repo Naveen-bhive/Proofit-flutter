@@ -348,7 +348,7 @@ class _PdfExportScreenState extends ConsumerState<PdfExportScreen> {
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(12)),
-                                    textStyle: const TextStyle(
+                                    textStyle: const TextStyle(fontFamily: 'Inter', 
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700)))),
                       ])),

@@ -68,7 +68,7 @@ class _StaffLeaveRequestsScreenState extends ConsumerState<StaffLeaveRequestsScr
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Cancel request?', style: TextStyle(color: AppColors.white)),
+        title: const Text('Cancel request?', style: TextStyle(color: AppColors.text)),
         content: const Text('Your leave request will be withdrawn.', style: TextStyle(color: AppColors.silver)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
@@ -107,7 +107,7 @@ class _StaffLeaveRequestsScreenState extends ConsumerState<StaffLeaveRequestsScr
       appBar: AppBar(
         titleSpacing: 0,
         title: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Leave Requests', style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+          Text('Leave Requests', style: TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w700)),
           SizedBox(height: 2),
           Text('Home • Leaves', style: TextStyle(color: AppColors.silver, fontSize: 12)),
         ]),
@@ -122,7 +122,7 @@ class _StaffLeaveRequestsScreenState extends ConsumerState<StaffLeaveRequestsScr
                 child: Container(
                   width: 38, height: 38,
                   decoration: BoxDecoration(color: AppColors.brand, borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.add_rounded, color: AppColors.white, size: 24),
+                  child: const Icon(Icons.add_rounded, color: AppColors.text, size: 24),
                 ),
               ),
             ),
@@ -179,7 +179,7 @@ class _StaffLeaveRequestsScreenState extends ConsumerState<StaffLeaveRequestsScr
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('Today is your leave',
-                  style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+                  style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 15)),
               const SizedBox(height: 2),
               Text(
                 '${l.leaveTypeName} leave${l.isHalfDay ? ' · ${leaveDurations[l.duration]}' : ''}'
@@ -202,7 +202,7 @@ class _StaffLeaveRequestsScreenState extends ConsumerState<StaffLeaveRequestsScr
           child: Column(children: [
             Text(label, style: TextStyle(color: color, fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
             const SizedBox(height: 4),
-            Text('$value', style: const TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+            Text('$value', style: const TextStyle(color: AppColors.text, fontSize: 20, fontWeight: FontWeight.w800)),
           ]),
         ),
       );
@@ -293,7 +293,7 @@ class _StaffLeaveRequestsScreenState extends ConsumerState<StaffLeaveRequestsScr
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text('${l.leaveTypeName} Leave',
-                        style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                        style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 15)),
                   ),
                   LeaveStatusBadge(l.status),
                 ]),

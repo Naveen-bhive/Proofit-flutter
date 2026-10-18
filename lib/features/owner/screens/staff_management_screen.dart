@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/services/review_service.dart';
-import '../../../shared/widgets/app_button.dart';
+import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../shared/widgets/ui_kit.dart';
 import '../controllers/owner_controller.dart';
 
 class StaffManagementScreen extends ConsumerStatefulWidget {
@@ -14,6 +17,8 @@ class StaffManagementScreen extends ConsumerStatefulWidget {
 
 class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
   bool _loading = true;
+  String _filter = 'all';
+  String _query = '';
 
   @override
   void initState() {
@@ -26,19 +31,19 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
 
   void _showAddStaffSheet() {
     final parentContext = context;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.dark2,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    AppSheet.show(
+      context,
       builder: (sheetCtx) => _AddStaffSheet(
         parentContext: parentContext,
-        onSubmit: ({required String name, required String phone, required String email}) async {
-          return ref.read(ownerControllerProvider.notifier).addStaff(
-            name: name,
-            phone: phone,
-            email: email,
-          );
+        onSubmit: ({required String name, required String phone, required String email, required int target}) async {
+          final notifier = ref.read(ownerControllerProvider.notifier);
+          final result = await notifier.addStaff(name: name, phone: phone, email: email);
+          if (result.ok && target > 0) {
+            final added = ref.read(ownerControllerProvider).staffList.where(
+                (s) => (s['email'] ?? '').toString().toLowerCase() == email.toLowerCase());
+            if (added.isNotEmpty) await notifier.setStaffTarget(added.first['_id'].toString(), target);
+          }
+          return result;
         },
       ),
     );
@@ -46,19 +51,15 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
 
   Future<void> _confirmRemove(Map<String, dynamic> staff, bool pending) async {
     final name = (staff['name'] ?? 'this staff member').toString();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.dark2,
-        title: Text(pending ? 'Cancel invitation?' : 'Remove staff member?', style: const TextStyle(color: AppColors.white)),
-        content: Text('Are you sure you want to ${pending ? 'cancel this invitation' : 'remove $name'}?', style: const TextStyle(color: AppColors.silver)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(pending ? 'Cancel invite' : 'Remove', style: const TextStyle(color: AppColors.red))),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      icon: pending ? Icons.mail_lock_outlined : Icons.person_remove_outlined,
+      title: pending ? 'Cancel invitation?' : 'Remove staff member?',
+      message: 'Are you sure you want to ${pending ? 'cancel this invitation' : 'remove $name'}?',
+      confirmLabel: pending ? 'Cancel invite' : 'Remove',
+      cancelLabel: 'Keep',
     );
-    if (confirmed == true) await ref.read(ownerControllerProvider.notifier).removeStaff(staff['_id'].toString());
+    if (confirmed) await ref.read(ownerControllerProvider.notifier).removeStaff(staff['_id'].toString());
   }
 
   Future<void> _showSetTarget(Map<String, dynamic> staff) async {
@@ -68,9 +69,8 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (_, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.dark2,
-          title: const Text('Set Daily Target', style: TextStyle(color: AppColors.white)),
-          content: TextField(controller: controller, autofocus: true, keyboardType: TextInputType.number, style: const TextStyle(color: AppColors.white), decoration: InputDecoration(labelText: 'Jobs per day', errorText: error)),
+          title: const Text('Set Daily Target', style: TextStyle(color: AppColors.text)),
+          content: TextField(controller: controller, autofocus: true, keyboardType: TextInputType.number, style: const TextStyle(color: AppColors.text), decoration: InputDecoration(labelText: 'Jobs per day', errorText: error)),
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
             TextButton(onPressed: () async {
@@ -95,102 +95,231 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
     controller.dispose();
   }
 
+  bool _isPending(Map<String, dynamic> s) => s['invitePending'] == true || s['inviteStatus'] == 'pending';
+
+  Future<void> _call(String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (!await launchUrl(uri) && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not start a call')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(ownerControllerProvider);
+    final all = state.staffList;
+    final pendingCount = all.where(_isPending).length;
+    final q = _query.trim().toLowerCase();
+    final visible = all.where((s) {
+      final pending = _isPending(s);
+      if (_filter == 'active' && pending) return false;
+      if (_filter == 'pending' && !pending) return false;
+      if (q.isEmpty) return true;
+      return ['name', 'phone', 'email'].any((k) => (s[k] ?? '').toString().toLowerCase().contains(q));
+    }).toList();
+
     return Scaffold(
       backgroundColor: AppColors.dark,
-      appBar: AppBar(
-        title: const Text('Staff Management'),
-        actions: [
-          IconButton(icon: const Icon(Icons.person_add_outlined, color: AppColors.brand), onPressed: _showAddStaffSheet),
-        ],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
-          : state.staffList.isEmpty
-              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.people_outline, color: AppColors.muted, size: 60),
-                  const SizedBox(height: 16),
-                  const Text('No staff added yet', style: TextStyle(color: AppColors.silver, fontSize: 16)),
-                  const SizedBox(height: 20),
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: AppButton(label: 'Add First Staff Member', onPressed: _showAddStaffSheet)),
-                ]))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: state.staffList.length,
-                  itemBuilder: (_, i) {
-                    final s = state.staffList[i];
-                    final pending = s['invitePending'] == true || s['inviteStatus'] == 'pending';
-                    final name = (s['name'] ?? 'Staff').toString();
-                    final phone = (s['phone'] ?? '').toString();
-                    final email = (s['email'] ?? '').toString();
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-                      child: Row(children: [
-                        CircleAvatar(
-                          backgroundColor: (pending ? AppColors.yellow : AppColors.brand).withValues(alpha: 0.2),
-                          radius: 20,
-                          child: Text(
-                            name.isNotEmpty ? name[0].toUpperCase() : '?',
-                            style: TextStyle(
-                              color: pending ? AppColors.yellow : AppColors.brand,
-                              fontWeight: FontWeight.w700,
+      body: SafeArea(
+        child: Column(children: [
+          PageHeader(
+            title: 'Staff Management',
+            actions: [
+              HeaderIconButton(icon: Icons.person_add_alt_outlined, tinted: true, round: false, onTap: _showAddStaffSheet),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: SearchBox(hint: 'Search staff by name, phone...', onChanged: (v) => setState(() => _query = v)),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Row(children: [
+              Expanded(
+                child: PillChipBar(chips: [
+                  PillChip(label: 'All', count: all.isEmpty ? null : all.length, selected: _filter == 'all',
+                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6), onTap: () => setState(() => _filter = 'all')),
+                  PillChip(label: 'Active', selected: _filter == 'active',
+                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6), onTap: () => setState(() => _filter = 'active')),
+                  PillChip(label: 'Pending', count: pendingCount == 0 ? null : pendingCount, selected: _filter == 'pending',
+                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6), onTap: () => setState(() => _filter = 'pending')),
+                ]),
+              ),
+              Text('Total: ${all.length} staff', style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
+            ]),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
+                : all.isEmpty
+                    ? ListView(padding: const EdgeInsets.fromLTRB(16, 70, 16, 24), children: [_inviteCard()])
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                        children: [
+                          if (visible.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 40),
+                              child: Center(child: Text('No staff match this filter', style: TextStyle(color: AppColors.silver))),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(name, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
-                          Text(phone, style: const TextStyle(color: AppColors.silver, fontSize: 12)),
-                          if (email.isNotEmpty)
-                            Text(email, style: const TextStyle(color: AppColors.muted, fontSize: 11)),
+                          ...visible.map(_staffCard),
                           const SizedBox(height: 4),
-                          if (pending)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.yellow.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(100),
-                                border: Border.all(color: AppColors.yellow.withValues(alpha: 0.35)),
-                              ),
-                              child: const Text(
-                                'Invitation yet to be accepted',
-                                style: TextStyle(color: AppColors.yellow, fontSize: 11, fontWeight: FontWeight.w600),
-                              ),
-                            )
-                          else
-                            Text('Target: ${s['dailyTarget'] ?? 0} jobs/day', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
-                        ])),
-                        PopupMenuButton(
-                          color: AppColors.dark3,
-                          itemBuilder: (_) => [
-                            if (!pending)
-                              const PopupMenuItem(value: 'target', child: Text('Set Target', style: TextStyle(color: AppColors.white))),
-                            PopupMenuItem(
-                              value: 'remove',
-                              child: Text(pending ? 'Cancel invite' : 'Remove', style: const TextStyle(color: AppColors.red)),
-                            ),
-                          ],
-                          onSelected: (val) {
-                            if (val == 'target') _showSetTarget(s);
-                            if (val == 'remove') _confirmRemove(s, pending);
-                          },
-                        ),
-                      ]),
-                    );
-                  }),
+                          _infoBanner(),
+                        ],
+                      ),
+          ),
+        ]),
+      ),
     );
   }
+
+  Widget _inviteCard() {
+    return GestureDetector(
+      onTap: _showAddStaffSheet,
+      child: CustomPaint(
+        painter: const DashedBorderPainter(color: AppColors.border, radius: 18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), boxShadow: AppColors.softShadow, color: AppColors.white),
+          child: const Column(children: [
+            Text('Invite New Staff Member', style: TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w600)),
+            SizedBox(height: 6),
+            Text('Assign inspection jobs, set targets and monitor field proofs in real time.',
+              textAlign: TextAlign.center, style: TextStyle(color: AppColors.silver, fontSize: 12.5, height: 1.4)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _infoBanner() {
+    return GestureDetector(
+      onTap: _showAddStaffSheet,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.brandSoft,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.brandBorder),
+          boxShadow: AppColors.softShadow,
+        ),
+        child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(Icons.info_outline_rounded, color: AppColors.brand, size: 20),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text('Need more team members? Tap here to send an email invitation to a new staff member.',
+              style: TextStyle(color: AppColors.brandDark, fontSize: 13, height: 1.45)),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _staffCard(Map<String, dynamic> s) {
+    final pending = _isPending(s);
+    final name = (s['name'] ?? 'Staff').toString();
+    final phone = (s['phone'] ?? '').toString();
+    final email = (s['email'] ?? '').toString();
+    final id = s['_id']?.toString() ?? '';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: SurfaceCard(
+        radius: 18,
+        padding: const EdgeInsets.fromLTRB(16, 16, 8, 14),
+        onTap: pending || id.isEmpty ? null : () => context.push('/owner/staff/$id'),
+        child: Column(children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            InitialAvatar(name: name, size: 48, color: pending ? AppColors.yellow : AppColors.brand, online: pending ? null : true),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.h3.copyWith(fontSize: 16.5, fontWeight: FontWeight.w600))),
+                if (!pending) ...[
+                  const SizedBox(width: 8),
+                  const SoftBadge(label: 'Active', color: AppColors.greenDark, fontSize: 11),
+                ],
+              ]),
+              const SizedBox(height: 4),
+              if (phone.isNotEmpty) _line(Icons.phone_outlined, phone),
+              if (email.isNotEmpty) _line(Icons.mail_outline_rounded, email),
+            ])),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded, color: AppColors.muted, size: 20),
+              itemBuilder: (_) => [
+                if (!pending)
+                  const PopupMenuItem(value: 'target', child: Text('Set Target', style: TextStyle(color: AppColors.text))),
+                PopupMenuItem(
+                  value: 'remove',
+                  child: Text(pending ? 'Cancel invite' : 'Remove', style: const TextStyle(color: AppColors.red)),
+                ),
+              ],
+              onSelected: (val) {
+                if (val == 'target') _showSetTarget(s);
+                if (val == 'remove') _confirmRemove(s, pending);
+              },
+            ),
+          ]),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(0, 12, 8, 12),
+            child: Divider(height: 1, color: AppColors.borderSoft),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: pending
+                ? const Row(children: [
+                    SoftBadge(label: 'Invitation yet to be accepted', color: AppColors.amberDark, icon: Icons.schedule_rounded,
+                      background: AppColors.amberSoft, fontSize: 12),
+                  ])
+                : Row(children: [
+                    GestureDetector(
+                      onTap: () => _showSetTarget(s),
+                      child: SoftBadge(label: 'Target: ${s['dailyTarget'] ?? 0} jobs/day', color: AppColors.amberDark,
+                        icon: Icons.track_changes_rounded, background: AppColors.amberSoft, fontSize: 12),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => context.push('/owner/jobs'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: AppColors.dark4, borderRadius: BorderRadius.circular(8)),
+                        child: const Text('Assign Job', style: TextStyle(color: AppColors.light, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    if (phone.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _call(phone),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(color: AppColors.brandSoft, borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.call_outlined, color: AppColors.brand, size: 16),
+                        ),
+                      ),
+                    ],
+                  ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _line(IconData icon, String text) => Padding(
+    padding: const EdgeInsets.only(top: 3),
+    child: Row(children: [
+      Icon(icon, size: 14, color: AppColors.muted),
+      const SizedBox(width: 6),
+      Expanded(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: AppColors.silver, fontSize: 13))),
+    ]),
+  );
 }
 
 typedef _AddStaffSubmit = Future<({bool ok, String message})> Function({
   required String name,
   required String phone,
   required String email,
+  required int target,
 });
 
 class _AddStaffSheet extends StatefulWidget {
@@ -211,6 +340,7 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
   bool _succeeded = false;
   String? _formError;
   String? _successMessage;
+  int _target = 0;
 
   @override
   void dispose() {
@@ -264,6 +394,7 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
       name: name,
       phone: _normalizePhone(_phoneCtrl.text),
       email: email,
+      target: _target,
     );
 
     if (!mounted) return;
@@ -282,124 +413,223 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
       _successMessage = result.message;
     });
     ReviewService.maybePromptAfterSuccess();
+  }
 
-    await Future.delayed(const Duration(milliseconds: 1400));
-    if (!mounted) return;
-    Navigator.pop(context);
-    if (!widget.parentContext.mounted) return;
-    ScaffoldMessenger.of(widget.parentContext)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Text(result.message),
-        backgroundColor: AppColors.green,
-        duration: const Duration(seconds: 3),
-      ));
+  void _inviteAnother() {
+    setState(() {
+      _succeeded = false;
+      _successMessage = null;
+      _formError = null;
+      _target = 0;
+      _nameCtrl.clear();
+      _phoneCtrl.clear();
+      _emailCtrl.clear();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: !_sending,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 20,
-          right: 20,
-          top: 24,
-        ),
-        child: _succeeded ? _buildSuccess() : _buildForm(),
-      ),
+      child: _succeeded ? _buildSuccess() : _buildForm(),
     );
   }
 
   Widget _buildSuccess() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 28),
+    final name = _nameCtrl.text.trim();
+    final phone = _normalizePhone(_phoneCtrl.text);
+    return AppSheet(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Align(alignment: Alignment.centerRight, child: SheetCloseButton()),
         Container(
-          width: 72,
-          height: 72,
+          width: 96,
+          height: 96,
           decoration: BoxDecoration(
-            color: AppColors.green.withValues(alpha: 0.15),
             shape: BoxShape.circle,
+            color: AppColors.green.withValues(alpha: 0.10),
+            border: Border.all(color: AppColors.green.withValues(alpha: 0.18), width: 6),
           ),
-          child: const Icon(Icons.check_rounded, color: AppColors.green, size: 40),
+          child: Center(
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(colors: [AppColors.green, AppColors.greenDark],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight),
+                boxShadow: AppColors.glow(AppColors.green),
+              ),
+              child: const Icon(Icons.check_rounded, color: AppColors.white, size: 34),
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Flexible(child: Text('Invitation Sent!', style: AppTextStyles.h2.copyWith(fontSize: 22))),
+          const SizedBox(width: 10),
+          const SoftBadge(label: 'Delivered', color: AppColors.greenDark, uppercase: true, fontSize: 10),
+        ]),
+        const SizedBox(height: 10),
+        Text(
+          _successMessage ?? "We've emailed an onboarding link to your staff member to join ProofIt and start reporting.",
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.silver, fontSize: 14, height: 1.5),
         ),
         const SizedBox(height: 20),
-        const Text('Invitation sent',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.white)),
-        const SizedBox(height: 8),
-        Text(
-          _successMessage ?? 'Your staff member will receive the invite shortly.',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.silver, fontSize: 14, height: 1.45),
+        SurfaceCard(
+          color: AppColors.dark3,
+          padding: const EdgeInsets.all(16),
+          child: Column(children: [
+            Row(children: [
+              InitialAvatar(name: name, size: 42, color: AppColors.brand),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 15)),
+                Row(children: [
+                  const Icon(Icons.mail_outline_rounded, size: 13, color: AppColors.muted),
+                  const SizedBox(width: 5),
+                  Expanded(child: Text(_emailCtrl.text.trim(), maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.silver, fontSize: 12.5))),
+                ]),
+              ])),
+              const SoftBadge(label: 'Pending', color: AppColors.yellow, dot: true, fontSize: 11.5),
+            ]),
+            const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: AppColors.border)),
+            Row(children: [
+              Expanded(child: _summaryBox('Phone', phone.isEmpty ? '-' : '+91 $phone')),
+              const SizedBox(width: 10),
+              Expanded(child: _summaryBox('Daily Target', '$_target jobs / day', dot: true)),
+            ]),
+          ]),
+        ),
+        const SizedBox(height: 22),
+        SizedBox(
+          width: double.infinity,
+          child: PrimaryButton(label: 'Done', trailingIcon: Icons.check_rounded, onPressed: () => Navigator.pop(context)),
+        ),
+        const SizedBox(height: 6),
+        TextButton.icon(
+          onPressed: _inviteAnother,
+          icon: const Icon(Icons.add_rounded, size: 18, color: AppColors.light),
+          label: const Text('Invite Another Member', style: TextStyle(color: AppColors.light, fontWeight: FontWeight.w600)),
         ),
       ]),
     );
   }
 
-  Widget _buildForm() {
-    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Add Staff Member',
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.white)),
-      const SizedBox(height: 20),
-      TextFormField(
-        controller: _nameCtrl,
-        enabled: !_sending,
-        style: const TextStyle(color: AppColors.white),
-        decoration: const InputDecoration(labelText: 'Full Name'),
-      ),
-      const SizedBox(height: 12),
-      TextFormField(
-        controller: _phoneCtrl,
-        enabled: !_sending,
-        keyboardType: TextInputType.phone,
-        style: const TextStyle(color: AppColors.white),
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(10),
+  Widget _summaryBox(String label, String value, {bool dot = false}) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 11.5)),
+      const SizedBox(height: 4),
+      Row(children: [
+        if (dot) ...[
+          Container(width: 7, height: 7, decoration: const BoxDecoration(color: AppColors.brand, shape: BoxShape.circle)),
+          const SizedBox(width: 6),
         ],
-        decoration: const InputDecoration(
-          labelText: 'Phone Number',
-          hintText: '10-digit mobile number',
-          prefixText: '+91 ',
-          prefixStyle: TextStyle(color: AppColors.silver),
+        Flexible(child: Text(value, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13.5))),
+      ]),
+    ]),
+  );
+
+  Widget _buildForm() {
+    return AppSheet(
+      title: 'Add Staff Member',
+      titleTrailing: const SoftBadge(label: 'Invite', color: AppColors.brand, uppercase: true, fontSize: 10),
+      subtitle: 'Invite team members to assign jobs, set daily targets, and track live activity.',
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const FieldLabel('Full Name', required: true),
+        TextFormField(
+          controller: _nameCtrl,
+          enabled: !_sending,
+          textCapitalization: TextCapitalization.words,
+          style: const TextStyle(color: AppColors.text),
+          decoration: const InputDecoration(hintText: 'e.g. John Doe', prefixIcon: Icon(Icons.person_outline_rounded, size: 20)),
         ),
-      ),
-      const SizedBox(height: 12),
-      TextFormField(
-        controller: _emailCtrl,
-        enabled: !_sending,
-        keyboardType: TextInputType.emailAddress,
-        style: const TextStyle(color: AppColors.white),
-        decoration: const InputDecoration(
-          labelText: 'Email *',
-          hintText: 'Invitation will be sent to this email',
-        ),
-      ),
-      if (_formError != null) ...[
-        const SizedBox(height: 12),
-        Text(_formError!, style: const TextStyle(color: AppColors.red, fontSize: 13)),
-      ],
-      if (_sending) ...[
         const SizedBox(height: 16),
-        const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand),
+        const FieldLabel('Phone Number'),
+        TextFormField(
+          controller: _phoneCtrl,
+          enabled: !_sending,
+          keyboardType: TextInputType.phone,
+          style: const TextStyle(color: AppColors.text),
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
+          decoration: InputDecoration(
+            hintText: '97561 34513',
+            prefixIcon: Container(
+              margin: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: const BoxDecoration(border: Border(right: BorderSide(color: AppColors.border))),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('\u{1F1EE}\u{1F1F3}', style: TextStyle(fontSize: 14)),
+                SizedBox(width: 6),
+                Text('+91', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 14)),
+                Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppColors.muted),
+              ]),
+            ),
           ),
-          SizedBox(width: 10),
-          Text('Sending invitation...', style: TextStyle(color: AppColors.silver, fontSize: 14)),
-        ]),
-      ],
-      const SizedBox(height: 20),
-      AppButton(
-        label: 'Send Invite',
-        isLoading: _sending,
-        onPressed: _sending ? null : _sendInvite,
-      ),
-      const SizedBox(height: 20),
-    ]);
+        ),
+        const SizedBox(height: 16),
+        const FieldLabel('Email Address', required: true, hint: 'Used for invitation link'),
+        TextFormField(
+          controller: _emailCtrl,
+          enabled: !_sending,
+          keyboardType: TextInputType.emailAddress,
+          style: const TextStyle(color: AppColors.text),
+          decoration: const InputDecoration(hintText: 'name@company.com', prefixIcon: Icon(Icons.mail_outline_rounded, size: 20)),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.dark3,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppColors.softShadow,
+          ),
+          child: Row(children: [
+            const IconTile(icon: Icons.track_changes_rounded, color: AppColors.brand, size: 36, iconSize: 18, radius: 10),
+            const SizedBox(width: 12),
+            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Daily Job Target', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13.5)),
+              Text('Target completed jobs/day', style: TextStyle(color: AppColors.silver, fontSize: 11.5)),
+            ])),
+            Container(
+              decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                _stepBtn(Icons.remove_rounded, _target > 0 && !_sending ? () => setState(() => _target--) : null),
+                SizedBox(width: 26, child: Text('$_target', textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700))),
+                _stepBtn(Icons.add_rounded, _target < 999 && !_sending ? () => setState(() => _target++) : null),
+              ]),
+            ),
+          ]),
+        ),
+        if (_formError != null) ...[
+          const SizedBox(height: 12),
+          Text(_formError!, style: const TextStyle(color: AppColors.red, fontSize: 13)),
+        ],
+        const SizedBox(height: 22),
+        PrimaryButton(
+          label: 'Send Invite',
+          icon: Icons.send_outlined,
+          loading: _sending,
+          onPressed: _sending ? null : _sendInvite,
+        ),
+      ]),
+    );
   }
+
+  Widget _stepBtn(IconData icon, VoidCallback? onTap) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(8),
+    child: Padding(
+      padding: const EdgeInsets.all(8),
+      child: Icon(icon, size: 16, color: onTap == null ? AppColors.border : AppColors.silver),
+    ),
+  );
 }

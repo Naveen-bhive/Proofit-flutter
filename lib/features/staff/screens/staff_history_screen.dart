@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/report_card.dart';
+import '../../../shared/widgets/ui_kit.dart';
 import '../controllers/staff_controller.dart';
 
 class StaffHistoryScreen extends ConsumerStatefulWidget {
@@ -44,69 +45,79 @@ class StaffHistoryScreenState extends ConsumerState<StaffHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(staffControllerProvider);
+    final canPop = Navigator.of(context).canPop();
     return Scaffold(
       backgroundColor: AppColors.dark,
-      appBar: AppBar(title: const Text('Report History')),
-      body: Column(children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Row(children: [
-            for (final f in _filters)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
+      body: SafeArea(
+        child: Column(children: [
+          PageHeader(
+            title: 'Report History',
+            subtitle: 'Verified field records & telemetry',
+            showBack: canPop,
+            titleSize: 22,
+            padding: EdgeInsets.fromLTRB(canPop ? 16 : 20, 14, 16, 12),
+          ),
+          PillChipBar(
+            chips: [
+              for (final f in _filters)
+                PillChip(
+                  label: f.$2,
+                  selected: _filter == f.$1,
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                   onTap: () => _setFilter(f.$1),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: _filter == f.$1 ? AppColors.brand : AppColors.dark3,
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(color: _filter == f.$1 ? AppColors.brand : AppColors.border),
-                    ),
-                    child: Text(f.$2,
-                      style: TextStyle(
-                        color: _filter == f.$1 ? Colors.white : AppColors.silver,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      )),
-                  ),
                 ),
-              ),
-          ]),
-        ),
-
-        Expanded(child: RefreshIndicator(
-          color: AppColors.brand,
-          onRefresh: () async => reload(),
-          child: state.historyLoading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
-              : state.historyReports.isEmpty
-                  ? ListView(children: [
-                      SizedBox(height: MediaQuery.of(context).size.height * 0.25),
-                      Center(child: Text(
-                        _filter == 'drafts' ? 'No draft reports saved' : 'No reports in this period',
-                        style: const TextStyle(color: AppColors.silver))),
-                    ])
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: state.historyReports.length,
-                      itemBuilder: (_, i) {
-                        final report = state.historyReports[i];
-                        return ReportCard(
-                          report: report,
-                          onTap: () {
-                            if (report.status == 'draft') {
-                              context.push('/staff/draft/${report.id}');
-                            } else {
-                              context.push('/staff/report/${report.id}');
-                            }
-                          },
-                        );
-                      },
-                    ),
-        )),
-      ]),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: RefreshIndicator(
+              color: AppColors.brand,
+              onRefresh: () async => reload(),
+              child: state.historyLoading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
+                  : state.historyReports.isEmpty
+                      ? ListView(children: [
+                          const SizedBox(height: 90),
+                          SoftEmptyState(
+                            icon: _filter == 'drafts' ? Icons.drafts_outlined : Icons.history_rounded,
+                            title: _filter == 'drafts' ? 'No draft reports saved' : 'No reports in this period',
+                            subtitle: 'Reports you submit will appear here.',
+                          ),
+                        ])
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                          children: [
+                            for (final report in state.historyReports)
+                              ReportCard(
+                                report: report,
+                                actionLabel: report.status == 'draft' ? 'Continue' : 'View Report',
+                                onTap: () {
+                                  if (report.status == 'draft') {
+                                    context.push('/staff/draft/${report.id}');
+                                  } else {
+                                    context.push('/staff/report/${report.id}');
+                                  }
+                                },
+                              ),
+                            const SizedBox(height: 4),
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(color: AppColors.dark4, borderRadius: BorderRadius.circular(100)),
+                                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                  Icon(Icons.check_circle_rounded, size: 15, color: AppColors.greenDark),
+                                  SizedBox(width: 6),
+                                  Text('Time & GPS stamped proof',
+                                      style: TextStyle(color: AppColors.light, fontSize: 12, fontWeight: FontWeight.w500)),
+                                ]),
+                              ),
+                            ),
+                          ],
+                        ),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 }

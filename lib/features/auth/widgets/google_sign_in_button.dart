@@ -16,18 +16,23 @@ class GoogleSignInButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
+      type: MaterialType.transparency,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: InkWell(
         onTap: isLoading ? null : onPressed,
         borderRadius: BorderRadius.circular(14),
         child: Container(
           width: double.infinity,
-          height: 56,
+          height: 52,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFDADCE0)),
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppColors.softShadow,
           ),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             if (isLoading)
@@ -47,13 +52,14 @@ class GoogleSignInButton extends StatelessWidget {
             Text(
               isLoading ? 'Connecting...' : label,
               style: const TextStyle(
-                color: Color(0xFF1F1F1F),
-                fontSize: 16,
+                color: AppColors.text,
+                fontSize: 15.5,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ]),
         ),
+      ),
       ),
     );
   }

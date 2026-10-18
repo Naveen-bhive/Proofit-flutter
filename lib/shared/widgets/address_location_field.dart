@@ -16,16 +16,20 @@ class AddressLocationField extends FormField<SelectedPlace> {
     super.enabled,
     ValueChanged<SelectedPlace?>? onChanged,
   }) : super(
-          validator: (v) => v == null ? 'Choose your address location on the map' : null,
+          validator: (v) =>
+              v == null ? 'Choose your address location on the map' : null,
           builder: (state) {
             final place = state.value;
             final hasError = state.hasError;
 
             Future<void> open() async {
-              final result = await Navigator.of(state.context, rootNavigator: true).push<SelectedPlace>(
+              final result =
+                  await Navigator.of(state.context, rootNavigator: true)
+                      .push<SelectedPlace>(
                 MaterialPageRoute(
                   fullscreenDialog: true,
-                  builder: (_) => AddressPickerScreen(initial: place, existingAddress: existingAddress),
+                  builder: (_) => AddressPickerScreen(
+                      initial: place, existingAddress: existingAddress),
                 ),
               );
               if (result != null) {
@@ -34,49 +38,83 @@ class AddressLocationField extends FormField<SelectedPlace> {
               }
             }
 
-            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('ADDRESS',
-                  style: TextStyle(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: state.widget.enabled ? open : null,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.dark3,
+            return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('ADDRESS',
+                      style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2)),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: state.widget.enabled ? open : null,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: hasError ? AppColors.red : AppColors.border),
-                  ),
-                  child: Row(children: [
-                    Icon(place == null ? Icons.add_location_alt_outlined : Icons.location_on,
-                        color: place == null ? AppColors.silver : AppColors.brand, size: 22),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: place == null
-                          ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              const Text('Choose address on map', style: TextStyle(color: AppColors.white, fontSize: 14)),
-                              if (existingAddress != null && existingAddress.trim().isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text('Current: $existingAddress',
-                                    maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.silver, fontSize: 12)),
-                              ],
-                            ])
-                          : Text(place.address, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.white, fontSize: 14)),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.dark3,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: hasError ? AppColors.red : AppColors.border),
+                      ),
+                      child: Row(children: [
+                        Icon(
+                            place == null
+                                ? Icons.add_location_alt_outlined
+                                : Icons.location_on,
+                            color: place == null
+                                ? AppColors.silver
+                                : AppColors.brand,
+                            size: 22),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: place == null
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                      const Text('Choose address on map',
+                                          style: TextStyle(
+                                              color: AppColors.text,
+                                              fontSize: 14)),
+                                      if (existingAddress != null &&
+                                          existingAddress
+                                              .trim()
+                                              .isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text('Current: $existingAddress',
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                                color: AppColors.silver,
+                                                fontSize: 12)),
+                                      ],
+                                    ])
+                              : Text(place.address,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: AppColors.text, fontSize: 14)),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(place == null ? 'Choose' : 'Change',
+                            style: const TextStyle(
+                                color: AppColors.brand,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                      ]),
                     ),
-                    const SizedBox(width: 8),
-                    Text(place == null ? 'Choose' : 'Change',
-                        style: const TextStyle(color: AppColors.brand, fontSize: 13, fontWeight: FontWeight.w600)),
-                  ]),
-                ),
-              ),
-              if (hasError)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6, left: 4),
-                  child: Text(state.errorText ?? '', style: const TextStyle(color: AppColors.red, fontSize: 12)),
-                ),
-            ]);
+                  ),
+                  if (hasError)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6, left: 4),
+                      child: Text(state.errorText ?? '',
+                          style: const TextStyle(
+                              color: AppColors.red, fontSize: 12)),
+                    ),
+                ]);
           },
         );
 }
@@ -95,6 +133,7 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> {
   final _addressCtrl = TextEditingController();
   SelectedPlace? _place;
   String? _error;
+  int _mapPickerGeneration = 0;
 
   @override
   void initState() {
@@ -115,7 +154,9 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || p == null) return;
       final first = _place == null;
-      final moved = first || _place!.latitude != p.latitude || _place!.longitude != p.longitude;
+      final moved = first ||
+          _place!.latitude != p.latitude ||
+          _place!.longitude != p.longitude;
       setState(() {
         _place = p;
         // Moving the pin refreshes the address text, except the very first report
@@ -154,30 +195,34 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             LocationPickerField(
-              initialAddress: widget.initial?.address,
-              initialLat: widget.initial?.latitude,
-              initialLng: widget.initial?.longitude,
+              key: ValueKey(_mapPickerGeneration),
+              initialAddress: _place?.address,
+              initialLat: _place?.latitude,
+              initialLng: _place?.longitude,
               onPlaceSelected: _onPlace,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _addressCtrl,
-              style: const TextStyle(color: AppColors.white),
+              style: const TextStyle(color: AppColors.text),
               keyboardType: TextInputType.streetAddress,
               textCapitalization: TextCapitalization.sentences,
               minLines: 2,
               maxLines: 4,
               maxLength: 300,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Full address',
-                helperText: 'Set the pin first, then add flat / door number if needed',
+                helperText:
+                    'Set the pin first, then add flat / door number if needed',
               ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 4),
-              Text(_error!, style: const TextStyle(color: AppColors.red, fontSize: 13)),
+              Text(_error!,
+                  style: const TextStyle(color: AppColors.red, fontSize: 13)),
             ],
             const SizedBox(height: 16),
             AppButton(label: 'Confirm address', onPressed: _confirm),

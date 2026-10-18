@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/widgets/ui_kit.dart' show PageHeader;
 import '../../../core/network/api_service.dart';
 import '../../../core/utils/ui_feedback.dart';
 
@@ -82,16 +83,20 @@ class StaffAttendanceScreen extends ConsumerStatefulWidget {
   const StaffAttendanceScreen({super.key, this.staffId, this.staffName});
 
   @override
-  ConsumerState<StaffAttendanceScreen> createState() => _StaffAttendanceScreenState();
+  ConsumerState<StaffAttendanceScreen> createState() =>
+      _StaffAttendanceScreenState();
 }
 
 class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
   final _dayFmt = DateFormat('yyyy-MM-dd');
   List<_Staff> _staff = [];
+
   /// staffId -> yyyy-MM-dd -> check-in records for that day.
   Map<String, Map<String, List<Map<String, dynamic>>>> _byStaff = {};
+
   /// staffId -> yyyy-MM-dd -> approved leave type name for that day.
   Map<String, Map<String, String>> _leaves = {};
+
   /// yyyy-MM-dd -> occasion, for holidays the owner has added.
   Map<String, String> _holidays = {};
   String? _selectedId;
@@ -123,12 +128,17 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
       final res = await ref.read(apiServiceProvider).get('/staff');
       if (res.data['success'] == true) {
         final rows = List<Map<String, dynamic>>.from(res.data['data'] ?? []);
-        final staff = rows.where((r) => r['kind'] != 'invite').map(_Staff.fromJson).toList()
-          ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        final staff = rows
+            .where((r) => r['kind'] != 'invite')
+            .map(_Staff.fromJson)
+            .toList()
+          ..sort(
+              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
         if (mounted) setState(() => _staff = staff);
       }
     } catch (e) {
-      if (mounted) showErrorSnackBar(context, e, fallback: 'Could not load staff.');
+      if (mounted)
+        showErrorSnackBar(context, e, fallback: 'Could not load staff.');
     }
   }
 
@@ -137,22 +147,32 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     try {
       final days = _days;
       final api = ref.read(apiServiceProvider);
-      final range = {'from': _dayFmt.format(days.first), 'to': _dayFmt.format(days.last)};
+      final range = {
+        'from': _dayFmt.format(days.first),
+        'to': _dayFmt.format(days.last)
+      };
       // Leaves are optional context — never let them block attendance.
       final leavesFuture = api
-          .get('/leaves', params: {...range, 'status': 'approved', 'limit': '1000'})
+          .get('/leaves',
+              params: {...range, 'status': 'approved', 'limit': '1000'})
           .then<dynamic>((r) => r)
           .catchError((_) => null);
-      final holidaysFuture = api.get('/holidays', params: range).then<dynamic>((r) => r).catchError((_) => null);
-      final res = await api.get('/location/staff-attendance', params: {...range, 'limit': '5000'});
+      final holidaysFuture = api
+          .get('/holidays', params: range)
+          .then<dynamic>((r) => r)
+          .catchError((_) => null);
+      final res = await api.get('/location/staff-attendance',
+          params: {...range, 'limit': '5000'});
       _leaves = _groupLeaves(await leavesFuture);
       _holidays = _groupHolidays(await holidaysFuture);
       if (res.data['success'] == true) {
-        final records = List<Map<String, dynamic>>.from(res.data['data']['records'] ?? []);
+        final records =
+            List<Map<String, dynamic>>.from(res.data['data']['records'] ?? []);
         final grouped = <String, Map<String, List<Map<String, dynamic>>>>{};
         for (final r in records) {
           final staff = r['staffId'];
-          final id = staff is Map ? staff['_id']?.toString() : staff?.toString();
+          final id =
+              staff is Map ? staff['_id']?.toString() : staff?.toString();
           final date = r['date']?.toString();
           if (id == null || date == null) continue;
           grouped.putIfAbsent(id, () => {}).putIfAbsent(date, () => []).add(r);
@@ -160,7 +180,8 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
         if (mounted) setState(() => _byStaff = grouped);
       }
     } catch (e) {
-      if (mounted) showErrorSnackBar(context, e, fallback: 'Could not load attendance.');
+      if (mounted)
+        showErrorSnackBar(context, e, fallback: 'Could not load attendance.');
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -176,8 +197,11 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
       final start = DateTime.tryParse(l['startDate']?.toString() ?? '');
       final end = DateTime.tryParse(l['endDate']?.toString() ?? '') ?? start;
       if (id == null || start == null || end == null) continue;
-      for (var d = start; !d.isAfter(end); d = DateTime(d.year, d.month, d.day + 1)) {
-        out.putIfAbsent(id, () => {})[_dayFmt.format(d)] = (l['leaveTypeName'] ?? 'Leave').toString();
+      for (var d = start;
+          !d.isAfter(end);
+          d = DateTime(d.year, d.month, d.day + 1)) {
+        out.putIfAbsent(id, () => {})[_dayFmt.format(d)] =
+            (l['leaveTypeName'] ?? 'Leave').toString();
       }
     }
     return out;
@@ -188,7 +212,8 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     if (rows is! List) return {};
     return {
       for (final h in rows)
-        if (h is Map && h['date'] != null) h['date'].toString(): (h['occasion'] ?? 'Holiday').toString(),
+        if (h is Map && h['date'] != null)
+          h['date'].toString(): (h['occasion'] ?? 'Holiday').toString(),
     };
   }
 
@@ -202,12 +227,16 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     final today = DateUtils.dateOnly(DateTime.now());
     if (recs.isNotEmpty) {
       final ongoing = recs.any((r) => r['checkOutTime'] == null);
-      final minutes = recs.fold<int>(0, (a, r) => a + ((r['durationMinutes'] as num?)?.toInt() ?? 0));
-      return ongoing || minutes >= _halfDayThresholdMinutes ? _Status.present : _Status.halfDay;
+      final minutes = recs.fold<int>(
+          0, (a, r) => a + ((r['durationMinutes'] as num?)?.toInt() ?? 0));
+      return ongoing || minutes >= _halfDayThresholdMinutes
+          ? _Status.present
+          : _Status.halfDay;
     }
     if (s.joined != null && day.isBefore(s.joined!)) return _Status.unmarked;
     if (_isHoliday(day)) return _Status.holiday;
-    if (_leaves[s.id]?.containsKey(_dayFmt.format(day)) ?? false) return _Status.leave;
+    if (_leaves[s.id]?.containsKey(_dayFmt.format(day)) ?? false)
+      return _Status.leave;
     if (!day.isBefore(today)) return _Status.pending;
     return _Status.absent;
   }
@@ -224,19 +253,29 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
       context: context,
       backgroundColor: AppColors.dark2,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
-            width: 40, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 12),
-            decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(top: 12, bottom: 12),
+            decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2)),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text(title, style: const TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+              child: Text(title,
+                  style: const TextStyle(
+                      color: AppColors.text,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700)),
             ),
           ),
           Flexible(
@@ -257,25 +296,43 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     );
   }
 
-  Widget _pickerRow({Widget? leading, required String title, String? subtitle, required bool selected}) {
+  Widget _pickerRow(
+      {Widget? leading,
+      required String title,
+      String? subtitle,
+      required bool selected}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: selected ? AppColors.brand.withValues(alpha: 0.12) : Colors.transparent,
+        color: selected
+            ? AppColors.brand.withValues(alpha: 0.12)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: selected ? AppColors.brand.withValues(alpha: 0.5) : Colors.transparent),
+        border: Border.all(
+            color: selected
+                ? AppColors.brand.withValues(alpha: 0.5)
+                : Colors.transparent),
       ),
       child: Row(children: [
         if (leading != null) ...[leading, const SizedBox(width: 12)],
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title,
+                style: const TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15)),
             if (subtitle != null && subtitle.isNotEmpty)
-              Text(subtitle, style: const TextStyle(color: AppColors.silver, fontSize: 12)),
+              Text(subtitle,
+                  style:
+                      const TextStyle(color: AppColors.silver, fontSize: 12)),
           ]),
         ),
-        if (selected) const Icon(Icons.check_circle_rounded, color: AppColors.brand, size: 20),
+        if (selected)
+          const Icon(Icons.check_circle_rounded,
+              color: AppColors.brand, size: 20),
       ]),
     );
   }
@@ -296,10 +353,15 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
           );
         }
         final s = _staff.firstWhere((s) => s.id == id);
-        return _pickerRow(leading: _Avatar(s, size: 36), title: s.name, subtitle: s.phone, selected: selected);
+        return _pickerRow(
+            leading: _Avatar(s, size: 36),
+            title: s.name,
+            subtitle: s.phone,
+            selected: selected);
       },
     );
-    if (picked != null) setState(() => _selectedId = picked.isEmpty ? null : picked);
+    if (picked != null)
+      setState(() => _selectedId = picked.isEmpty ? null : picked);
   }
 
   Future<void> _pickMonth() async {
@@ -307,8 +369,9 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
       title: 'Select Month',
       values: List.generate(12, (i) => i + 1),
       current: _month,
-      itemBuilder: (m, selected) =>
-          _pickerRow(title: DateFormat('MMMM').format(DateTime(2000, m)), selected: selected),
+      itemBuilder: (m, selected) => _pickerRow(
+          title: DateFormat('MMMM').format(DateTime(2000, m)),
+          selected: selected),
     );
     if (picked != null && picked != _month) {
       setState(() => _month = picked);
@@ -340,12 +403,21 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
       String esc(String v) => '"${v.replaceAll('"', '""')}"';
       final selected = _selected;
       if (selected == null) {
-        buf.writeln(['Employee', 'Phone', ...days.map((d) => DateFormat('d EEE').format(d)), 'Present', 'Half Day', 'Leave', 'Absent']
-            .map(esc).join(','));
+        buf.writeln([
+          'Employee',
+          'Phone',
+          ...days.map((d) => DateFormat('d EEE').format(d)),
+          'Present',
+          'Half Day',
+          'Leave',
+          'Absent'
+        ].map(esc).join(','));
         for (final s in _staff) {
           final statuses = days.map((d) => _statusFor(s, d)).toList();
           buf.writeln([
-            s.name, s.phone, ...statuses.map((st) => st.code),
+            s.name,
+            s.phone,
+            ...statuses.map((st) => st.code),
             '${statuses.where((st) => st == _Status.present).length}',
             '${statuses.where((st) => st == _Status.halfDay).length}',
             '${statuses.where((st) => st == _Status.leave).length}',
@@ -353,28 +425,49 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
           ].map(esc).join(','));
         }
       } else {
-        buf.writeln(['Date', 'Day', 'Status', 'Check In', 'Check Out', 'Minutes'].map(esc).join(','));
+        buf.writeln([
+          'Date',
+          'Day',
+          'Status',
+          'Check In',
+          'Check Out',
+          'Minutes'
+        ].map(esc).join(','));
         for (final d in days) {
           final recs = _recordsFor(selected.id, d);
-          final minutes = recs.fold<int>(0, (a, r) => a + ((r['durationMinutes'] as num?)?.toInt() ?? 0));
+          final minutes = recs.fold<int>(
+              0, (a, r) => a + ((r['durationMinutes'] as num?)?.toInt() ?? 0));
           buf.writeln([
-            _dayFmt.format(d), DateFormat('EEE').format(d), _statusFor(selected, d).label,
-            recs.isEmpty ? '' : (recs.last['checkInTimeLabel'] ?? '').toString(),
-            recs.isEmpty ? '' : (recs.first['checkOutTimeLabel'] ?? '').toString(),
+            _dayFmt.format(d),
+            DateFormat('EEE').format(d),
+            _statusFor(selected, d).label,
+            recs.isEmpty
+                ? ''
+                : (recs.last['checkInTimeLabel'] ?? '').toString(),
+            recs.isEmpty
+                ? ''
+                : (recs.first['checkOutTimeLabel'] ?? '').toString(),
             recs.isEmpty ? '' : '$minutes',
           ].map(esc).join(','));
         }
       }
-      final who = selected == null ? 'all' : selected.name.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-').toLowerCase();
+      final who = selected == null
+          ? 'all'
+          : selected.name
+              .replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-')
+              .toLowerCase();
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/attendance-$who-$_year-${_month.toString().padLeft(2, '0')}.csv');
+      final file = File(
+          '${dir.path}/attendance-$who-$_year-${_month.toString().padLeft(2, '0')}.csv');
       await file.writeAsString(buf.toString());
       await SharePlus.instance.share(ShareParams(
         files: [XFile(file.path)],
-        subject: 'Attendance ${DateFormat('MMMM yyyy').format(DateTime(_year, _month))}',
+        subject:
+            'Attendance ${DateFormat('MMMM yyyy').format(DateTime(_year, _month))}',
       ));
     } catch (e) {
-      if (mounted) showErrorSnackBar(context, e, fallback: 'Could not export attendance.');
+      if (mounted)
+        showErrorSnackBar(context, e, fallback: 'Could not export attendance.');
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -387,26 +480,17 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     final selected = _selected;
     return Scaffold(
       backgroundColor: AppColors.dark,
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Attendance', style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w700)),
-          SizedBox(height: 2),
-          Text('Home • Attendance', style: TextStyle(color: AppColors.silver, fontSize: 12)),
-        ]),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.border),
-        ),
-      ),
-      body: RefreshIndicator(
+      body: SafeArea(
+        child: Column(children: [
+          const PageHeader(title: 'Attendance', titleSize: 21),
+          Expanded(
+            child: RefreshIndicator(
         color: AppColors.brand,
-        backgroundColor: AppColors.dark2,
         onRefresh: () async {
           await Future.wait([_loadStaff(), _loadRecords()]);
         },
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
             _filtersCard(),
             const SizedBox(height: 16),
@@ -415,7 +499,8 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
             if (_loading)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 60),
-                child: Center(child: CircularProgressIndicator(color: AppColors.brand)),
+                child: Center(
+                    child: CircularProgressIndicator(color: AppColors.brand)),
               )
             else if (selected == null)
               _matrix()
@@ -428,16 +513,23 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
             ],
           ],
         ),
+            ),
+          ),
+        ]),
       ),
     );
   }
 
-  Widget _card({required Widget child, EdgeInsets padding = const EdgeInsets.all(16)}) => Container(
+  Widget _card(
+          {required Widget child,
+          EdgeInsets padding = const EdgeInsets.all(16)}) =>
+      Container(
         padding: padding,
         decoration: BoxDecoration(
-          color: AppColors.dark2,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: AppColors.border),
+          boxShadow: AppColors.cardShadow,
         ),
         child: child,
       );
@@ -445,10 +537,18 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
   Widget _fieldLabel(String text) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(text,
-            style: const TextStyle(color: AppColors.silver, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+            style: const TextStyle(
+                color: AppColors.silver,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1)),
       );
 
-  Widget _selectBox({required Widget child, required VoidCallback onTap, double vPad = 14}) => InkWell(
+  Widget _selectBox(
+          {required Widget child,
+          required VoidCallback onTap,
+          double vPad = 14}) =>
+      InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
@@ -460,14 +560,16 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
           ),
           child: Row(children: [
             Expanded(child: child),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.silver),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                color: AppColors.silver),
           ]),
         ),
       );
 
   Widget _filtersCard() {
     final selected = _selected;
-    const valueStyle = TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 15);
+    const valueStyle = TextStyle(
+        color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 15);
     return _card(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _fieldLabel('EMPLOYEE'),
@@ -480,55 +582,77 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                   _Avatar(selected, size: 34),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(selected.name, style: valueStyle, overflow: TextOverflow.ellipsis),
-                      if (selected.phone.isNotEmpty)
-                        Text(selected.phone, style: const TextStyle(color: AppColors.silver, fontSize: 11)),
-                    ]),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(selected.name,
+                              style: valueStyle,
+                              overflow: TextOverflow.ellipsis),
+                          if (selected.phone.isNotEmpty)
+                            Text(selected.phone,
+                                style: const TextStyle(
+                                    color: AppColors.silver, fontSize: 11)),
+                        ]),
                   ),
                 ]),
         ),
         const SizedBox(height: 16),
         Row(children: [
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               _fieldLabel('MONTH'),
               _selectBox(
                 onTap: _pickMonth,
-                child: Text(DateFormat('MMMM').format(DateTime(2000, _month)), style: valueStyle),
+                child: Text(DateFormat('MMMM').format(DateTime(2000, _month)),
+                    style: valueStyle),
               ),
             ]),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               _fieldLabel('YEAR'),
-              _selectBox(onTap: _pickYear, child: Text('$_year', style: valueStyle)),
+              _selectBox(
+                  onTap: _pickYear, child: Text('$_year', style: valueStyle)),
             ]),
           ),
         ]),
         const SizedBox(height: 16),
-        const Divider(height: 1, color: AppColors.border),
-        const SizedBox(height: 14),
         OutlinedButton.icon(
           onPressed: _exporting || _loading ? null : _export,
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.white,
+            foregroundColor: AppColors.text,
+            backgroundColor: AppColors.white,
             side: const BorderSide(color: AppColors.border),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           icon: _exporting
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand))
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: AppColors.brand))
               : const Icon(Icons.upload_rounded, size: 18),
-          label: const Text('Export', style: TextStyle(fontWeight: FontWeight.w700)),
+          label: const Text('Export',
+              style: TextStyle(fontWeight: FontWeight.w700)),
         ),
       ]),
     );
   }
 
   Widget _legendCard() {
-    const items = [_Status.holiday, _Status.absent, _Status.present, _Status.halfDay, _Status.leave, _Status.pending];
+    const items = [
+      _Status.holiday,
+      _Status.absent,
+      _Status.present,
+      _Status.halfDay,
+      _Status.leave,
+      _Status.pending
+    ];
     return _card(
       padding: const EdgeInsets.fromLTRB(16, 14, 0, 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -537,9 +661,13 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
           child: Row(children: [
             Expanded(
               child: Text('Status Legend',
-                  style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                  style: TextStyle(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14)),
             ),
-            Text('Swipe for all', style: TextStyle(color: AppColors.muted, fontSize: 11)),
+            Text('Swipe for all',
+                style: TextStyle(color: AppColors.muted, fontSize: 11)),
           ]),
         ),
         const SizedBox(height: 10),
@@ -561,25 +689,39 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
 
   static const _nameColWidth = 150.0;
   static const _cellWidth = 34.0;
+  static const _cellGap = 6.0;
   static const _rowHeight = 58.0;
   static const _headerHeight = 50.0;
+
+  Widget _matrixDayColumn(Widget child) => SizedBox(
+        width: _cellWidth + _cellGap,
+        child: Center(child: SizedBox(width: _cellWidth, child: child)),
+      );
 
   Widget _matrix() {
     final days = _days;
     final today = DateUtils.dateOnly(DateTime.now());
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        const Text('Monthly Attendance Matrix',
-            style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 14)),
-        const SizedBox(width: 6),
+      Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         Expanded(
-          child: Text('(${DateFormat('MMM yyyy').format(days.first)})',
-              style: const TextStyle(color: AppColors.silver, fontSize: 11, fontWeight: FontWeight.w600)),
+          child: Text.rich(
+            TextSpan(children: [
+              const TextSpan(text: 'Monthly Attendance Matrix '),
+              TextSpan(
+                text: '(${DateFormat('MMM yyyy').format(days.first)})',
+                style: const TextStyle(color: AppColors.silver, fontSize: 11.5, fontWeight: FontWeight.w600),
+              ),
+            ]),
+            style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14),
+          ),
         ),
+        const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: AppColors.dark3, borderRadius: BorderRadius.circular(20)),
-          child: const Text('Scroll horizontally →', style: TextStyle(color: AppColors.muted, fontSize: 10)),
+          decoration: BoxDecoration(
+              color: AppColors.dark4, borderRadius: BorderRadius.circular(6), border: Border.all(color: AppColors.border)),
+          child: const Text('Scroll horizontally →',
+              style: TextStyle(color: AppColors.muted, fontSize: 10.5)),
         ),
       ]),
       const SizedBox(height: 12),
@@ -587,7 +729,9 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
         _card(
           child: const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: Text('No staff members yet', style: TextStyle(color: AppColors.silver))),
+            child: Center(
+                child: Text('No staff members yet',
+                    style: TextStyle(color: AppColors.silver))),
           ),
         )
       else
@@ -606,7 +750,10 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                     alignment: Alignment.centerLeft,
                     padding: const EdgeInsets.only(left: 14),
                     child: const Text('Employee',
-                        style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                        style: TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13)),
                   ),
                   for (final s in _staff)
                     InkWell(
@@ -614,7 +761,9 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                       child: Container(
                         height: _rowHeight,
                         padding: const EdgeInsets.only(left: 10, right: 6),
-                        decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.border))),
+                        decoration: const BoxDecoration(
+                            border: Border(
+                                top: BorderSide(color: AppColors.border))),
                         child: Row(children: [
                           _Avatar(s, size: 32),
                           const SizedBox(width: 8),
@@ -627,12 +776,16 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                        color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                                        color: AppColors.text,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13)),
                                 if (s.phone.isNotEmpty)
                                   Text(s.phone,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(color: AppColors.silver, fontSize: 10.5)),
+                                      style: const TextStyle(
+                                          color: AppColors.silver,
+                                          fontSize: 10.5)),
                               ],
                             ),
                           ),
@@ -651,22 +804,28 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                       color: AppColors.dark3,
                       child: Row(children: [
                         for (final d in days)
-                          SizedBox(
-                            width: _cellWidth,
-                            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              Text('${d.day}',
-                                  style: TextStyle(
-                                    color: d == today ? AppColors.brand : AppColors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 12,
-                                  )),
-                              const SizedBox(height: 2),
-                              Text(DateFormat('E').format(d).substring(0, 2),
-                                  style: TextStyle(
-                                    color: _isHoliday(d) ? AppColors.yellow : AppColors.muted,
-                                    fontSize: 10,
-                                  )),
-                            ]),
+                          _matrixDayColumn(
+                            Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('${d.day}',
+                                      style: TextStyle(
+                                        color: d == today
+                                            ? AppColors.brand
+                                            : AppColors.text,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                      )),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                      DateFormat('E').format(d).substring(0, 2),
+                                      style: TextStyle(
+                                        color: _isHoliday(d)
+                                            ? AppColors.yellow
+                                            : AppColors.muted,
+                                        fontSize: 10,
+                                      )),
+                                ]),
                           ),
                         const SizedBox(width: 8),
                       ]),
@@ -674,10 +833,12 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                     for (final s in _staff)
                       Container(
                         height: _rowHeight,
-                        decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.border))),
+                        decoration: const BoxDecoration(
+                            border: Border(
+                                top: BorderSide(color: AppColors.border))),
                         child: Row(children: [
                           for (final d in days)
-                            SizedBox(width: _cellWidth, child: Center(child: _StatusMark(_statusFor(s, d)))),
+                            _matrixDayColumn(_StatusMark(_statusFor(s, d))),
                           const SizedBox(width: 8),
                         ]),
                       ),
@@ -708,7 +869,9 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     final pending = count(_Status.pending) + count(_Status.unmarked);
     final workingDays = statuses.length - count(_Status.holiday);
     final score = present + half * 0.5;
-    final scoreText = score == score.roundToDouble() ? score.toInt().toString() : score.toStringAsFixed(1);
+    final scoreText = score == score.roundToDouble()
+        ? score.toInt().toString()
+        : score.toStringAsFixed(1);
 
     return _card(
       child: Column(children: [
@@ -716,25 +879,45 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
           _Avatar(s, size: 46),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(s.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                  style: const TextStyle(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15)),
               const SizedBox(height: 2),
-              Text(s.joined != null ? 'Joined ${DateFormat('d MMM yyyy').format(s.joined!)}' : s.phone,
-                  style: const TextStyle(color: AppColors.silver, fontSize: 11, fontWeight: FontWeight.w600)),
+              Text(
+                  s.joined != null
+                      ? 'Joined ${DateFormat('d MMM yyyy').format(s.joined!)}'
+                      : s.phone,
+                  style: const TextStyle(
+                      color: AppColors.silver,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600)),
             ]),
           ),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             const Text('TOTAL SCORE',
-                style: TextStyle(color: AppColors.silver, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+                style: TextStyle(
+                    color: AppColors.silver,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8)),
             const SizedBox(height: 4),
             Text.rich(TextSpan(children: [
               TextSpan(
                   text: scoreText,
-                  style: const TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w800)),
-              TextSpan(text: ' / $workingDays', style: const TextStyle(color: AppColors.silver, fontSize: 13)),
+                  style: const TextStyle(
+                      color: AppColors.text,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800)),
+              TextSpan(
+                  text: ' / $workingDays',
+                  style:
+                      const TextStyle(color: AppColors.silver, fontSize: 13)),
             ])),
           ]),
         ]),
@@ -767,10 +950,18 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
           child: Column(children: [
             FittedBox(
               child: Text(label,
-                  style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                  style: TextStyle(
+                      color: color,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5)),
             ),
             const SizedBox(height: 4),
-            Text('$value', style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+            Text('$value',
+                style: const TextStyle(
+                    color: AppColors.text,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800)),
           ]),
         ),
       );
@@ -792,11 +983,19 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(
-            child: Text('${DateFormat('MMMM yyyy').format(first).toUpperCase()} GRID',
-                style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.8)),
+            child: Text(
+                '${DateFormat('MMMM yyyy').format(first).toUpperCase()} GRID',
+                style: const TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    letterSpacing: 0.8)),
           ),
           Text('${days.length} Days',
-              style: const TextStyle(color: AppColors.silver, fontWeight: FontWeight.w700, fontSize: 12)),
+              style: const TextStyle(
+                  color: AppColors.silver,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12)),
         ]),
         const SizedBox(height: 14),
         Row(children: [
@@ -804,7 +1003,10 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
             Expanded(
               child: Center(
                 child: Text(w,
-                    style: const TextStyle(color: AppColors.muted, fontSize: 10, fontWeight: FontWeight.w700)),
+                    style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700)),
               ),
             ),
         ]),
@@ -822,7 +1024,9 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                 const SizedBox()
               else if (d.month != _month)
                 Center(
-                  child: Text('${d.day}', style: const TextStyle(color: AppColors.dark4, fontWeight: FontWeight.w600)),
+                  child: Text('${d.day}',
+                      style: const TextStyle(
+                          color: AppColors.dark4, fontWeight: FontWeight.w600)),
                 )
               else
                 _dayCell(s, d),
@@ -844,14 +1048,18 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
           color: tinted ? st.color.withValues(alpha: 0.12) : AppColors.dark3,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isToday ? AppColors.brand : (tinted ? st.color.withValues(alpha: 0.45) : AppColors.border),
+            color: isToday
+                ? AppColors.brand
+                : (tinted
+                    ? st.color.withValues(alpha: 0.45)
+                    : AppColors.border),
             width: isToday ? 1.5 : 1,
           ),
         ),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Text('${d.day}',
               style: TextStyle(
-                color: tinted ? st.color : AppColors.white,
+                color: tinted ? st.color : AppColors.text,
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
               )),
@@ -867,58 +1075,79 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.dark2,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(
-            child: Container(
-              width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
-            ),
-          ),
-          Row(children: [
-            Expanded(
-              child: Text(DateFormat('EEEE, d MMM yyyy').format(d),
-                  style: const TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-            ),
-            _StatusChip(st),
-          ]),
-          const SizedBox(height: 4),
-          Text(s.name, style: const TextStyle(color: AppColors.silver, fontSize: 12)),
-          const SizedBox(height: 16),
-          if (recs.isEmpty)
-            Text(
-              _leaves[s.id]?[_dayFmt.format(d)] != null
-                  ? 'Approved ${_leaves[s.id]![_dayFmt.format(d)]} leave'
-                  : _holidays[_dayFmt.format(d)] != null
-                      ? 'Holiday: ${_holidays[_dayFmt.format(d)]}'
-                      : 'No check-in recorded',
-              style: const TextStyle(color: AppColors.muted),
-            )
-          else
-            for (final r in recs.reversed)
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.dark3,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2)),
                 ),
-                child: Row(children: [
-                  const Icon(Icons.login_rounded, color: AppColors.green, size: 16),
-                  const SizedBox(width: 6),
-                  Text(_timeOnly(r['checkInTimeLabel']), style: const TextStyle(color: AppColors.light, fontSize: 13)),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.logout_rounded, color: AppColors.red, size: 16),
-                  const SizedBox(width: 6),
-                  Text(_timeOnly(r['checkOutTimeLabel']), style: const TextStyle(color: AppColors.light, fontSize: 13)),
-                  const Spacer(),
-                  Text(_duration(r), style: const TextStyle(color: AppColors.silver, fontSize: 12)),
-                ]),
               ),
-        ]),
+              Row(children: [
+                Expanded(
+                  child: Text(DateFormat('EEEE, d MMM yyyy').format(d),
+                      style: const TextStyle(
+                          color: AppColors.text,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700)),
+                ),
+                _StatusChip(st),
+              ]),
+              const SizedBox(height: 4),
+              Text(s.name,
+                  style:
+                      const TextStyle(color: AppColors.silver, fontSize: 12)),
+              const SizedBox(height: 16),
+              if (recs.isEmpty)
+                Text(
+                  _leaves[s.id]?[_dayFmt.format(d)] != null
+                      ? 'Approved ${_leaves[s.id]![_dayFmt.format(d)]} leave'
+                      : _holidays[_dayFmt.format(d)] != null
+                          ? 'Holiday: ${_holidays[_dayFmt.format(d)]}'
+                          : 'No check-in recorded',
+                  style: const TextStyle(color: AppColors.muted),
+                )
+              else
+                for (final r in recs.reversed)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.dark3,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.login_rounded,
+                          color: AppColors.green, size: 16),
+                      const SizedBox(width: 6),
+                      Text(_timeOnly(r['checkInTimeLabel']),
+                          style: const TextStyle(
+                              color: AppColors.light, fontSize: 13)),
+                      const SizedBox(width: 16),
+                      const Icon(Icons.logout_rounded,
+                          color: AppColors.red, size: 16),
+                      const SizedBox(width: 6),
+                      Text(_timeOnly(r['checkOutTimeLabel']),
+                          style: const TextStyle(
+                              color: AppColors.light, fontSize: 13)),
+                      const Spacer(),
+                      Text(_duration(r),
+                          style: const TextStyle(
+                              color: AppColors.silver, fontSize: 12)),
+                    ]),
+                  ),
+            ]),
       ),
     );
   }
@@ -938,13 +1167,20 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
 
   Widget _exceptionsCard(_Staff s) {
     final today = DateUtils.dateOnly(DateTime.now());
-    final runs = <({_Status status, DateTime start, DateTime end, int count})>[];
+    final runs =
+        <({_Status status, DateTime start, DateTime end, int count})>[];
     _Status? runStatus;
     DateTime? runStart, runEnd;
     var runCount = 0;
 
     void close() {
-      if (runStatus != null) runs.add((status: runStatus!, start: runStart!, end: runEnd!, count: runCount));
+      if (runStatus != null)
+        runs.add((
+          status: runStatus!,
+          start: runStart!,
+          end: runEnd!,
+          count: runCount
+        ));
       runStatus = null;
       runCount = 0;
     }
@@ -973,12 +1209,17 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     return _card(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('RECORDED EXCEPTIONS',
-            style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.8)),
+            style: TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+                letterSpacing: 0.8)),
         const SizedBox(height: 12),
         if (runs.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('No exceptions this month', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+            child: Text('No exceptions this month',
+                style: TextStyle(color: AppColors.muted, fontSize: 13)),
           )
         else
           for (final r in runs.reversed)
@@ -986,40 +1227,61 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: r.status == _Status.unmarked ? AppColors.dark3 : r.status.color.withValues(alpha: 0.08),
+                color: r.status == _Status.unmarked
+                    ? AppColors.dark3
+                    : r.status.color.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: r.status == _Status.unmarked ? AppColors.border : r.status.color.withValues(alpha: 0.35)),
+                    color: r.status == _Status.unmarked
+                        ? AppColors.border
+                        : r.status.color.withValues(alpha: 0.35)),
               ),
               child: Row(children: [
                 Container(
-                  width: 26, height: 26,
+                  width: 26,
+                  height: 26,
                   decoration: BoxDecoration(
-                    color: r.status == _Status.unmarked ? AppColors.dark4 : r.status.color,
+                    color: r.status == _Status.unmarked
+                        ? AppColors.dark4
+                        : r.status.color,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(r.status.icon ?? Icons.circle, color: AppColors.white, size: r.status.icon == null ? 6 : 15),
+                  child: Icon(r.status.icon ?? Icons.circle,
+                      color: AppColors.text,
+                      size: r.status.icon == null ? 6 : 15),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(
-                      r.count == 1
-                          ? '${fmt.format(r.start)}, ${r.start.year}'
-                          : '${fmt.format(r.start)} – ${fmt.format(r.end)}, ${r.end.year}',
-                      style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 13),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      switch (r.status) {
-                        _Status.absent => r.count > 1 ? 'Consecutive Absences (${r.count} Days)' : 'Absent (1 Day)',
-                        _Status.leave => 'On ${_leaves[s.id]?[_dayFmt.format(r.start)] ?? ''} Leave (${r.count} Day${r.count > 1 ? 's' : ''})',
-                        _Status.halfDay => 'Short day${r.count > 1 ? 's' : ''} (${r.count} Day${r.count > 1 ? 's' : ''})',
-                        _ => s.joined != null && !r.end.isBefore(today) ? 'No entry logged yet' : 'No entry logged',
-                      },
-                      style: const TextStyle(color: AppColors.silver, fontSize: 11),
-                    ),
-                  ]),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          r.count == 1
+                              ? '${fmt.format(r.start)}, ${r.start.year}'
+                              : '${fmt.format(r.start)} – ${fmt.format(r.end)}, ${r.end.year}',
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          switch (r.status) {
+                            _Status.absent => r.count > 1
+                                ? 'Consecutive Absences (${r.count} Days)'
+                                : 'Absent (1 Day)',
+                            _Status.leave =>
+                              'On ${_leaves[s.id]?[_dayFmt.format(r.start)] ?? ''} Leave (${r.count} Day${r.count > 1 ? 's' : ''})',
+                            _Status.halfDay =>
+                              'Short day${r.count > 1 ? 's' : ''} (${r.count} Day${r.count > 1 ? 's' : ''})',
+                            _ => s.joined != null && !r.end.isBefore(today)
+                                ? 'No entry logged yet'
+                                : 'No entry logged',
+                          },
+                          style: const TextStyle(
+                              color: AppColors.silver, fontSize: 11),
+                        ),
+                      ]),
                 ),
                 _StatusChip(r.status, compact: true),
               ]),
@@ -1039,8 +1301,13 @@ class _StatusMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = status.icon;
-    if (icon == null) return Text('-', style: TextStyle(color: AppColors.muted, fontSize: size - 1));
-    return Icon(icon, size: size, color: status.color);
+    if (icon == null) {
+      return Text('-',
+          style: TextStyle(color: AppColors.muted, fontSize: size - 1));
+    }
+    // Present / absent read as plain ink marks in the matrix; the rest keep their colour.
+    final color = status == _Status.present || status == _Status.absent ? AppColors.light : status.color;
+    return Icon(icon, size: size, color: color);
   }
 }
 
@@ -1051,9 +1318,12 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = status == _Status.pending || status == _Status.unmarked ? AppColors.silver : status.color;
+    final c = status == _Status.pending || status == _Status.unmarked
+        ? AppColors.silver
+        : status.color;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10, vertical: compact ? 4 : 5),
+      padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 10, vertical: compact ? 4 : 5),
       decoration: BoxDecoration(
         color: c.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(compact ? 6 : 20),
@@ -1063,10 +1333,14 @@ class _StatusChip extends StatelessWidget {
         if (!compact) ...[
           status.icon != null
               ? Icon(status.icon, size: 13, color: c)
-              : Text('-', style: TextStyle(color: c, fontSize: 12, fontWeight: FontWeight.w700)),
+              : Text('-',
+                  style: TextStyle(
+                      color: c, fontSize: 12, fontWeight: FontWeight.w700)),
           const SizedBox(width: 4),
         ],
-        Text(status.label, style: TextStyle(color: c, fontSize: 12, fontWeight: FontWeight.w700)),
+        Text(status.label,
+            style:
+                TextStyle(color: c, fontSize: 12, fontWeight: FontWeight.w700)),
       ]),
     );
   }
@@ -1080,16 +1354,28 @@ class _Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final url = staff.photoUrl;
-    final parts = staff.name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final parts = staff.name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
     final initials = parts.isEmpty
         ? '?'
-        : (parts.length == 1 ? parts.first[0] : '${parts.first[0]}${parts.last[0]}').toUpperCase();
+        : (parts.length == 1
+                ? parts.first[0]
+                : '${parts.first[0]}${parts.last[0]}')
+            .toUpperCase();
     return CircleAvatar(
       radius: size / 2,
       backgroundColor: AppColors.brand.withValues(alpha: 0.18),
-      foregroundImage: url != null && url.startsWith('http') ? CachedNetworkImageProvider(url) : null,
+      foregroundImage: url != null && url.startsWith('http')
+          ? CachedNetworkImageProvider(url)
+          : null,
       child: Text(initials,
-          style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w800, fontSize: size * 0.36)),
+          style: TextStyle(
+              color: AppColors.brand,
+              fontWeight: FontWeight.w800,
+              fontSize: size * 0.36)),
     );
   }
 }
@@ -1101,6 +1387,7 @@ class _AllAvatar extends StatelessWidget {
   Widget build(BuildContext context) => CircleAvatar(
         radius: 18,
         backgroundColor: AppColors.brand.withValues(alpha: 0.18),
-        child: const Icon(Icons.groups_rounded, color: AppColors.brand, size: 20),
+        child:
+            const Icon(Icons.groups_rounded, color: AppColors.brand, size: 20),
       );
 }

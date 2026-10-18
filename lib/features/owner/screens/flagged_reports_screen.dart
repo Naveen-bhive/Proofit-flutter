@@ -80,7 +80,7 @@ class _FlaggedReportsScreenState extends ConsumerState<FlaggedReportsScreen> {
                             Row(children: [
                               const Icon(Icons.warning_amber_rounded, color: AppColors.red, size: 16),
                               const SizedBox(width: 8),
-                              Expanded(child: Text(r.jobTitle, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600))),
+                              Expanded(child: Text(r.jobTitle, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600))),
                               Text(r.submittedAt != null ? DateFormat('d MMM, h:mm a').format(r.submittedAt!) : '',
                                   style: const TextStyle(color: AppColors.muted, fontSize: 12)),
                             ]),

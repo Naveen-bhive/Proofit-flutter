@@ -4,7 +4,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/profile_validators.dart';
 import '../../../shared/services/places_service.dart';
 import '../../../shared/widgets/address_location_field.dart';
-import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/ui_kit.dart';
+import '../../../core/constants/app_text_styles.dart';
 import '../controllers/owner_controller.dart';
 
 /// Owner profile: view mode by default, with an explicit edit mode for
@@ -76,7 +77,7 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Discard changes?', style: TextStyle(color: AppColors.white)),
+        title: const Text('Discard changes?', style: TextStyle(color: AppColors.text)),
         content: const Text('Your edits have not been saved.', style: TextStyle(color: AppColors.silver)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep editing', style: TextStyle(color: AppColors.silver))),
@@ -131,16 +132,23 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
       },
       child: Scaffold(
         backgroundColor: AppColors.dark,
-        appBar: AppBar(
-          title: Text(_editing ? 'Edit Profile' : 'Profile'),
-          actions: [
-            if (!_editing)
-              IconButton(icon: const Icon(Icons.edit_outlined), tooltip: 'Edit', onPressed: _startEdit),
-          ],
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: _editing ? _editForm() : _viewMode(state),
+        body: SafeArea(
+          child: Column(children: [
+            PageHeader(
+              title: _editing ? 'Edit Profile' : 'Profile',
+              onBack: () => Navigator.of(context).maybePop(),
+              actions: [
+                if (!_editing)
+                  HeaderIconButton(icon: Icons.edit_outlined, tinted: true, round: false, onTap: _startEdit),
+              ],
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                child: _editing ? _editForm() : _viewMode(state),
+              ),
+            ),
+          ]),
         ),
       ),
     );
@@ -149,41 +157,79 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
   // ── View mode ──────────────────────────────────────────────
 
   Widget _viewMode(OwnerState s) {
+    final pinned = s.addressLatitude != null;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      const SizedBox(height: 16),
+      Row(children: [
+        SoftBadge(label: s.isProfileComplete ? 'Verified Organization' : 'Profile incomplete',
+            color: s.isProfileComplete ? AppColors.brand : AppColors.yellow, fontSize: 12),
+        const Spacer(),
+        Text('Plan: ${s.plan.isEmpty ? '-' : s.plan[0].toUpperCase() + s.plan.substring(1)}',
+            style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
+      ]),
+      const SizedBox(height: 18),
+      SurfaceCard(
+        radius: 22,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
         child: Column(children: [
-          _row(Icons.business_outlined, 'Company Name', s.orgName),
-          const Divider(color: AppColors.border, height: 28),
-          _row(Icons.phone_outlined, 'Mobile Number', s.ownerPhone.isEmpty ? '' : '+91 ${ProfileValidators.normalizeMobile(s.ownerPhone)}'),
-          const Divider(color: AppColors.border, height: 28),
-          _row(Icons.location_on_outlined, 'Address', s.address),
-          const Divider(color: AppColors.border, height: 28),
-          _row(Icons.map_outlined, 'Map Location', s.addressLatitude == null ? '' : 'Pinned on map'),
+          _row(Icons.apartment_rounded, AppColors.brand, 'Company Name', s.orgName),
+          const Divider(height: 1, color: AppColors.borderSoft),
+          _row(Icons.phone_outlined, AppColors.light, 'Mobile Number', s.ownerPhone.isEmpty ? '' : '+91 ${ProfileValidators.normalizeMobile(s.ownerPhone)}'),
+          const Divider(height: 1, color: AppColors.borderSoft),
+          _row(Icons.location_on_outlined, AppColors.light, 'Address', s.address),
+          const Divider(height: 1, color: AppColors.borderSoft),
+          _mapRow(pinned),
         ]),
       ),
-      const SizedBox(height: 24),
-      AppButton(label: 'Edit Profile', icon: Icons.edit_outlined, onPressed: _startEdit),
     ]);
   }
 
-  Widget _row(IconData icon, String label, String value) {
+  Widget _row(IconData icon, Color color, String label, String value) {
     final missing = value.trim().isEmpty;
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(icon, color: AppColors.silver, size: 20),
-      const SizedBox(width: 14),
-      Expanded(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text(
-            missing ? 'Not provided' : value,
-            style: TextStyle(color: missing ? AppColors.red : AppColors.white, fontSize: 15, fontStyle: missing ? FontStyle.italic : FontStyle.normal),
-          ),
-        ]),
-      ),
-    ]);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(children: [
+        IconTile(icon: icon, color: color, background: AppColors.dark3, size: 40, iconSize: 20),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label.toUpperCase(), style: AppTextStyles.label.copyWith(fontSize: 11)),
+            const SizedBox(height: 4),
+            missing
+                ? const SoftBadge(label: 'Not provided', color: AppColors.red, dot: true, fontSize: 12)
+                : Text(value, style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  Widget _mapRow(bool pinned) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(children: [
+        IconTile(icon: Icons.map_outlined, color: pinned ? AppColors.greenDark : AppColors.red, size: 40, iconSize: 20),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('MAP LOCATION', style: AppTextStyles.label.copyWith(fontSize: 11)),
+            const SizedBox(height: 4),
+            Row(children: [
+              pinned
+                  ? const SoftBadge(label: 'Pinned on map', color: AppColors.greenDark, dot: true, fontSize: 12)
+                  : const SoftBadge(label: 'Not provided', color: AppColors.red, dot: true, fontSize: 12),
+              if (!pinned) ...[
+                const SizedBox(width: 8),
+                const Flexible(
+                  child: Text('(Tap edit to pin map)',
+                      style: TextStyle(color: AppColors.muted, fontSize: 12, fontStyle: FontStyle.italic)),
+                ),
+              ],
+            ]),
+          ]),
+        ),
+      ]),
+    );
   }
 
   // ── Edit mode ──────────────────────────────────────────────
@@ -196,7 +242,7 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
         TextFormField(
           controller: _companyCtrl,
           enabled: !_saving,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
           validator: ProfileValidators.companyName,
@@ -206,7 +252,7 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
         TextFormField(
           controller: _mobileCtrl,
           enabled: !_saving,
-          style: const TextStyle(color: AppColors.white),
+          style: const TextStyle(color: AppColors.text),
           keyboardType: TextInputType.phone,
           textInputAction: TextInputAction.next,
           inputFormatters: [MobileInputFormatter()],
@@ -227,9 +273,9 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
           Text(_error!, style: const TextStyle(color: AppColors.red)),
         ],
         const SizedBox(height: 20),
-        AppButton(label: 'Save', isLoading: _saving, onPressed: _save),
+        PrimaryButton(label: 'Save Changes', icon: Icons.check_rounded, loading: _saving, onPressed: _save),
         const SizedBox(height: 12),
-        AppButton(label: 'Cancel', isOutlined: true, onPressed: _saving ? null : _cancelEdit),
+        SecondaryButton(label: 'Cancel', onPressed: _saving ? null : _cancelEdit),
       ]),
     );
   }

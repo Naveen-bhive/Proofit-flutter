@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/api_error_utils.dart';
-import '../../../shared/widgets/app_button.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../shared/widgets/ui_kit.dart';
 import '../../../shared/widgets/camera_capture_widget.dart';
 import '../../../shared/services/location_service.dart';
 import '../../../shared/services/drive_service.dart';
@@ -512,16 +514,20 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         );
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Row(children: [
-            Icon(asDraft ? Icons.save_outlined : Icons.check_circle_outline,
-                color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text(asDraft ? 'Draft saved' : 'Report submitted!'),
-          ]),
-          backgroundColor: asDraft ? AppColors.yellow : AppColors.green,
-          duration: const Duration(seconds: 2)));
-      if (!asDraft) ReviewService.maybePromptAfterSuccess();
+      if (asDraft) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Row(children: [
+              Icon(Icons.save_outlined, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text('Draft saved'),
+            ]),
+            backgroundColor: AppColors.amberDark,
+            duration: Duration(seconds: 2)));
+      } else {
+        await _showSubmittedSheet();
+        if (!mounted) return;
+        ReviewService.maybePromptAfterSuccess();
+      }
       context.pop();
     } else {
       setState(() => _error = friendlyErrorMessage(
@@ -530,6 +536,93 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
           ));
     }
   }
+
+  Future<void> _showSubmittedSheet() {
+    final now = DateTime.now();
+    return AppSheet.show<void>(
+      context,
+      builder: (ctx) => AppSheet(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const SizedBox(height: 8),
+          Stack(clipBehavior: Clip.none, children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFA7F3D0)),
+              child: Center(
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF065F46)),
+                  child: const Icon(Icons.check_rounded, color: AppColors.white, size: 34),
+                ),
+              ),
+            ),
+            Positioned(
+              right: -2,
+              bottom: 2,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppColors.brandDark,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.white, width: 3),
+                ),
+                child: const Icon(Icons.verified_rounded, color: AppColors.white, size: 14),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 22),
+          Text('Report Successfully Submitted!', textAlign: TextAlign.center, style: AppTextStyles.h1.copyWith(fontSize: 23)),
+          const SizedBox(height: 12),
+          const Text(
+            'Verification data, GPS coordinates, and stamped photos have been recorded and synced to the company portal.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.light, fontSize: 14, height: 1.5),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+            decoration: BoxDecoration(color: AppColors.dark4, borderRadius: BorderRadius.circular(100)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.schedule_rounded, size: 15, color: AppColors.light),
+              const SizedBox(width: 6),
+              Text(DateFormat('h:mm a • d MMM yyyy').format(now), style: const TextStyle(color: AppColors.light, fontSize: 12.5)),
+              const SizedBox(width: 8),
+              const Text('•', style: TextStyle(color: AppColors.muted)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(color: const Color(0xFF6EE7B7), borderRadius: BorderRadius.circular(100)),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.circle, size: 6, color: Color(0xFF065F46)),
+                  SizedBox(width: 5),
+                  Text('Sync Complete', style: TextStyle(color: Color(0xFF065F46), fontSize: 12, fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(label: 'Done', onPressed: () => Navigator.pop(ctx)),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text, {bool required = false, Widget? trailing}) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(children: [
+          Text(text, style: const TextStyle(color: AppColors.silver, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+          if (required) const Text(' *', style: TextStyle(color: AppColors.red, fontSize: 12, fontWeight: FontWeight.w700)),
+          const Spacer(),
+          if (trailing != null) trailing,
+        ]),
+      );
 
   Widget _buildJobPicker() {
     if (_jobsLoading) {
@@ -541,15 +634,10 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
       );
     }
     if (_assignableJobs.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.dark3,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: const Text(
+      return const SurfaceCard(
+        radius: 16,
+        padding: EdgeInsets.all(14),
+        child: Text(
           'No assigned jobs right now. Ask your manager to assign a job, then come back here.',
           style: TextStyle(color: AppColors.silver, fontSize: 13, height: 1.4),
         ),
@@ -561,67 +649,75 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         final id = job['_id']?.toString() ?? '';
         final selected = _selectedJobId == id;
         final priority = job['priority']?.toString() ?? 'normal';
+        final status = job['status']?.toString() ?? 'pending';
+        final statusColor = status == 'in_progress' ? AppColors.brand : const Color(0xFFD97706);
         return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Material(
-            color: selected
-                ? AppColors.brand.withValues(alpha: 0.12)
-                : AppColors.dark3,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: _submitting
-                  ? null
-                  : () => setState(() {
-                        _selectedJobId = id;
-                        _selectedJobTitle = job['title']?.toString() ?? '';
-                      }),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: selected ? AppColors.brand : AppColors.border),
-                ),
-                child: Row(children: [
-                  Icon(
-                    selected
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_off,
-                    color: selected ? AppColors.brand : AppColors.muted,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(job['title']?.toString() ?? 'Job',
-                              style: TextStyle(
-                                color: selected
-                                    ? AppColors.white
-                                    : AppColors.silver,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              )),
-                          if (job['location']?['address'] != null) ...[
-                            const SizedBox(height: 4),
-                            Text(job['location']['address'].toString(),
-                                style: const TextStyle(
-                                    color: AppColors.muted, fontSize: 12),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis),
-                          ],
-                          const SizedBox(height: 4),
-                          Text(
-                            '${job['status'] ?? 'pending'} · $priority priority',
-                            style: const TextStyle(
-                                color: AppColors.muted, fontSize: 11),
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: selected ? const Color(0xFF60A5FA) : AppColors.border, width: selected ? 2 : 1),
+              boxShadow: AppColors.cardShadow,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(18),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: _submitting
+                    ? null
+                    : () => setState(() {
+                          _selectedJobId = id;
+                          _selectedJobTitle = job['title']?.toString() ?? '';
+                        }),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(
+                        selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                        color: selected ? AppColors.brand : AppColors.muted,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(job['title']?.toString() ?? 'Job',
+                            style: AppTextStyles.h3.copyWith(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: selected ? AppColors.text : AppColors.light,
+                            )),
+                        if (job['location']?['address'] != null) ...[
+                          const SizedBox(height: 3),
+                          Text(job['location']['address'].toString(),
+                              style: const TextStyle(color: AppColors.silver, fontSize: 13),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis),
+                        ],
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(100),
+                            border: Border.all(color: statusColor.withValues(alpha: 0.35)),
                           ),
-                        ]),
-                  ),
-                ]),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Container(width: 6, height: 6, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
+                            const SizedBox(width: 6),
+                            Text('${status.replaceAll('_', ' ')} • $priority priority',
+                                style: TextStyle(color: statusColor == AppColors.brand ? AppColors.brandDark : AppColors.amberDark,
+                                    fontSize: 12, fontWeight: FontWeight.w500)),
+                          ]),
+                        ),
+                      ]),
+                    ),
+                  ]),
+                ),
               ),
             ),
           ),
@@ -633,223 +729,263 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(staffControllerProvider).userName;
+    final isDraft = widget.reportId != null;
     return Scaffold(
-      backgroundColor: AppColors.dark,
-      appBar: AppBar(
-        backgroundColor: AppColors.dark,
-        title: Text(widget.reportId != null ? 'Complete Draft' : 'New Report'),
-        actions: [
-          TextButton(
-              onPressed: _submitting ? null : () => _submit(asDraft: true),
-              child: const Text('Save Draft',
-                  style: TextStyle(
-                      color: AppColors.yellow, fontWeight: FontWeight.w600))),
-        ],
-      ),
-      body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('ASSIGNED JOB *',
-                style: TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2)),
-            const SizedBox(height: 8),
-            _buildJobPicker(),
-            const SizedBox(height: 16),
+      backgroundColor: AppColors.page,
+      body: SafeArea(
+        child: Column(children: [
+          Container(
+            color: AppColors.white,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+            child: Row(children: [
+              CircleBackButton(icon: isDraft ? Icons.chevron_left_rounded : Icons.arrow_back_rounded),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(isDraft ? 'Complete Draft' : 'New Report',
+                    style: AppTextStyles.pageTitle.copyWith(fontSize: 20)),
+              ),
+              if (isDraft)
+                GestureDetector(
+                  onTap: _submitting ? null : () => _submit(asDraft: true),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFED7AA),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: AppColors.softShadow,
+                    ),
+                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.bookmark_border_rounded, size: 17, color: Color(0xFF7C2D12)),
+                      SizedBox(width: 5),
+                      Text('Save Draft', style: TextStyle(color: Color(0xFF7C2D12), fontWeight: FontWeight.w600, fontSize: 13.5)),
+                    ]),
+                  ),
+                )
+              else
+                GestureDetector(
+                  onTap: _submitting ? null : () => _submit(asDraft: true),
+                  child: const Text('Save Draft',
+                      style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w600, fontSize: 15)),
+                ),
+            ]),
+          ),
+          const Divider(height: 1, color: AppColors.border),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _sectionLabel('ASSIGNED JOB', required: true),
+                _buildJobPicker(),
+                const SizedBox(height: 4),
 
-            // Location
-            Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                    color: AppColors.dark3,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border)),
-                child: Row(children: [
-                  Icon(
-                      _locationLoading
-                          ? Icons.hourglass_empty
-                          : Icons.location_on_outlined,
-                      color: _lat != null ? AppColors.green : AppColors.yellow,
-                      size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                // Location
+                SurfaceCard(
+                  radius: 16,
+                  padding: const EdgeInsets.all(14),
+                  child: Row(children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: _lat != null ? AppColors.greenSoft : AppColors.amberSoft,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: (_lat != null ? AppColors.green : AppColors.yellow).withValues(alpha: 0.3)),
+                      ),
+                      child: Icon(
+                        _locationLoading ? Icons.hourglass_empty_rounded : Icons.location_on_outlined,
+                        color: _lat != null ? AppColors.greenDark : AppColors.yellow,
+                        size: 21,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(
-                            _locationLoading
-                                ? 'Getting location...'
-                                : _address ?? 'Location unavailable',
-                            style: TextStyle(
-                                color: _lat != null
-                                    ? AppColors.light
-                                    : AppColors.silver,
-                                fontSize: 13),
-                            maxLines: 2),
+                          _locationLoading ? 'Getting location...' : _address ?? 'Location unavailable',
+                          style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w600),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         if (_lat != null)
-                          Text(
-                              '${_lat!.toStringAsFixed(5)}, ${_lng!.toStringAsFixed(5)}',
-                              style: const TextStyle(
-                                  color: AppColors.muted, fontSize: 11)),
-                      ])),
-                  if (!_locationLoading)
-                    GestureDetector(
+                          Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Text('${_lat!.toStringAsFixed(5)}, ${_lng!.toStringAsFixed(5)}',
+                                style: const TextStyle(color: AppColors.silver, fontSize: 12)),
+                          ),
+                      ]),
+                    ),
+                    if (!_locationLoading)
+                      GestureDetector(
                         onTap: _getLocation,
                         child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                                color: AppColors.brand.withValues(alpha: 0.1),
-                                shape: BoxShape.circle),
-                            child: const Icon(Icons.refresh_rounded,
-                                color: AppColors.brand, size: 16))),
-                ])),
-            const SizedBox(height: 24),
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: AppColors.dark3,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: const Icon(Icons.refresh_rounded, color: AppColors.light, size: 18),
+                        ),
+                      ),
+                  ]),
+                ),
+                const SizedBox(height: 26),
 
-            const Text('BEFORE & AFTER PHOTOS',
-                style: TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2)),
-            const SizedBox(height: 4),
-            const Text(
-                'Photos are stamped with date, time and GPS - saved to Google Drive, with server backup if Drive is unavailable',
-                style: TextStyle(color: AppColors.muted, fontSize: 12)),
-            const SizedBox(height: 14),
+                _sectionLabel(
+                  'BEFORE & AFTER PHOTOS',
+                  required: isDraft,
+                  trailing: isDraft
+                      ? const Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.cloud_done_outlined, size: 14, color: AppColors.greenDark),
+                          SizedBox(width: 4),
+                          Text('Cloud ready', style: TextStyle(color: AppColors.greenDark, fontSize: 12, fontWeight: FontWeight.w600)),
+                        ])
+                      : null,
+                ),
+                const Text(
+                    'Photos are stamped with date, time and GPS – saved to Google Drive, with server backup if Drive is unavailable.',
+                    style: TextStyle(color: AppColors.silver, fontSize: 13, height: 1.5)),
+                const SizedBox(height: 16),
 
-            CameraCaptureWidget(
-                label: 'Before',
-                image: _beforeImage,
-                isRequired: true,
-                isUploading: _beforeUploading,
-                uploadStatus: _beforeUploadStatus,
-                uploadSucceeded: _beforeReady,
-                uploadFailed:
-                    (_beforeImage != null && _beforeImage!.path.isNotEmpty) &&
-                        !_beforeUploading &&
-                        !_beforeReady,
-                onRetry: _uploadBeforePhoto,
-                staffName: user,
-                jobTitle: _jobTitle,
-                networkImageUrl: _beforeServerUrl,
-                driveFileId: _beforeDriveId,
-                reportId: _savedDraftId ?? widget.reportId,
-                photoSlot: 'before',
-                onRemoteLoaded: () => _onRemotePhotoLoaded('before'),
-                onCaptured: _onBeforeCaptured),
-            const SizedBox(height: 16),
+                CameraCaptureWidget(
+                    label: 'Before',
+                    image: _beforeImage,
+                    isRequired: true,
+                    isUploading: _beforeUploading,
+                    uploadStatus: _beforeUploadStatus,
+                    uploadSucceeded: _beforeReady,
+                    uploadFailed:
+                        (_beforeImage != null && _beforeImage!.path.isNotEmpty) &&
+                            !_beforeUploading &&
+                            !_beforeReady,
+                    onRetry: _uploadBeforePhoto,
+                    staffName: user,
+                    jobTitle: _jobTitle,
+                    networkImageUrl: _beforeServerUrl,
+                    driveFileId: _beforeDriveId,
+                    reportId: _savedDraftId ?? widget.reportId,
+                    photoSlot: 'before',
+                    onRemoteLoaded: () => _onRemotePhotoLoaded('before'),
+                    onCaptured: _onBeforeCaptured),
+                const SizedBox(height: 20),
 
-            CameraCaptureWidget(
-                label: 'After',
-                image: _afterImage,
-                isRequired: true,
-                isUploading: _afterUploading,
-                uploadStatus: _afterUploadStatus,
-                uploadSucceeded: _afterReady,
-                uploadFailed:
-                    (_afterImage != null && _afterImage!.path.isNotEmpty) &&
-                        !_afterUploading &&
-                        !_afterReady,
-                onRetry: _uploadAfterPhoto,
-                staffName: user,
-                jobTitle: _jobTitle,
-                networkImageUrl: _afterServerUrl,
-                driveFileId: _afterDriveId,
-                reportId: _savedDraftId ?? widget.reportId,
-                photoSlot: 'after',
-                onRemoteLoaded: () => _onRemotePhotoLoaded('after'),
-                onCaptured: _onAfterCaptured),
-            const SizedBox(height: 20),
+                CameraCaptureWidget(
+                    label: 'After',
+                    image: _afterImage,
+                    isRequired: true,
+                    isUploading: _afterUploading,
+                    uploadStatus: _afterUploadStatus,
+                    uploadSucceeded: _afterReady,
+                    uploadFailed:
+                        (_afterImage != null && _afterImage!.path.isNotEmpty) &&
+                            !_afterUploading &&
+                            !_afterReady,
+                    onRetry: _uploadAfterPhoto,
+                    staffName: user,
+                    jobTitle: _jobTitle,
+                    networkImageUrl: _afterServerUrl,
+                    driveFileId: _afterDriveId,
+                    reportId: _savedDraftId ?? widget.reportId,
+                    photoSlot: 'after',
+                    onRemoteLoaded: () => _onRemotePhotoLoaded('after'),
+                    onCaptured: _onAfterCaptured),
+                const SizedBox(height: 22),
 
-            // Progress checklist
-            Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                    color: AppColors.dark2,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border)),
-                child: Row(children: [
-                  _check('Job', _selectedJobId != null),
-                  _div(),
-                  _check('Location', _lat != null),
-                  _div(),
-                  _check('Before', _beforeReady),
-                  _div(),
-                  _check('After', _afterReady),
-                ])),
-            const SizedBox(height: 16),
+                // Progress checklist
+                SurfaceCard(
+                  radius: 16,
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                  child: Row(children: [
+                    _check('Job', _selectedJobId != null),
+                    _div(),
+                    _check('Location', _lat != null),
+                    _div(),
+                    _check('Before', _beforeReady),
+                    _div(),
+                    _check('After', _afterReady),
+                  ]),
+                ),
+                const SizedBox(height: 18),
 
-            TextFormField(
-                controller: _notesCtrl,
-                style: const TextStyle(color: AppColors.white),
-                maxLines: 3,
-                decoration: const InputDecoration(
-                    labelText: 'Notes (optional)',
-                    hintText: 'Any additional details...',
-                    prefixIcon: Padding(
-                        padding: EdgeInsets.only(bottom: 44),
-                        child:
-                            Icon(Icons.notes_rounded, color: AppColors.muted)),
-                    alignLabelWithHint: true)),
+                SurfaceCard(
+                  radius: 16,
+                  padding: EdgeInsets.zero,
+                  child: TextFormField(
+                    controller: _notesCtrl,
+                    style: const TextStyle(color: AppColors.text),
+                    minLines: 3,
+                    maxLines: 5,
+                    decoration: const InputDecoration(
+                      filled: false,
+                      hintText: 'Notes (optional)',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.only(bottom: 48),
+                        child: Icon(Icons.notes_rounded, color: AppColors.muted, size: 20),
+                      ),
+                    ),
+                  ),
+                ),
 
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                      color: AppColors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: AppColors.red.withValues(alpha: 0.3))),
-                  child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.error_outline,
-                            color: AppColors.red, size: 18),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: AppColors.redSoft,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.red.withValues(alpha: 0.3))),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Icon(Icons.error_outline_rounded, color: AppColors.red, size: 18),
                         const SizedBox(width: 8),
                         Expanded(
                             child: Text(_error!,
-                                style: const TextStyle(
-                                    color: AppColors.red,
-                                    fontSize: 13,
-                                    height: 1.4))),
+                                style: const TextStyle(color: AppColors.red, fontSize: 13, height: 1.4))),
                       ])),
-            ],
-            const SizedBox(height: 28),
-            AppButton(
-                label: 'Submit Report',
-                isLoading: _submitting,
-                onPressed: () => _submit(),
-                icon: Icons.send_rounded),
-            const SizedBox(height: 40),
-          ])),
+                ],
+              ]),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            decoration: const BoxDecoration(
+              color: AppColors.white,
+              border: Border(top: BorderSide(color: AppColors.border)),
+            ),
+            child: PrimaryButton(
+              label: 'Submit Report',
+              icon: isDraft ? Icons.verified_outlined : Icons.send_rounded,
+              color: isDraft ? const Color(0xFF1D4ED8) : AppColors.brand,
+              loading: _submitting,
+              onPressed: () => _submit(),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 
   Widget _check(String label, bool done) => Expanded(
           child: Column(children: [
         Container(
-            width: 28,
-            height: 28,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
-                color: done
-                    ? AppColors.green.withValues(alpha: 0.15)
-                    : AppColors.dark3,
+                color: done ? AppColors.greenSoft : AppColors.dark4,
                 shape: BoxShape.circle,
-                border: Border.all(
-                    color: done ? AppColors.green : AppColors.border)),
-            child: Icon(done ? Icons.check_rounded : Icons.circle_outlined,
-                color: done ? AppColors.green : AppColors.muted, size: 14)),
-        const SizedBox(height: 5),
+                border: Border.all(color: done ? AppColors.green : AppColors.border)),
+            child: Icon(done ? Icons.check_rounded : Icons.circle,
+                color: done ? AppColors.greenDark : AppColors.border, size: done ? 16 : 10)),
+        const SizedBox(height: 6),
         Text(label,
             style: TextStyle(
-                color: done ? AppColors.green : AppColors.muted,
-                fontSize: 10,
+                color: done ? AppColors.greenDark : AppColors.muted,
+                fontSize: 12,
                 fontWeight: done ? FontWeight.w600 : FontWeight.w400)),
       ]));
 
-  Widget _div() => Container(width: 1, height: 40, color: AppColors.border);
+  Widget _div() => Container(width: 1, height: 40, color: AppColors.borderSoft);
 }

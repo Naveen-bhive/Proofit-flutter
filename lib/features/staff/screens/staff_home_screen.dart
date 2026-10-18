@@ -9,7 +9,8 @@ import '../../../core/network/api_service.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/report_card.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
-import '../../../shared/widgets/empty_state.dart';
+import '../../../shared/widgets/ui_kit.dart';
+import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/services/socket_service.dart';
 import '../../../shared/services/location_service.dart';
 import '../../../shared/services/battery_optimization_service.dart';
@@ -135,65 +136,33 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
               sliver: SliverList(
                   delegate: SliverChildListDelegate([
                 // Header
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Hi, ${state.userName}',
-                                style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.white)),
-                            Text(today,
-                                style: const TextStyle(
-                                    color: AppColors.silver, fontSize: 13)),
-                          ]),
-                      Row(children: [
-                        Stack(children: [
-                          IconButton(
-                              icon: const Icon(Icons.notifications_outlined,
-                                  color: AppColors.white),
-                              onPressed: () =>
-                                  context.push('/staff/notifications')),
-                          if (_unreadCount > 0)
-                            Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                    width: 16,
-                                    height: 16,
-                                    decoration: const BoxDecoration(
-                                        color: AppColors.brand,
-                                        shape: BoxShape.circle),
-                                    child: Center(
-                                        child: Text(
-                                            _unreadCount > 9
-                                                ? '9+'
-                                                : '$_unreadCount',
-                                            style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 9,
-                                                fontWeight:
-                                                    FontWeight.w800))))),
-                        ]),
-                        GestureDetector(
-                            onTap: () => context.push('/staff/profile'),
-                            child: CircleAvatar(
-                                radius: 18,
-                                backgroundColor:
-                                    AppColors.brand.withValues(alpha: 0.2),
-                                child: Text(
-                                    state.userName.isNotEmpty
-                                        ? state.userName[0].toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(
-                                        color: AppColors.brand,
-                                        fontWeight: FontWeight.w700)))),
-                      ]),
+                Row(children: [
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Hi, ${state.userName}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.h1.copyWith(fontSize: 24)),
+                      const SizedBox(height: 2),
+                      Text(today, style: const TextStyle(color: AppColors.silver, fontSize: 13)),
                     ]),
-                const SizedBox(height: 20),
+                  ),
+                  HeaderIconButton(
+                    icon: Icons.notifications_none_rounded,
+                    badge: _unreadCount,
+                    onTap: () => context.push('/staff/notifications'),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => context.push('/staff/profile'),
+                    child: InitialAvatar(
+                      name: state.userName.isNotEmpty ? state.userName.substring(0, 1) : '?',
+                      size: 42,
+                      color: AppColors.brand,
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 22),
 
                 if (_holiday != null) ...[
                   _holidayBanner(_holiday!),
@@ -216,24 +185,23 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                         margin: const EdgeInsets.only(bottom: 16),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                            color: AppColors.yellow.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            color: AppColors.amberSoft,
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                                 color:
                                     AppColors.yellow.withValues(alpha: 0.4))),
                         child: Row(children: [
-                          const Icon(Icons.drafts_outlined,
-                              color: AppColors.yellow, size: 20),
-                          const SizedBox(width: 10),
+                          const IconTile(icon: Icons.drafts_outlined, color: AppColors.yellow, size: 34, iconSize: 18, radius: 10),
+                          const SizedBox(width: 12),
                           Expanded(
                               child: Text(
                                   state.draftCount > 1
                                       ? '${state.draftCount} draft reports - tap to view & complete'
                                       : 'You have an unsent draft - tap to view & complete',
                                   style: const TextStyle(
-                                      color: AppColors.yellow, fontSize: 13))),
-                          const Icon(Icons.chevron_right,
-                              color: AppColors.yellow, size: 18),
+                                      color: AppColors.amberDark, fontSize: 13, fontWeight: FontWeight.w500))),
+                          const Icon(Icons.chevron_right_rounded,
+                              color: AppColors.amberDark, size: 20),
                         ])),
                   ),
 
@@ -247,7 +215,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                         Text(
                             '${state.submittedToday}/${state.dailyTarget} jobs',
                             style: const TextStyle(
-                                color: AppColors.white,
+                                color: AppColors.text,
                                 fontWeight: FontWeight.w700)),
                       ]),
                   const SizedBox(height: 8),
@@ -256,7 +224,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                       child: LinearProgressIndicator(
                           value: (state.submittedToday / state.dailyTarget)
                               .clamp(0.0, 1.0),
-                          backgroundColor: AppColors.dark3,
+                          backgroundColor: AppColors.dark4,
                           valueColor: AlwaysStoppedAnimation(
                               state.submittedToday >= state.dailyTarget
                                   ? AppColors.green
@@ -265,42 +233,82 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                   const SizedBox(height: 16),
                 ],
 
-                ElevatedButton.icon(
-                    onPressed: () => context.push('/staff/jobs'),
-                    icon: const Icon(Icons.work_outline_rounded, size: 22),
-                    label: const Text('My Assigned Jobs'),
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.brand,
-                        minimumSize: const Size(double.infinity, 60),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        textStyle: const TextStyle(
-                            fontSize: 17, fontWeight: FontWeight.w700))),
+                PrimaryButton(
+                  label: 'My Assigned Jobs',
+                  icon: Icons.business_center_outlined,
+                  height: 58,
+                  onPressed: () => context.push('/staff/jobs'),
+                ),
                 const SizedBox(height: 28),
 
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Today's Reports",
-                          style: TextStyle(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16)),
-                      GestureDetector(
-                          onTap: () => context.push('/staff/history'),
-                          child: const Text('View All',
-                              style: TextStyle(
-                                  color: AppColors.brand, fontSize: 13))),
-                    ]),
-                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(
+                    child: Text("Today's Reports",
+                        style: AppTextStyles.h3.copyWith(fontSize: 18, fontWeight: FontWeight.w700)),
+                  ),
+                  GestureDetector(
+                      onTap: () => context.push('/staff/history'),
+                      child: const Text('View All',
+                          style: TextStyle(color: AppColors.brand, fontSize: 14, fontWeight: FontWeight.w600))),
+                ]),
+                const SizedBox(height: 14),
 
                 if (state.todayLoading)
                   const ReportListShimmer()
                 else if (state.todayReports.isEmpty)
-                  EmptyState(
-                      type: EmptyType.reports,
-                      actionLabel: 'View Assigned Jobs',
-                      onAction: () => context.push('/staff/jobs'))
+                  SurfaceCard(
+                    radius: 24,
+                    padding: const EdgeInsets.fromLTRB(20, 30, 20, 28),
+                    child: Column(children: [
+                      Stack(clipBehavior: Clip.none, children: [
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.brandSoft,
+                            border: Border.all(color: AppColors.brandBorder.withValues(alpha: 0.6)),
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.brand.withValues(alpha: 0.08)),
+                              child: const Icon(Icons.assignment_outlined, color: AppColors.brand, size: 30),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 4,
+                          top: 4,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: AppColors.blue,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.white, width: 2),
+                            ),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 18),
+                      Text('No reports yet', style: AppTextStyles.h3.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 6),
+                      const Text('Submit your first report to get started.',
+                          textAlign: TextAlign.center, style: TextStyle(color: AppColors.silver, fontSize: 13.5)),
+                      const SizedBox(height: 22),
+                      SizedBox(
+                        width: 250,
+                        child: PrimaryButton(
+                          label: 'View Assigned Jobs',
+                          icon: Icons.photo_camera_outlined,
+                          height: 46,
+                          onPressed: () => context.push('/staff/jobs'),
+                        ),
+                      ),
+                    ]),
+                  )
                 else
                   ...state.todayReports.map((r) => ReportCard(
                         key: ValueKey(r.id ?? r.jobTitle),
@@ -319,84 +327,65 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
     );
   }
 
-  Widget _checkInRow(StaffState state, BuildContext context) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-            color: state.isCheckedIn
-                ? AppColors.green.withValues(alpha: 0.08)
-                : AppColors.dark2,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-                color: state.isCheckedIn
-                    ? AppColors.green.withValues(alpha: 0.3)
-                    : AppColors.border)),
-        child: Row(children: [
-          Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                  color: state.isCheckedIn
-                      ? AppColors.green.withValues(alpha: 0.15)
-                      : AppColors.muted.withValues(alpha: 0.1),
-                  shape: BoxShape.circle),
-              child: Icon(
-                  state.isCheckedIn
-                      ? Icons.login_rounded
-                      : Icons.logout_rounded,
-                  color: state.isCheckedIn ? AppColors.green : AppColors.muted,
-                  size: 20)),
-          const SizedBox(width: 12),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                Text(state.isCheckedIn ? 'Checked In' : 'Not Checked In',
-                    style: TextStyle(
-                        color: state.isCheckedIn
-                            ? AppColors.green
-                            : AppColors.silver,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14)),
-                Text(
-                    state.isCheckedIn && state.checkInTime != null
-                        ? 'Since ${formatApiTime(state.checkInTime)}'
-                        : 'Tap to check in for today',
-                    style:
-                        const TextStyle(color: AppColors.muted, fontSize: 12)),
-              ])),
-          GestureDetector(
-              onTap: () async {
-                if (!state.isCheckedIn) {
-                  context.push('/staff/checkin');
-                  return;
-                }
-                final allowed =
-                    await AttendanceGates.allowCheckOut(context, ref);
-                if (!context.mounted || !allowed) return;
-                context.push('/staff/checkout');
-              },
-              child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                      color:
-                          state.isCheckedIn ? AppColors.brand : AppColors.green,
-                      borderRadius: BorderRadius.circular(100)),
-                  child: Text(state.isCheckedIn ? 'Check Out' : 'Check In',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13)))),
-        ]),
-      );
+  Widget _checkInRow(StaffState state, BuildContext context) {
+    final checkedIn = state.isCheckedIn;
+    return SurfaceCard(
+      radius: 18,
+      padding: const EdgeInsets.all(16),
+      borderColor: checkedIn ? AppColors.green.withValues(alpha: 0.35) : null,
+      color: checkedIn ? AppColors.greenSoft : null,
+      child: Row(children: [
+        IconTile(
+          icon: checkedIn ? Icons.verified_user_outlined : Icons.login_rounded,
+          color: checkedIn ? AppColors.greenDark : AppColors.light,
+          background: checkedIn ? AppColors.white : AppColors.dark4,
+          size: 44,
+          iconSize: 22,
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(checkedIn ? 'Checked In' : 'Not Checked In',
+              style: TextStyle(
+                  color: checkedIn ? AppColors.greenDark : AppColors.text,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15)),
+          const SizedBox(height: 2),
+          Text(
+              checkedIn && state.checkInTime != null
+                  ? 'Since ${formatApiTime(state.checkInTime)}'
+                  : 'Tap to check in for today',
+              style: const TextStyle(color: AppColors.silver, fontSize: 12.5)),
+        ])),
+        GestureDetector(
+            onTap: () async {
+              if (!checkedIn) {
+                context.push('/staff/checkin');
+                return;
+              }
+              final allowed = await AttendanceGates.allowCheckOut(context, ref);
+              if (!context.mounted || !allowed) return;
+              context.push('/staff/checkout');
+            },
+            child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                    color: checkedIn ? AppColors.brand : AppColors.green,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: AppColors.glow(checkedIn ? AppColors.brand : AppColors.green)),
+                child: Text(checkedIn ? 'Check Out' : 'Check In',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13.5)))),
+      ]),
+    );
+  }
 
   Widget _holidayBanner(Map<String, dynamic> holiday) => Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.yellow.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.yellow.withValues(alpha: 0.45)),
+          color: AppColors.amberSoft,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.yellow.withValues(alpha: 0.4)),
         ),
         child: Row(children: [
           Container(
@@ -415,7 +404,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                   children: [
                 const Text('Today is a holiday',
                     style: TextStyle(
-                        color: AppColors.yellow,
+                        color: AppColors.amberDark,
                         fontSize: 15,
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
