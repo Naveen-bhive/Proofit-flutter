@@ -8,6 +8,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/ui_kit.dart';
 import '../controllers/owner_controller.dart';
+import '../../../shared/permissions/app_permissions.dart';
+import '../../../shared/permissions/permission_editor.dart';
+import '../../../shared/permissions/permission_session.dart';
 
 class StaffManagementScreen extends ConsumerStatefulWidget {
   const StaffManagementScreen({super.key});
@@ -19,14 +22,34 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
   bool _loading = true;
   String _filter = 'all';
   String _query = '';
+  /// Permission ids the signed-in user may grant (owner: all).
+  Set<String> _grantable = const {};
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() async {
-      await ref.read(ownerControllerProvider.notifier).loadStaff();
-      if (mounted) setState(() => _loading = false);
+      final notifier = ref.read(ownerControllerProvider.notifier);
+      await notifier.loadStaff();
+      final grantable = ref.read(permissionSessionProvider).can(AppPermissions.staffPermissions)
+          ? await notifier.loadGrantablePermissions()
+          : <String>{};
+      if (mounted) setState(() { _loading = false; _grantable = grantable; });
     });
+  }
+
+  Future<void> _editPermissions(Map<String, dynamic> staff) async {
+    final id = staff['_id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    final current = {for (final p in (staff['permissions'] as List? ?? const [])) p.toString()};
+    await PermissionEditorSheet.show(
+      context,
+      title: 'Permissions for ${staff['name'] ?? 'staff'}',
+      initial: current,
+      grantable: _grantable,
+      featureEnabled: ref.read(ownerControllerProvider).isEnabled,
+      onSave: (perms) => ref.read(ownerControllerProvider.notifier).setStaffPermissions(id, perms),
+    );
   }
 
   void _showAddStaffSheet() {
@@ -35,9 +58,11 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
       context,
       builder: (sheetCtx) => _AddStaffSheet(
         parentContext: parentContext,
-        onSubmit: ({required String name, required String phone, required String email, required int target}) async {
+        grantable: _grantable,
+        featureEnabled: ref.read(ownerControllerProvider).isEnabled,
+        onSubmit: ({required String name, required String phone, required String email, required int target, required Set<String> permissions}) async {
           final notifier = ref.read(ownerControllerProvider.notifier);
-          final result = await notifier.addStaff(name: name, phone: phone, email: email);
+          final result = await notifier.addStaff(name: name, phone: phone, email: email, permissions: permissions.toList());
           if (result.ok && target > 0) {
             final added = ref.read(ownerControllerProvider).staffList.where(
                 (s) => (s['email'] ?? '').toString().toLowerCase() == email.toLowerCase());
@@ -107,6 +132,8 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(ownerControllerProvider);
+    final session = ref.watch(permissionSessionProvider);
+    final canInvite = session.can(AppPermissions.staffCreate);
     final all = state.staffList;
     final pendingCount = all.where(_isPending).length;
     final q = _query.trim().toLowerCase();
@@ -125,7 +152,8 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
           PageHeader(
             title: 'Staff Management',
             actions: [
-              HeaderIconButton(icon: Icons.person_add_alt_outlined, tinted: true, round: false, onTap: _showAddStaffSheet),
+              if (canInvite)
+                HeaderIconButton(icon: Icons.person_add_alt_outlined, tinted: true, round: false, onTap: _showAddStaffSheet),
             ],
           ),
           Padding(
@@ -153,7 +181,12 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
                 : all.isEmpty
-                    ? ListView(padding: const EdgeInsets.fromLTRB(16, 70, 16, 24), children: [_inviteCard()])
+                    ? ListView(padding: const EdgeInsets.fromLTRB(16, 70, 16, 24), children: [
+                        if (canInvite)
+                          _inviteCard()
+                        else
+                          const Center(child: Text('No staff yet', style: TextStyle(color: AppColors.silver))),
+                      ])
                     : ListView(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                         children: [
@@ -162,9 +195,9 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                               padding: EdgeInsets.symmetric(vertical: 40),
                               child: Center(child: Text('No staff match this filter', style: TextStyle(color: AppColors.silver))),
                             ),
-                          ...visible.map(_staffCard),
+                          ...visible.map((s) => _staffCard(s, session)),
                           const SizedBox(height: 4),
-                          _infoBanner(),
+                          if (canInvite) _infoBanner(),
                         ],
                       ),
           ),
@@ -215,8 +248,26 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
     );
   }
 
-  Widget _staffCard(Map<String, dynamic> s) {
+  Widget _staffCard(Map<String, dynamic> s, PermissionSession session) {
     final pending = _isPending(s);
+    // The server marks members whose access exceeds the viewer's as not manageable.
+    final manageable = s['canManage'] != false;
+    final isUser = s['kind'] != 'invite';
+    final canTarget = manageable && session.can(AppPermissions.staffEdit);
+    final canRemove = manageable && session.can(AppPermissions.staffDelete);
+    final canPermit = manageable && isUser && session.can(AppPermissions.staffPermissions);
+    final grantedCount = (s['permissions'] as List? ?? const []).length;
+    final menu = [
+      if (!pending && canTarget)
+        const PopupMenuItem(value: 'target', child: Text('Set Target', style: TextStyle(color: AppColors.text))),
+      if (canPermit)
+        const PopupMenuItem(value: 'permissions', child: Text('Permissions', style: TextStyle(color: AppColors.text))),
+      if (canRemove)
+        PopupMenuItem(
+          value: 'remove',
+          child: Text(pending ? 'Cancel invite' : 'Remove', style: const TextStyle(color: AppColors.red)),
+        ),
+    ];
     final name = (s['name'] ?? 'Staff').toString();
     final phone = (s['phone'] ?? '').toString();
     final email = (s['email'] ?? '').toString();
@@ -239,26 +290,25 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                   const SizedBox(width: 8),
                   const SoftBadge(label: 'Active', color: AppColors.greenDark, fontSize: 11),
                 ],
+                if (grantedCount > 0) ...[
+                  const SizedBox(width: 6),
+                  const SoftBadge(label: 'Team access', color: AppColors.brand, icon: Icons.verified_user_outlined, fontSize: 11),
+                ],
               ]),
               const SizedBox(height: 4),
               if (phone.isNotEmpty) _line(Icons.phone_outlined, phone),
               if (email.isNotEmpty) _line(Icons.mail_outline_rounded, email),
             ])),
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded, color: AppColors.muted, size: 20),
-              itemBuilder: (_) => [
-                if (!pending)
-                  const PopupMenuItem(value: 'target', child: Text('Set Target', style: TextStyle(color: AppColors.text))),
-                PopupMenuItem(
-                  value: 'remove',
-                  child: Text(pending ? 'Cancel invite' : 'Remove', style: const TextStyle(color: AppColors.red)),
-                ),
-              ],
-              onSelected: (val) {
-                if (val == 'target') _showSetTarget(s);
-                if (val == 'remove') _confirmRemove(s, pending);
-              },
-            ),
+            if (menu.isNotEmpty)
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, color: AppColors.muted, size: 20),
+                itemBuilder: (_) => menu,
+                onSelected: (val) {
+                  if (val == 'target') _showSetTarget(s);
+                  if (val == 'permissions') _editPermissions(s);
+                  if (val == 'remove') _confirmRemove(s, pending);
+                },
+              ),
           ]),
           const Padding(
             padding: EdgeInsets.fromLTRB(0, 12, 8, 12),
@@ -273,19 +323,20 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                   ])
                 : Row(children: [
                     GestureDetector(
-                      onTap: () => _showSetTarget(s),
+                      onTap: canTarget ? () => _showSetTarget(s) : null,
                       child: SoftBadge(label: 'Target: ${s['dailyTarget'] ?? 0} jobs/day', color: AppColors.amberDark,
                         icon: Icons.track_changes_rounded, background: AppColors.amberSoft, fontSize: 12),
                     ),
                     const Spacer(),
-                    GestureDetector(
-                      onTap: () => context.push('/owner/jobs'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(color: AppColors.dark4, borderRadius: BorderRadius.circular(8)),
-                        child: const Text('Assign Job', style: TextStyle(color: AppColors.light, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                    if (session.can(AppPermissions.jobsCreate))
+                      GestureDetector(
+                        onTap: () => context.push('/owner/jobs'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(color: AppColors.dark4, borderRadius: BorderRadius.circular(8)),
+                          child: const Text('Assign Job', style: TextStyle(color: AppColors.light, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        ),
                       ),
-                    ),
                     if (phone.isNotEmpty) ...[
                       const SizedBox(width: 8),
                       GestureDetector(
@@ -320,12 +371,21 @@ typedef _AddStaffSubmit = Future<({bool ok, String message})> Function({
   required String phone,
   required String email,
   required int target,
+  required Set<String> permissions,
 });
 
 class _AddStaffSheet extends StatefulWidget {
   final BuildContext parentContext;
   final _AddStaffSubmit onSubmit;
-  const _AddStaffSheet({required this.parentContext, required this.onSubmit});
+  /// Permissions the inviter may grant; empty hides the permissions picker.
+  final Set<String> grantable;
+  final bool Function(String feature) featureEnabled;
+  const _AddStaffSheet({
+    required this.parentContext,
+    required this.onSubmit,
+    required this.grantable,
+    required this.featureEnabled,
+  });
 
   @override
   State<_AddStaffSheet> createState() => _AddStaffSheetState();
@@ -341,6 +401,21 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
   String? _formError;
   String? _successMessage;
   int _target = 0;
+  Set<String> _permissions = {};
+
+  Future<void> _pickPermissions() async {
+    final picked = await PermissionEditorSheet.show(
+      context,
+      title: 'Team access',
+      subtitle: 'Optional. Choose owner features this member can use; you can change it later.',
+      initial: _permissions,
+      grantable: widget.grantable,
+      featureEnabled: widget.featureEnabled,
+      saveLabel: 'Use these permissions',
+      onSave: (_) async => null,
+    );
+    if (picked != null && mounted) setState(() => _permissions = picked);
+  }
 
   @override
   void dispose() {
@@ -395,6 +470,7 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
       phone: _normalizePhone(_phoneCtrl.text),
       email: email,
       target: _target,
+      permissions: _permissions,
     );
 
     if (!mounted) return;
@@ -421,6 +497,7 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
       _successMessage = null;
       _formError = null;
       _target = 0;
+      _permissions = {};
       _nameCtrl.clear();
       _phoneCtrl.clear();
       _emailCtrl.clear();
@@ -609,6 +686,33 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
             ),
           ]),
         ),
+        if (widget.grantable.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: _sending ? null : _pickPermissions,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.dark3,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(children: [
+                const IconTile(icon: Icons.verified_user_outlined, color: AppColors.brand, size: 36, iconSize: 18, radius: 10),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Team access', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13.5)),
+                  Text(
+                    _permissions.isEmpty ? 'Staff app only (default)' : '${_permissions.length} permission${_permissions.length == 1 ? '' : 's'} selected',
+                    style: const TextStyle(color: AppColors.silver, fontSize: 11.5),
+                  ),
+                ])),
+                const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+              ]),
+            ),
+          ),
+        ],
         if (_formError != null) ...[
           const SizedBox(height: 12),
           Text(_formError!, style: const TextStyle(color: AppColors.red, fontSize: 13)),

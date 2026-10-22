@@ -8,6 +8,8 @@ import '../../../core/network/api_service.dart';
 import '../../../core/utils/api_error_utils.dart';
 import '../../../shared/widgets/ui_kit.dart';
 import '../controllers/owner_controller.dart';
+import '../../../shared/permissions/app_permissions.dart';
+import '../../../shared/permissions/permission_session.dart';
 
 class OwnerNotificationsScreen extends ConsumerStatefulWidget {
   const OwnerNotificationsScreen({super.key});
@@ -125,6 +127,7 @@ class _OwnerNotificationsScreenState
               color: AppColors.brand,
               onRefresh: () => ref.read(ownerControllerProvider.notifier).loadOwnerNotifications(),
               child: ListView(padding: const EdgeInsets.fromLTRB(0, 4, 0, 24), children: [
+                if (ref.watch(permissionSessionProvider).can(AppPermissions.notificationsSend))
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: SurfaceCard(

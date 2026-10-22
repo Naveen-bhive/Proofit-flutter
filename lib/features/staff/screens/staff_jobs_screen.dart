@@ -43,7 +43,8 @@ class StaffJobsScreenState extends ConsumerState<StaffJobsScreen> {
     if (mounted) setState(() => _loading = true);
     try {
       final api = ref.read(apiServiceProvider);
-      final params = <String, dynamic>{'limit': 100};
+      // scope=mine keeps this the member's own list even with jobs.view.
+      final params = <String, dynamic>{'limit': 100, 'scope': 'mine'};
       if (statusFilter != 'all') params['status'] = statusFilter;
       final res = await api.get('/jobs', params: params);
       if (res.data['success'] == true && mounted) {

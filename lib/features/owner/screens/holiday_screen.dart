@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/network/api_service.dart';
 import '../../../core/utils/ui_feedback.dart';
+import '../../../shared/permissions/app_permissions.dart';
+import '../../../shared/permissions/permission_session.dart';
 
 final _apiDay = DateFormat('yyyy-MM-dd');
 
@@ -105,7 +107,10 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
 
   // ─── Actions ────────────────────────────────────────────────────────────
 
+  PermissionSession get _session => ref.read(permissionSessionProvider);
+
   Future<void> _openAdd([DateTime? date]) async {
+    if (!_session.can(AppPermissions.holidaysCreate)) return;
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -117,6 +122,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
   }
 
   Future<void> _openWeeklyOffs() async {
+    if (!_session.can(AppPermissions.holidaysEdit)) return;
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -128,6 +134,9 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
   }
 
   Future<void> _openHoliday(_Holiday h) async {
+    final canEdit = _session.can(AppPermissions.holidaysEdit);
+    final canDelete = _session.can(AppPermissions.holidaysDelete);
+    if (!canEdit && !canDelete) return;
     final action = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: AppColors.dark2,
@@ -148,12 +157,14 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
             Text(DateFormat('EEEE, d MMM yyyy').format(h.date),
                 style: const TextStyle(color: AppColors.silver, fontSize: 13)),
             const SizedBox(height: 16),
+            if (canEdit)
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.edit_outlined, color: AppColors.brand),
               title: const Text('Edit', style: TextStyle(color: AppColors.text)),
               onTap: () => Navigator.pop(ctx, 'edit'),
             ),
+            if (canDelete)
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.delete_outline, color: AppColors.red),
@@ -237,7 +248,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
           children: [
             Wrap(spacing: 10, runSpacing: 10, children: [
               ElevatedButton.icon(
-                onPressed: () => _openAdd(),
+                onPressed: _session.can(AppPermissions.holidaysCreate) ? () => _openAdd() : null,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(0, 46),
                   backgroundColor: AppColors.brand,
@@ -249,7 +260,7 @@ class _HolidayScreenState extends ConsumerState<HolidayScreen> {
                 label: const Text('Add Holiday', style: TextStyle(fontWeight: FontWeight.w700)),
               ),
               OutlinedButton.icon(
-                onPressed: _openWeeklyOffs,
+                onPressed: _session.can(AppPermissions.holidaysEdit) ? _openWeeklyOffs : null,
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(0, 46),
                   foregroundColor: AppColors.white,

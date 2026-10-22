@@ -5,8 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/models/app_feature.dart';
 import '../../../shared/services/socket_service.dart';
 import '../controllers/staff_controller.dart';
+import '../../../core/network/api_service.dart';
+import '../../../shared/permissions/permission_session.dart';
 import 'staff_home_screen.dart';
 import 'staff_jobs_screen.dart';
 import 'staff_history_screen.dart';
@@ -17,7 +20,7 @@ class StaffShell extends ConsumerStatefulWidget {
   @override ConsumerState<StaffShell> createState() => _StaffShellState();
 }
 
-class _StaffShellState extends ConsumerState<StaffShell> {
+class _StaffShellState extends ConsumerState<StaffShell> with WidgetsBindingObserver {
   int _tab = 0;
   SocketListenerId? _orgSocketId;
   final _jobsKey = GlobalKey<StaffJobsScreenState>();
@@ -27,6 +30,8 @@ class _StaffShellState extends ConsumerState<StaffShell> {
   void initState() {
     super.initState();
     unawaited(ref.read(staffControllerProvider.notifier).bootstrapHome());
+    WidgetsBinding.instance.addObserver(this);
+    _refreshPermissions();
     _connectSocket();
   }
 
@@ -51,8 +56,18 @@ class _StaffShellState extends ConsumerState<StaffShell> {
     });
   }
 
+  // Delegated access can change at any time; re-check whenever the app opens.
+  void _refreshPermissions() =>
+      unawaited(PermissionSession.instance.refresh(ref.read(apiServiceProvider)));
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshPermissions();
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (_orgSocketId != null) SocketService.off(_orgSocketId!);
     super.dispose();
   }
@@ -65,9 +80,16 @@ class _StaffShellState extends ConsumerState<StaffShell> {
     const StaffProfileScreen(key: ValueKey('staff-tab-profile')),
   ];
 
+  /// The camera button starts from the job list, or straight into a report
+  /// when the org doesn't use jobs.
+  void _startReport() {
+    final usesJobs = ref.read(staffControllerProvider).isEnabled(AppFeature.jobs);
+    context.push(usesJobs ? '/staff/jobs' : '/staff/submit');
+  }
+
   void _onTabTap(int index) {
     if (index == 2) {
-      context.push('/staff/jobs');
+      _startReport();
       return;
     }
     setState(() => _tab = index);
@@ -109,9 +131,10 @@ class _StaffShellState extends ConsumerState<StaffShell> {
                 padding: const EdgeInsets.only(top: 10, bottom: 6),
                 child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   _navItem(0, Icons.home_outlined,            Icons.home_rounded,            'Home'),
-                  _navItem(1, Icons.business_center_outlined, Icons.business_center_rounded, 'Jobs'),
+                  if (state.isEnabled(AppFeature.jobs))
+                    _navItem(1, Icons.business_center_outlined, Icons.business_center_rounded, 'Jobs'),
                   Expanded(child: GestureDetector(
-                    onTap: () => context.push('/staff/jobs'),
+                    onTap: _startReport,
                     behavior: HitTestBehavior.opaque,
                     child: SizedBox(
                       height: 46,

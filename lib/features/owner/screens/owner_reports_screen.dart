@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import '../../../core/utils/ui_feedback.dart';
 import '../../../core/utils/export_file_utils.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/models/app_feature.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/report_card.dart';
 import '../../../shared/widgets/ui_kit.dart';
@@ -17,6 +18,8 @@ import '../widgets/reports_history_ui.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../../../shared/services/auth_storage.dart';
 import '../controllers/owner_controller.dart';
+import '../../../shared/permissions/app_permissions.dart';
+import '../../../shared/permissions/permission_session.dart';
 
 class OwnerReportsScreen extends ConsumerStatefulWidget {
   const OwnerReportsScreen({super.key});
@@ -157,7 +160,8 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
             actions: [
               if (_exporting)
                 const SizedBox(width: 38, height: 38, child: Padding(padding: EdgeInsets.all(9), child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand)))
-              else
+              else if (state.showsFeature(AppFeature.export) &&
+                  ref.watch(permissionSessionProvider).can(AppPermissions.reportsExport))
                 IconButton(icon: const Icon(Icons.file_download_outlined, color: AppColors.text), onPressed: _showExportOptions),
               IconButton(icon: const Icon(Icons.search_rounded, color: AppColors.text), onPressed: () => context.push('/owner/search')),
             ],

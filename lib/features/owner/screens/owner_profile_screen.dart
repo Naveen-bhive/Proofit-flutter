@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/models/app_feature.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/ui_kit.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -99,6 +100,7 @@ class _OwnerProfileScreenState extends ConsumerState<OwnerProfileScreen> {
             ]),
           ),
 
+          if (state.isEnabled(AppFeature.customers)) ...[
           const SectionLabel('Customers & Jobs'),
           MenuGroup(children: [
             MenuRow(
@@ -116,17 +118,22 @@ class _OwnerProfileScreenState extends ConsumerState<OwnerProfileScreen> {
               onTap: () => context.push('/owner/customers'),
             ),
           ]),
+          ],
 
           const SectionLabel('Reports & Attendance'),
           MenuGroup(children: [
-            MenuRow(icon: Icons.schedule_rounded, color: AppColors.brand, label: 'Working Hours',
-                onTap: () => context.push('/owner/working-hours')),
-            MenuRow(icon: Icons.event_available_outlined, color: AppColors.greenDark, label: 'Staff Attendance',
-                onTap: () => context.push('/owner/staff-attendance')),
-            MenuRow(icon: Icons.event_busy_outlined, color: AppColors.red, label: 'Leave Management',
-                onTap: () => context.push('/owner/leaves')),
-            MenuRow(icon: Icons.celebration_outlined, color: AppColors.purple, label: 'Holidays',
-                onTap: () => context.push('/owner/holidays')),
+            if (state.isEnabled(AppFeature.workingHours))
+              MenuRow(icon: Icons.schedule_rounded, color: AppColors.brand, label: 'Working Hours',
+                  onTap: () => context.push('/owner/working-hours')),
+            if (state.isEnabled(AppFeature.attendance))
+              MenuRow(icon: Icons.event_available_outlined, color: AppColors.greenDark, label: 'Staff Attendance',
+                  onTap: () => context.push('/owner/staff-attendance')),
+            if (state.isEnabled(AppFeature.leaves))
+              MenuRow(icon: Icons.event_busy_outlined, color: AppColors.red, label: 'Leave Management',
+                  onTap: () => context.push('/owner/leaves')),
+            if (state.isEnabled(AppFeature.holidays))
+              MenuRow(icon: Icons.celebration_outlined, color: AppColors.purple, label: 'Holidays',
+                  onTap: () => context.push('/owner/holidays')),
             MenuRow(icon: Icons.manage_accounts_outlined, color: AppColors.yellow, label: 'Staff Management',
                 onTap: () => context.push('/owner/staff')),
           ]),

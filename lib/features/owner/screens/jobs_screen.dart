@@ -14,6 +14,8 @@ import '../../../shared/widgets/searchable_selection_field.dart';
 import '../../../shared/services/places_service.dart';
 import '../../../shared/services/review_service.dart';
 import '../controllers/owner_controller.dart';
+import '../../../shared/permissions/app_permissions.dart';
+import '../../../shared/permissions/permission_session.dart';
 
 class JobsScreen extends ConsumerStatefulWidget {
   const JobsScreen({super.key});
@@ -126,7 +128,10 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
             showBack: canPop,
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
             titleTrailing: SoftBadge(label: pillLabel, color: pillColor, fontSize: 12),
-            actions: [RoundAddButton(onTap: _showAssignJob, size: 42)],
+            actions: [
+              if (ref.watch(permissionSessionProvider).can(AppPermissions.jobsCreate))
+                RoundAddButton(onTap: _showAssignJob, size: 42),
+            ],
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),

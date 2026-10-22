@@ -7,6 +7,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/network/api_service.dart';
 import '../../core/utils/ui_feedback.dart';
 import 'leave_common.dart';
+import '../../shared/permissions/app_permissions.dart';
+import '../../shared/permissions/permission_session.dart';
 
 /// "New Leave" form. Owners assign leave to a member (and can set its status
 /// and add leave types); staff request leave for themselves.
@@ -128,6 +130,9 @@ class _NewLeaveScreenState extends ConsumerState<NewLeaveScreen> {
       ),
     );
   }
+
+  bool get _canAddType =>
+      widget.isOwner && ref.read(permissionSessionProvider).can(AppPermissions.leavesConfigure);
 
   Future<void> _addType() async {
     final nameCtrl = TextEditingController();
@@ -322,12 +327,12 @@ class _NewLeaveScreenState extends ConsumerState<NewLeaveScreen> {
               leading: _type == null
                   ? null
                   : Container(width: 10, height: 10, decoration: BoxDecoration(color: _type!.color, shape: BoxShape.circle)),
-              borderRadius: widget.isOwner
+              borderRadius: _canAddType
                   ? const BorderRadius.horizontal(left: Radius.circular(12))
                   : BorderRadius.circular(12),
             ),
           ),
-          if (widget.isOwner)
+          if (_canAddType)
             InkWell(
               onTap: _addType,
               borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),

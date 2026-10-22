@@ -49,16 +49,24 @@ import '../../features/owner/screens/pdf_export_screen.dart';
 import '../../features/owner/screens/account_deletion_screen.dart';
 import '../../features/owner/screens/enterprise_request_screen.dart';
 import '../../shared/services/deep_link_utils.dart';
+import '../../shared/permissions/app_permissions.dart';
+import '../../shared/permissions/no_access_screen.dart';
+import '../../shared/permissions/permission_session.dart';
+import '../../features/owner/screens/owner_dashboard_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final session = PermissionSession.instance;
   final router = GoRouter(
     initialLocation: '/',
+    // Re-runs the guard below whenever permissions change, so a screen whose
+    // access was just revoked closes straight away.
+    refreshListenable: session,
     redirect: (context, state) {
       final token = DeepLinkUtils.inviteTokenFromUri(state.uri);
       if (token != null && state.uri.path != '/invite/$token') {
         return '/invite/$token';
       }
-      return null;
+      return AppPermissions.redirectFor(path: state.uri.path, role: session.role, can: session.can);
     },
     errorBuilder: (_, __) => const Scaffold(
         body: Center(
@@ -139,6 +147,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // Owner shell with bottom nav
       GoRoute(path: '/owner', builder: (_, __) => const OwnerShell()),
+      // Dashboard on its own (outside the owner shell) for staff with dashboard.view.
+      GoRoute(
+          path: '/owner/dashboard',
+          builder: (_, __) => const OwnerDashboardScreen()),
+      GoRoute(path: '/no-access', builder: (_, __) => const NoAccessScreen()),
       GoRoute(
           path: '/owner/report/:id',
           builder: (_, s) =>
@@ -230,6 +243,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               PdfExportScreen(reportId: s.pathParameters['id'] ?? '')),
     ],
   );
+
+  onPermissionDenied = () => session.refresh(ref.read(apiServiceProvider));
 
   onUnauthorized = () {
     WidgetsBinding.instance.addPostFrameCallback((_) async {

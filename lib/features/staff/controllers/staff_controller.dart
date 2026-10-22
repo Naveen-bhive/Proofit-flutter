@@ -47,6 +47,7 @@ class StaffState {
   /// Bumped after report submit/save so jobs/home screens can refresh.
   final int jobsEpoch;
   final TrackingHealthStatus trackingHealth;
+  final Map<String, bool> features;
 
   const StaffState({
     this.todayLoading = false,
@@ -70,7 +71,11 @@ class StaffState {
     this.draftCount = 0,
     this.jobsEpoch = 0,
     this.trackingHealth = TrackingHealthStatus.unknown,
+    this.features = const {},
   });
+
+  /// Whether a module is part of the org's plan. Unknown keys stay on.
+  bool isEnabled(String feature) => features[feature] ?? true;
 
   StaffState copyWith({
     bool? todayLoading,
@@ -95,6 +100,7 @@ class StaffState {
     int? draftCount,
     int? jobsEpoch,
     TrackingHealthStatus? trackingHealth,
+    Map<String, bool>? features,
   }) =>
       StaffState(
         todayLoading: todayLoading ?? this.todayLoading,
@@ -120,6 +126,7 @@ class StaffState {
         draftCount: draftCount ?? this.draftCount,
         jobsEpoch: jobsEpoch ?? this.jobsEpoch,
         trackingHealth: trackingHealth ?? this.trackingHealth,
+        features: features ?? this.features,
       );
 }
 
@@ -163,6 +170,7 @@ class StaffController extends StateNotifier<StaffState> {
     state = state.copyWith(
       userName: user.name,
       orgName: org?.name ?? '',
+      features: org?.features,
       dailyTarget: user.dailyTarget,
       streak: user.streak,
     );
@@ -181,7 +189,7 @@ class StaffController extends StateNotifier<StaffState> {
         final org =
             OrgModel.fromJson(Map<String, dynamic>.from(res.data['data']));
         await AuthStorage.updateOrg(org);
-        state = state.copyWith(orgName: org.name);
+        state = state.copyWith(orgName: org.name, features: org.features);
       }
     } catch (_) {}
   }
@@ -245,7 +253,8 @@ class StaffController extends StateNotifier<StaffState> {
 
   Future<List<Map<String, dynamic>>> loadMyJobs({String? status}) async {
     try {
-      final params = <String, dynamic>{'limit': 100};
+      // scope=mine: staff with jobs.view would otherwise get the whole org's jobs.
+      final params = <String, dynamic>{'limit': 100, 'scope': 'mine'};
       if (status != null && status.isNotEmpty) params['status'] = status;
       final res = await _api.get('/jobs', params: params);
       if (res.data['success'] == true) {

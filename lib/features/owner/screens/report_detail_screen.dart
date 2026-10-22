@@ -13,6 +13,8 @@ import '../../../shared/widgets/drive_photo_widget.dart';
 import '../../../shared/models/report_model.dart';
 import '../../../shared/services/auth_storage.dart';
 import '../controllers/owner_controller.dart';
+import '../../../shared/permissions/app_permissions.dart';
+import '../../../shared/permissions/permission_session.dart';
 
 class ReportDetailScreen extends ConsumerStatefulWidget {
   final String reportId;
@@ -74,6 +76,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
   Widget build(BuildContext context) {
     final report   = ref.watch(ownerControllerProvider).selectedReport;
     final customer = report?.customer;
+    final canShare = ref.watch(permissionSessionProvider).can(AppPermissions.reportsShare);
 
     return Scaffold(
       backgroundColor: AppColors.dark,
@@ -85,7 +88,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
             const Padding(padding: EdgeInsets.only(right: 16),
               child: Center(child: SizedBox(width: 20, height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand))))
-          else
+          else if (canShare)
             IconButton(
               icon: const Icon(Icons.share_outlined, color: AppColors.brand),
               onPressed: () => _shareToCustomer(customer),
@@ -133,7 +136,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                   ]),
                   const Spacer(),
                   // Quick WhatsApp button
-                  if (customer['phone'] != null)
+                  if (customer['phone'] != null && canShare)
                     GestureDetector(
                       onTap: () => _shareToCustomer(customer),
                       child: Container(

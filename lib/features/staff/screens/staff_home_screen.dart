@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/models/app_feature.dart';
 import '../../../core/network/api_service.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/report_card.dart';
@@ -170,13 +171,15 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                 ],
 
                 // FIX #5 Check-in row
-                _checkInRow(state, context),
-                if (state.isCheckedIn &&
-                    state.trackingHealth != TrackingHealthStatus.unknown) ...[
-                  const SizedBox(height: 10),
-                  _trackingHealthBanner(state),
+                if (state.isEnabled(AppFeature.attendance)) ...[
+                  _checkInRow(state, context),
+                  if (state.isCheckedIn &&
+                      state.trackingHealth != TrackingHealthStatus.unknown) ...[
+                    const SizedBox(height: 10),
+                    _trackingHealthBanner(state),
+                  ],
+                  const SizedBox(height: 16),
                 ],
-                const SizedBox(height: 16),
 
                 if (state.draftCount > 0)
                   GestureDetector(
@@ -233,12 +236,20 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                   const SizedBox(height: 16),
                 ],
 
-                PrimaryButton(
-                  label: 'My Assigned Jobs',
-                  icon: Icons.business_center_outlined,
-                  height: 58,
-                  onPressed: () => context.push('/staff/jobs'),
-                ),
+                if (state.isEnabled(AppFeature.jobs))
+                  PrimaryButton(
+                    label: 'My Assigned Jobs',
+                    icon: Icons.business_center_outlined,
+                    height: 58,
+                    onPressed: () => context.push('/staff/jobs'),
+                  )
+                else
+                  PrimaryButton(
+                    label: 'Submit a Report',
+                    icon: Icons.photo_camera_outlined,
+                    height: 58,
+                    onPressed: () => context.push('/staff/submit'),
+                  ),
                 const SizedBox(height: 28),
 
                 Row(children: [
@@ -300,12 +311,19 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                       const SizedBox(height: 22),
                       SizedBox(
                         width: 250,
-                        child: PrimaryButton(
-                          label: 'View Assigned Jobs',
-                          icon: Icons.photo_camera_outlined,
-                          height: 46,
-                          onPressed: () => context.push('/staff/jobs'),
-                        ),
+                        child: state.isEnabled(AppFeature.jobs)
+                            ? PrimaryButton(
+                                label: 'View Assigned Jobs',
+                                icon: Icons.photo_camera_outlined,
+                                height: 46,
+                                onPressed: () => context.push('/staff/jobs'),
+                              )
+                            : PrimaryButton(
+                                label: 'Submit a Report',
+                                icon: Icons.photo_camera_outlined,
+                                height: 46,
+                                onPressed: () => context.push('/staff/submit'),
+                              ),
                       ),
                     ]),
                   )

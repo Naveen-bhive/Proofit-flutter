@@ -9,6 +9,8 @@ class UserModel {
   final int dailyTarget;
   final int streak;
   final String? fcmToken;
+  /// Owner features delegated to this staff member (AppPermissions ids).
+  final List<String> permissions;
 
   UserModel({
     required this.id,
@@ -21,6 +23,7 @@ class UserModel {
     this.dailyTarget = 0,
     this.streak = 0,
     this.fcmToken,
+    this.permissions = const [],
   });
 
   bool get isOwner => role == 'owner';
@@ -37,11 +40,19 @@ class UserModel {
     dailyTarget: json['dailyTarget'] ?? 0,
     streak:      json['streak'] ?? 0,
     fcmToken:    json['fcmToken'],
+    permissions: (json['permissions'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+  );
+
+  UserModel copyWith({List<String>? permissions}) => UserModel(
+    id: id, name: name, phone: phone, email: email, photoUrl: photoUrl,
+    role: role, orgId: orgId, dailyTarget: dailyTarget, streak: streak,
+    fcmToken: fcmToken, permissions: permissions ?? this.permissions,
   );
 
   Map<String, dynamic> toJson() => {
     '_id': id, 'name': name, 'phone': phone,
     'role': role, 'orgId': orgId,
     'dailyTarget': dailyTarget, 'streak': streak,
+    'permissions': permissions,
   };
 }

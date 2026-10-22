@@ -8,6 +8,8 @@ import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/ui_kit.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../controllers/owner_controller.dart';
+import '../../../shared/permissions/app_permissions.dart';
+import '../../../shared/permissions/permission_session.dart';
 
 class CustomersScreen extends ConsumerStatefulWidget {
   const CustomersScreen({super.key});
@@ -130,7 +132,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
                 title: isEdit ? 'Edit Customer' : 'Add Customer',
                 subtitle: isEdit ? 'Update details for ProofIt records' : 'Add a new client record to your directory',
-                headerAction: isEdit
+                headerAction: isEdit && ref.read(permissionSessionProvider).can(AppPermissions.customersDelete)
                     ? GestureDetector(
                         onTap: () {
                           Navigator.pop(sheetCtx);
@@ -265,7 +267,10 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
         child: Column(children: [
           PageHeader(
             title: 'Customers',
-            actions: [RoundAddButton(onTap: () => _showAddEdit(), size: 42)],
+            actions: [
+              if (ref.watch(permissionSessionProvider).can(AppPermissions.customersCreate))
+                RoundAddButton(onTap: () => _showAddEdit(), size: 42),
+            ],
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
@@ -327,7 +332,9 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
       child: SurfaceCard(
         radius: 18,
         padding: const EdgeInsets.all(16),
-        onTap: () => _showAddEdit(customer: c),
+        onTap: ref.read(permissionSessionProvider).can(AppPermissions.customersEdit)
+            ? () => _showAddEdit(customer: c)
+            : null,
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(
             width: 48,

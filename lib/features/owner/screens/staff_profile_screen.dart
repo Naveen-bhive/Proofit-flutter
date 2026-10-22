@@ -5,6 +5,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/report_card.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../controllers/owner_controller.dart';
+import '../../../shared/permissions/app_permissions.dart';
+import '../../../shared/permissions/permission_editor.dart';
+import '../../../shared/permissions/permission_session.dart';
 
 class StaffProfileScreen extends ConsumerStatefulWidget {
   final String staffId;
@@ -43,6 +46,20 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
     ));
   }
 
+  Future<void> _editPermissions(Map<String, dynamic> profile) async {
+    final notifier = ref.read(ownerControllerProvider.notifier);
+    final grantable = await notifier.loadGrantablePermissions();
+    if (!mounted) return;
+    await PermissionEditorSheet.show(
+      context,
+      title: 'Permissions for ${profile['name'] ?? 'staff'}',
+      initial: {for (final p in (profile['permissions'] as List? ?? const [])) p.toString()},
+      grantable: grantable,
+      featureEnabled: ref.read(ownerControllerProvider).isEnabled,
+      onSave: (perms) => notifier.setStaffPermissions(widget.staffId, perms),
+    );
+  }
+
   Future<void> _confirmRemove() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -68,14 +85,23 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
     final profile = state.selectedStaffProfile;
     // staffReports - reports for this staff member
     final staffReports = state.staffReports;
+    final session = ref.watch(permissionSessionProvider);
+    // The server reports whether this member's access is within the viewer's.
+    final manageable = profile?['canManage'] != false;
+    final canRemove = manageable && session.can(AppPermissions.staffDelete);
+    final canEditTarget = manageable && session.can(AppPermissions.staffEdit);
+    final canPermit = manageable && session.can(AppPermissions.staffPermissions);
+    final canSeeReports = session.can(AppPermissions.reportsView);
+    final grantedCount = (profile?['permissions'] as List? ?? const []).length;
 
     return Scaffold(
       backgroundColor: AppColors.dark,
       appBar: AppBar(
         title: Text(profile?['name'] ?? 'Staff Profile'),
         actions: [
-          IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.red),
-            onPressed: _confirmRemove),
+          if (canRemove)
+            IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.red),
+              onPressed: _confirmRemove),
         ],
       ),
       body: profile == null
@@ -116,11 +142,29 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
                     Text('${profile['dailyTarget'] ?? 0} jobs/day', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 16)),
                   ]),
                   const Spacer(),
-                  TextButton(onPressed: () => _showSetTargetDialog(context, profile['dailyTarget'] ?? 0),
-                    child: const Text('Edit', style: TextStyle(color: AppColors.brand))),
+                  if (canEditTarget)
+                    TextButton(onPressed: () => _showSetTargetDialog(context, profile['dailyTarget'] ?? 0),
+                      child: const Text('Edit', style: TextStyle(color: AppColors.brand))),
                 ])),
+              if (canPermit) ...[
+                const SizedBox(height: 12),
+                Container(padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                  child: Row(children: [
+                    const Icon(Icons.verified_user_outlined, color: AppColors.brand, size: 22),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('Team access', style: TextStyle(color: AppColors.silver, fontSize: 12)),
+                      Text(grantedCount == 0 ? 'Staff app only' : '$grantedCount permission${grantedCount == 1 ? '' : 's'}',
+                        style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 16)),
+                    ])),
+                    TextButton(onPressed: () => _editPermissions(profile),
+                      child: const Text('Manage', style: TextStyle(color: AppColors.brand))),
+                  ])),
+              ],
               const SizedBox(height: 24),
 
+              if (canSeeReports) ...[
               const Align(alignment: Alignment.centerLeft,
                 child: Text('Recent Reports', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 16))),
               const SizedBox(height: 12),
@@ -129,6 +173,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
               else
                 ...staffReports.map((r) => ReportCard(report: r,
                   onTap: () => context.push('/owner/report/${r.id}'))),
+              ],
               const SizedBox(height: 40),
             ])),
     );

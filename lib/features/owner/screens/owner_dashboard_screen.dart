@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/models/app_feature.dart';
 import '../../../shared/widgets/report_card.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../../shared/widgets/ui_kit.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/services/socket_service.dart';
 import '../controllers/owner_controller.dart';
+import '../../../shared/permissions/app_permissions.dart';
+import '../../../shared/permissions/permission_session.dart';
 
 class OwnerDashboardScreen extends ConsumerStatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -95,7 +98,10 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
   void didChangeAppLifecycleState(AppLifecycleState s) {
     if (s == AppLifecycleState.resumed) {
       _loadDashboard();
-      ref.read(ownerControllerProvider.notifier).loadSubscriptionStatus();
+      // Subscription is owner-only; staff opening this dashboard skip it.
+      if (ref.read(permissionSessionProvider).isOwner) {
+        ref.read(ownerControllerProvider.notifier).loadSubscriptionStatus();
+      }
       _loadUnreadCount();
       if (!SocketService.isConnected) _connectSocket();
     }
@@ -114,6 +120,8 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(ownerControllerProvider);
+    final session = ref.watch(permissionSessionProvider);
+    final isOwner = session.isOwner;
     final today = DateFormat('EEEE, d MMM').format(DateTime.now()).toUpperCase();
 
     return Scaffold(
@@ -127,6 +135,11 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
           sliver: SliverList(delegate: SliverChildListDelegate([
 
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // Staff reach this screen from Team tools, outside the owner shell.
+              if (!isOwner && Navigator.of(context).canPop()) ...[
+                CircleBackButton(onTap: () => Navigator.of(context).pop()),
+                const SizedBox(width: 10),
+              ],
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   FittedBox(
@@ -143,6 +156,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
                   ]),
                 ]),
               ),
+              if (isOwner) ...[
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => context.push('/owner/subscription'),
@@ -170,22 +184,31 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
               ),
               const SizedBox(width: 8),
               HeaderIconButton(icon: Icons.settings_outlined, onTap: () => context.push('/owner/settings')),
+              ],
             ]),
             const SizedBox(height: 18),
 
             Row(children: [
-              _tile(Icons.groups_2_outlined, 'Staff', 'Manage your team members', const Color(0xFF2563EB), const Color(0xFFEFF6FF), () => context.push('/owner/staff')),
-              const SizedBox(width: 12),
-              _tile(Icons.map_outlined, 'Live Map', 'Track staff in real-time', const Color(0xFF7C3AED), const Color(0xFFF5F3FF), () => context.push('/owner/map')),
+              if (session.can(AppPermissions.staffView))
+                _tile(Icons.groups_2_outlined, 'Staff', 'Manage your team members', const Color(0xFF2563EB), const Color(0xFFEFF6FF), () => context.push('/owner/staff')),
+              if (state.showsFeature(AppFeature.liveMap) && session.can(AppPermissions.liveMapView)) ...[
+                if (session.can(AppPermissions.staffView)) const SizedBox(width: 12),
+                _tile(Icons.map_outlined, 'Live Map', 'Track staff in real-time', const Color(0xFF7C3AED), const Color(0xFFF5F3FF), () => context.push('/owner/map')),
+              ],
             ]),
             const SizedBox(height: 12),
             Row(children: [
-              _tile(Icons.event_note_outlined, 'Leave management', 'Approve & track time off', const Color(0xFF059669), const Color(0xFFECFDF5), () => context.push('/owner/leaves')),
-              const SizedBox(width: 12),
-              _tile(Icons.summarize_outlined, 'Reports', 'View and download reports', const Color(0xFFEA580C), const Color(0xFFFFF7ED), () => context.push('/owner/history')),
+              if (state.isEnabled(AppFeature.leaves) && session.can(AppPermissions.leavesView)) ...[
+                _tile(Icons.event_note_outlined, 'Leave management', 'Approve & track time off', const Color(0xFF059669), const Color(0xFFECFDF5), () => context.push('/owner/leaves')),
+                const SizedBox(width: 12),
+              ],
+              if (session.can(AppPermissions.reportsView))
+                _tile(Icons.summarize_outlined, 'Reports', 'View and download reports', const Color(0xFFEA580C), const Color(0xFFFFF7ED), () => context.push('/owner/history')),
             ]),
-            const SizedBox(height: 12),
-            _wideTile(),
+            if (state.isEnabled(AppFeature.attendance) && session.can(AppPermissions.attendanceView)) ...[
+              const SizedBox(height: 12),
+              _wideTile(),
+            ],
             const SizedBox(height: 22),
 
             if (_loading && state.staffStatuses.isEmpty && state.recentReports.isEmpty)
@@ -213,7 +236,8 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
                 ),
               )
             else ...[
-              _sectionHeader('Staff Status', 'Manage', () => context.push('/owner/staff')),
+              _sectionHeader('Staff Status', 'Manage',
+                  session.can(AppPermissions.staffView) ? () => context.push('/owner/staff') : null),
               const SizedBox(height: 12),
               ...state.staffStatuses.map((s) {
                 final staffId = s['_id']?.toString() ?? '';
@@ -225,7 +249,9 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
                   child: SurfaceCard(
                     color: AppColors.dark3,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    onTap: staffId.isEmpty ? null : () => context.push('/owner/staff/$staffId'),
+                    onTap: staffId.isEmpty || !session.can(AppPermissions.staffView)
+                        ? null
+                        : () => context.push('/owner/staff/$staffId'),
                     child: Row(children: [
                       InitialAvatar(name: name.isEmpty ? 'Staff' : name, size: 42, color: AppColors.brand,
                         online: status == StaffStatus.active),
@@ -243,7 +269,8 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
               }),
               const SizedBox(height: 18),
 
-              _sectionHeader('Recent Reports', 'View All', () => context.push('/owner/history')),
+              _sectionHeader('Recent Reports', 'View All',
+                  session.can(AppPermissions.reportsView) ? () => context.push('/owner/history') : null),
               const SizedBox(height: 12),
               if (state.recentReports.isEmpty)
                 SurfaceCard(
@@ -254,7 +281,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
                     icon: Icons.assignment_outlined,
                     title: 'No reports yet',
                     subtitle: 'Reports your staff submit will appear here so you can track field activity in real-time.',
-                    action: SizedBox(
+                    action: !state.isEnabled(AppFeature.jobs) || !session.can(AppPermissions.jobsCreate) ? null : SizedBox(
                       width: 220,
                       child: PrimaryButton(
                         label: 'Assign New Job',
@@ -270,7 +297,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
                 report: r,
                 showStaffName: true,
                 actionLabel: 'View',
-                onTap: () => context.push('/owner/report/${r.id}'),
+                onTap: session.can(AppPermissions.reportsView) ? () => context.push('/owner/report/${r.id}') : null,
               )),
             ],
           ])))
@@ -279,9 +306,10 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> wit
     );
   }
 
-  Widget _sectionHeader(String title, String action, VoidCallback onTap) {
+  Widget _sectionHeader(String title, String action, VoidCallback? onTap) {
     return Row(children: [
       Expanded(child: Text(title, style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w700))),
+      if (onTap != null)
       GestureDetector(
         onTap: onTap,
         child: Row(mainAxisSize: MainAxisSize.min, children: [

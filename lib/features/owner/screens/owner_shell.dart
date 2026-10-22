@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/models/app_feature.dart';
 import '../../../shared/services/socket_service.dart';
 import '../controllers/owner_controller.dart';
 import 'owner_dashboard_screen.dart';
@@ -109,8 +110,10 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
                 child: Row(children: [
                   _item(0, Icons.grid_view_outlined,         Icons.grid_view_rounded,      'Dashboard'),
                   _item(1, Icons.content_paste_outlined,     Icons.content_paste_rounded,  'Reports'),
-                  _item(2, Icons.map_outlined,               Icons.map_rounded,            'Map'),
-                  _item(3, Icons.business_center_outlined,   Icons.business_center_rounded,'Jobs'),
+                  if (state.showsFeature(AppFeature.liveMap))
+                    _item(2, Icons.map_outlined,             Icons.map_rounded,            'Map'),
+                  if (state.isEnabled(AppFeature.jobs))
+                    _item(3, Icons.business_center_outlined, Icons.business_center_rounded,'Jobs'),
                   _item(4, Icons.person_outline_rounded,     Icons.person_rounded,         'Profile',
                     badge: unread > 0 ? unread : null),
                 ]),

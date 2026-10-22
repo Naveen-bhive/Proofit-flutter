@@ -21,6 +21,7 @@ import 'shared/widgets/error_boundary.dart';
 import 'features/auth/controllers/auth_controller.dart';
 import 'features/owner/controllers/owner_controller.dart';
 import 'features/staff/controllers/staff_controller.dart';
+import 'shared/permissions/permission_session.dart';
 
 void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +50,8 @@ void main() async {
       maps.useAndroidViewSurface = false;
     }
   }
+  // Role + delegated permissions must be known before the router's first guard runs.
+  await PermissionSession.instance.loadFromStorage();
   runApp(const ProviderScope(child: ErrorBoundary(child: ProofItApp())));
 }
 

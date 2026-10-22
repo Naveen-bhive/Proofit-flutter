@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../core/constants/app_constants.dart';
 import 'auth_storage.dart';
+import '../permissions/permission_session.dart';
 
 typedef SocketListenerId = int;
 
@@ -104,6 +105,11 @@ class SocketService {
     _socket!.on('staff:checkout', (d) => _broadcast(_staffCheckOutListeners, d));
     _socket!.on('staff:tracking_status', (d) => _broadcast(_staffTrackingStatusListeners, d));
     _socket!.on('org:updated', (d) => _broadcast(_orgUpdatedListeners, d));
+    // Sent to this user's own room when an owner or manager changes their access.
+    _socket!.on('permissions:updated', (d) {
+      final list = d is Map ? d['permissions'] : null;
+      if (list is List) PermissionSession.instance.updatePermissions(list.map((e) => e.toString()));
+    });
     _socket!.connect();
   }
 

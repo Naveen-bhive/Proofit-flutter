@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart';
 import '../models/org_model.dart';
 import '../../core/constants/app_constants.dart';
+import '../permissions/permission_session.dart';
 
 class AuthStorage {
   static const _storage = FlutterSecureStorage();
@@ -17,6 +18,11 @@ class AuthStorage {
       _storage.write(key: AppConstants.userKey,  value: jsonEncode(user.toJson())),
       _storage.write(key: AppConstants.orgKey,   value: jsonEncode(org.toJson())),
     ]);
+    PermissionSession.instance.applyUser(user);
+  }
+
+  static Future<void> updateUser(UserModel user) async {
+    await _storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
   }
 
   static Future<void> updateOrg(OrgModel org) async {
@@ -43,6 +49,7 @@ class AuthStorage {
       _storage.delete(key: AppConstants.userKey),
       _storage.delete(key: AppConstants.orgKey),
     ]);
+    PermissionSession.instance.clear();
   }
 
   static Future<bool> isLoggedIn() async {

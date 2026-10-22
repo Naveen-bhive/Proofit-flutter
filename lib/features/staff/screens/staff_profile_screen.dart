@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/models/app_feature.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/ui_kit.dart';
 import '../../../core/network/api_service.dart';
@@ -13,6 +14,7 @@ import '../../../shared/services/google_auth_service.dart';
 import '../../../shared/services/review_service.dart';
 import '../controllers/staff_controller.dart';
 import '../utils/attendance_gates.dart';
+import '../../../shared/permissions/team_tools_section.dart';
 
 class StaffProfileScreen extends ConsumerStatefulWidget {
   const StaffProfileScreen({super.key});
@@ -191,19 +193,26 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
             ),
           ]),
 
-          const SectionLabel('Attendance'),
-          MenuGroup(children: [
-            MenuRow(
-              icon: state.isCheckedIn ? Icons.logout_rounded : Icons.login_rounded,
-              color: AppColors.greenDark,
-              label: state.isCheckedIn ? 'Check Out' : 'Check In',
-              onTap: () => _onCheckInOutTap(context, ref, state.isCheckedIn),
-            ),
-            MenuRow(icon: Icons.schedule_rounded, color: AppColors.brand, label: 'Check-in History',
-                onTap: () => context.push('/staff/checkin-history')),
-            MenuRow(icon: Icons.event_note_outlined, color: const Color(0xFFF59E0B), label: 'Leave Requests',
-                onTap: () => context.push('/staff/leaves')),
-          ]),
+          if (state.isEnabled(AppFeature.attendance) || state.isEnabled(AppFeature.leaves)) ...[
+            const SectionLabel('Attendance'),
+            MenuGroup(children: [
+              if (state.isEnabled(AppFeature.attendance)) ...[
+                MenuRow(
+                  icon: state.isCheckedIn ? Icons.logout_rounded : Icons.login_rounded,
+                  color: AppColors.greenDark,
+                  label: state.isCheckedIn ? 'Check Out' : 'Check In',
+                  onTap: () => _onCheckInOutTap(context, ref, state.isCheckedIn),
+                ),
+                MenuRow(icon: Icons.schedule_rounded, color: AppColors.brand, label: 'Check-in History',
+                    onTap: () => context.push('/staff/checkin-history')),
+              ],
+              if (state.isEnabled(AppFeature.leaves))
+                MenuRow(icon: Icons.event_note_outlined, color: const Color(0xFFF59E0B), label: 'Leave Requests',
+                    onTap: () => context.push('/staff/leaves')),
+            ]),
+          ],
+
+          TeamToolsSection(featureEnabled: state.isEnabled),
 
           const SectionLabel('Account'),
           MenuGroup(children: [

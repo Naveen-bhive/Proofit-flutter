@@ -13,6 +13,8 @@ import '../../core/network/api_service.dart';
 import '../../core/utils/ui_feedback.dart';
 import 'leave_common.dart';
 import 'new_leave_screen.dart';
+import '../../shared/permissions/app_permissions.dart';
+import '../../shared/permissions/permission_session.dart';
 
 /// "Leaves" table. Owners (`isOwner: true`) manage the whole organisation;
 /// staff (`isOwner: false`) see "My Leaves" — their own requests.
@@ -85,7 +87,14 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
     } catch (_) {}
   }
 
+  PermissionSession get _session => ref.read(permissionSessionProvider);
+  bool get _canAssign => !widget.isOwner || _session.can(AppPermissions.leavesCreate);
+  bool get _canApprove => widget.isOwner && _session.can(AppPermissions.leavesApprove);
+  bool get _canDeleteAny => widget.isOwner && _session.can(AppPermissions.leavesDelete);
+
   Map<String, dynamic> _query({int? page, int? limit}) => {
+        // A manager's own "My Leaves" must not show the whole team.
+        if (!widget.isOwner) 'scope': 'mine',
         'page': '${page ?? _page}',
         'limit': '${limit ?? _pageSize}',
         if (_searchCtrl.text.trim().isNotEmpty) 'search': _searchCtrl.text.trim(),
@@ -279,6 +288,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
             ]),
             const SizedBox(height: 14),
             Row(children: [
+              if (_canAssign) ...[
               ElevatedButton.icon(
                 onPressed: _openNewLeave,
                 style: ElevatedButton.styleFrom(
@@ -293,6 +303,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w600)),
               ),
               const SizedBox(width: 10),
+              ],
               OutlinedButton.icon(
                 onPressed: _exporting ? null : _export,
                 style: OutlinedButton.styleFrom(
@@ -309,7 +320,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
                 label: const Text('Export'),
               ),
             ]),
-            if (widget.isOwner && _selected.isNotEmpty) ...[
+            if (_canApprove && _selected.isNotEmpty) ...[
               const SizedBox(height: 12),
               _bulkBar(),
             ],
@@ -693,8 +704,8 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
         );
     if (widget.isOwner) {
       return Row(children: [
-        if (l.status != 'approved') btn(Icons.check_rounded, AppColors.green, 'Approve', () => _setStatus([l.id], 'approved')),
-        if (l.status != 'rejected') btn(Icons.close_rounded, AppColors.red, 'Reject', () => _setStatus([l.id], 'rejected')),
+        if (_canApprove && l.status != 'approved') btn(Icons.check_rounded, AppColors.green, 'Approve', () => _setStatus([l.id], 'approved')),
+        if (_canApprove && l.status != 'rejected') btn(Icons.close_rounded, AppColors.red, 'Reject', () => _setStatus([l.id], 'rejected')),
         btn(Icons.more_horiz_rounded, AppColors.silver, 'Details', () => _showDetails(l)),
       ]);
     }
@@ -830,7 +841,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
               ),
             ],
             const SizedBox(height: 20),
-            if (isOwner)
+            if (_canApprove)
               Row(children: [
                 if (l.status != 'rejected' && l.status != 'cancelled')
                   Expanded(
@@ -868,7 +879,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
                   ),
               ]),
             const SizedBox(height: 6),
-            if (isOwner || l.status == 'pending')
+            if (_canDeleteAny || (!isOwner && l.status == 'pending'))
               Center(
                 child: TextButton.icon(
                   onPressed: () {

@@ -11,6 +11,8 @@ class OrgModel {
   final String plan;
   final DateTime? planExpiresAt;
   final int staffCount;
+  /// On/off per [AppFeature] key for the org's current plan.
+  final Map<String, bool> features;
 
   OrgModel({
     required this.id,
@@ -25,6 +27,7 @@ class OrgModel {
     required this.plan,
     this.planExpiresAt,
     this.staffCount = 0,
+    this.features = const {},
   });
 
   /// Mobile number and address are both required for an owner profile.
@@ -37,15 +40,8 @@ class OrgModel {
     return plan;
   }
 
-  bool hasFeature(String feature) {
-    const features = {
-      'free':     {'video': false, 'export': false, 'liveMap': false},
-      'starter':  {'video': false, 'export': true,  'liveMap': false},
-      'pro':      {'video': true,  'export': true,  'liveMap': true},
-      'business': {'video': true,  'export': true,  'liveMap': true},
-    };
-    return (features[activePlan] ?? features['free']!)[feature] ?? false;
-  }
+  /// Features the server hasn't reported (older backend or cached org) stay on.
+  bool isFeatureEnabled(String feature) => features[feature] ?? true;
 
   factory OrgModel.fromJson(Map<String, dynamic> json) => OrgModel(
     id:           json['_id'] ?? '',
@@ -59,6 +55,7 @@ class OrgModel {
     driveServiceEmail: json['driveServiceEmail'],
     plan:         json['plan'] ?? 'free',
     staffCount:   json['staffCount'] ?? 0,
+    features:     parseFeatures(json['features']),
     planExpiresAt: json['planExpiresAt'] != null
         ? DateTime.tryParse(json['planExpiresAt'])
         : null,
@@ -75,6 +72,7 @@ class OrgModel {
     'driveServiceEmail': driveServiceEmail,
     'plan':        plan,
     'staffCount':  staffCount,
+    'features':    features,
     'planExpiresAt': planExpiresAt?.toIso8601String(),
   };
 
@@ -91,6 +89,7 @@ class OrgModel {
     String? plan,
     DateTime? planExpiresAt,
     int? staffCount,
+    Map<String, bool>? features,
   }) => OrgModel(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -104,5 +103,14 @@ class OrgModel {
     plan: plan ?? this.plan,
     planExpiresAt: planExpiresAt ?? this.planExpiresAt,
     staffCount: staffCount ?? this.staffCount,
+    features: features ?? this.features,
   );
+
+  static Map<String, bool> parseFeatures(dynamic raw) {
+    if (raw is! Map) return const {};
+    return {
+      for (final e in raw.entries)
+        if (e.value is bool) e.key.toString(): e.value as bool,
+    };
+  }
 }

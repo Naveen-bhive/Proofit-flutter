@@ -9,6 +9,9 @@ import '../../../shared/models/report_model.dart';
 import '../../../shared/models/customer_model.dart';
 import '../../../shared/services/auth_storage.dart';
 import '../../../shared/models/org_model.dart';
+import '../../../shared/permissions/app_permissions.dart';
+import '../../../shared/permissions/permission_session.dart';
+import '../../../shared/models/app_feature.dart';
 
 class OwnerState {
   final bool isLoading;
@@ -43,6 +46,7 @@ class OwnerState {
   final List<Map<String, dynamic>> availablePlans;
   final String? ownerEmail;
   final String? ownerPhotoUrl;
+  final Map<String, bool> features;
 
   const OwnerState({
     this.isLoading = false,
@@ -77,7 +81,19 @@ class OwnerState {
     this.availablePlans = const [],
     this.ownerEmail,
     this.ownerPhotoUrl,
+    this.features = const {},
   });
+
+  /// Whether a module is part of the org's plan. Unknown keys stay on.
+  bool isEnabled(String feature) => features[feature] ?? true;
+
+  /// Whether to show a feature's entry point. Regular plans keep paid-only
+  /// entries visible so owners reach the upgrade prompt; custom Enterprise
+  /// plans hide everything that wasn't enabled for them.
+  bool showsFeature(String feature) =>
+      isEnabled(feature) || (plan != 'enterprise' && _upgradeable.contains(feature));
+
+  static const _upgradeable = {AppFeature.liveMap, AppFeature.export, AppFeature.shareReport};
 
   /// Mobile number and address are both required for an owner profile.
   bool get isProfileComplete => ownerPhone.trim().isNotEmpty && address.trim().isNotEmpty;
@@ -115,6 +131,7 @@ class OwnerState {
     List<Map<String, dynamic>>? availablePlans,
     String? ownerEmail,
     String? ownerPhotoUrl,
+    Map<String, bool>? features,
   }) =>
       OwnerState(
         isLoading: isLoading ?? this.isLoading,
@@ -151,6 +168,7 @@ class OwnerState {
         availablePlans: availablePlans ?? this.availablePlans,
         ownerEmail: ownerEmail ?? this.ownerEmail,
         ownerPhotoUrl: ownerPhotoUrl ?? this.ownerPhotoUrl,
+        features: features ?? this.features,
       );
 }
 
@@ -176,6 +194,7 @@ class OwnerController extends StateNotifier<OwnerState> {
         addressLatitude: org.addressLatitude,
         addressLongitude: org.addressLongitude,
         plan: org.plan,
+        features: org.features,
         ownerEmail: user?.email,
         ownerPhotoUrl: user?.photoUrl,
       );
@@ -296,6 +315,10 @@ class OwnerController extends StateNotifier<OwnerState> {
   // plans list, instead of hardcoding plan-name comparisons (e.g.
   // `plan == 'pro'`) which silently break for any new plan slug.
   bool hasFeature(String flagKey) {
+    // The server's per-org map covers custom Enterprise plans, which aren't
+    // in availablePlans.
+    final fromOrg = state.features[flagKey];
+    if (fromOrg != null) return fromOrg;
     if (state.plan == 'free') return false; // free tier has no premium features
     final currentPlan = state.availablePlans.firstWhere(
       (p) => p['slug'] == state.plan,
@@ -382,12 +405,14 @@ class OwnerController extends StateNotifier<OwnerState> {
     required String name,
     required String phone,
     required String email,
+    List<String> permissions = const [],
   }) async {
     try {
       final res = await _api.post('/staff', data: {
         'name': name,
         'phone': phone,
         'email': email,
+        if (permissions.isNotEmpty) 'permissions': permissions,
       });
       await loadStaff();
       final msg = res.data['message']?.toString();
@@ -480,10 +505,12 @@ class OwnerController extends StateNotifier<OwnerState> {
     try {
       final res = await _api.get('/staff/$staffId/profile');
       if (res.data['success'] == true) {
+        state = state.copyWith(selectedStaffProfile: res.data['data'], staffReports: []);
+        // Reports need reports.view; a staff manager without it still sees the profile.
+        if (!PermissionSession.instance.can(AppPermissions.reportsView)) return;
         final rRes = await _api
             .get('/reports', params: {'staffId': staffId, 'filter': 'month'});
         state = state.copyWith(
-          selectedStaffProfile: res.data['data'],
           staffReports: rRes.data['success'] == true
               ? ((rRes.data['data'] is List
                       ? rRes.data['data']
@@ -494,6 +521,30 @@ class OwnerController extends StateNotifier<OwnerState> {
         );
       }
     } catch (_) {}
+  }
+
+  /// Permission ids the signed-in user may grant to others.
+  Future<Set<String>> loadGrantablePermissions() async {
+    try {
+      final res = await _api.get('/staff/permissions/catalog');
+      if (res.data['success'] == true) {
+        return {for (final id in (res.data['data']?['grantable'] as List? ?? const [])) id.toString()};
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  /// Saves a staff member's delegated permissions. Returns an error message, or null.
+  Future<String?> setStaffPermissions(String staffId, Set<String> permissions) async {
+    try {
+      final res = await _api.put('/staff/$staffId/permissions', data: {'permissions': permissions.toList()});
+      if (res.data['success'] != true) return res.data['message']?.toString() ?? 'Could not save permissions';
+      await loadStaff();
+      if (state.selectedStaffProfile?['_id']?.toString() == staffId) await loadStaffProfile(staffId);
+      return null;
+    } catch (e) {
+      return friendlyErrorMessage(e, fallback: 'Could not save permissions');
+    }
   }
 
   Future<void> loadReportDetail(String reportId) async {
@@ -640,6 +691,7 @@ class OwnerController extends StateNotifier<OwnerState> {
           addressLatitude: org.addressLatitude,
           addressLongitude: org.addressLongitude,
           plan: org.plan,
+          features: org.features,
         );
         return true;
       }

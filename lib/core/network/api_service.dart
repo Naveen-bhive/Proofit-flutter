@@ -12,6 +12,10 @@ final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
 typedef LogoutCallback = void Function();
 LogoutCallback? onUnauthorized;
 
+/// Called when the server refuses a request for lack of permission, so the
+/// app can re-sync the user's permissions (they may have just been revoked).
+void Function()? onPermissionDenied;
+
 class ApiService {
   late final Dio _dio;
   final _storage = const FlutterSecureStorage();
@@ -66,6 +70,11 @@ class ApiService {
             await clearToken();
             onUnauthorized?.call();
           }
+        }
+
+        if (error.response?.statusCode == 403 &&
+            '${error.response?.data is Map ? error.response?.data['message'] : ''}'.contains('permission')) {
+          onPermissionDenied?.call();
         }
 
         return handler.next(error);

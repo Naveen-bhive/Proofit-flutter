@@ -35,7 +35,7 @@ class _StaffLeaveRequestsScreenState extends ConsumerState<StaffLeaveRequestsScr
     final api = ref.read(apiServiceProvider);
     try {
       final results = await Future.wait([
-        api.get('/leaves', params: {'limit': '100'}),
+        api.get('/leaves', params: {'limit': '100', 'scope': 'mine'}),
         api.get('/leaves/types'),
       ]);
       if (!mounted) return;
