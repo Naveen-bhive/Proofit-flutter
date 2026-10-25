@@ -89,6 +89,8 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
         _settingRow(Icons.workspace_premium_outlined, 'Current Plan',
             '${state.plan[0].toUpperCase()}${state.plan.substring(1)}',
             onTap: () => context.push('/owner/subscription')),
+        _settingRow(Icons.sd_storage_outlined, 'Media and Storage', '',
+            onTap: () => context.push('/owner/storage')),
         _settingRow(Icons.lock_outline, 'Change Password', '',
             onTap: () => context.push('/change-password')),
         const SizedBox(height: 24),

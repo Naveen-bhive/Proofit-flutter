@@ -39,6 +39,7 @@ import '../../features/owner/screens/owner_settings_screen.dart';
 import '../../features/owner/screens/owner_profile_details_screen.dart';
 import '../../features/owner/screens/subscription_screen.dart';
 import '../../features/owner/screens/payment_history_screen.dart';
+import '../../features/owner/screens/media_storage_screen.dart';
 import '../../features/owner/screens/jobs_screen.dart';
 import '../../features/owner/screens/customers_screen.dart';
 import '../../features/owner/screens/working_hours_screen.dart';
@@ -168,6 +169,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               label: label ?? (before != null ? 'Before' : 'After'),
               reportId: s.uri.queryParameters['reportId'],
               photoSlot: s.uri.queryParameters['slot'],
+              photoIndex:
+                  int.tryParse(s.uri.queryParameters['index'] ?? '') ?? 0,
             );
           }),
       GoRoute(
@@ -207,6 +210,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/owner/payment-history',
           builder: (_, __) => const PaymentHistoryScreen()),
+      GoRoute(
+          path: '/owner/storage',
+          builder: (_, __) => const MediaStorageScreen()),
       GoRoute(
           path: '/owner/customers',
           builder: (_, __) => const CustomersScreen()),

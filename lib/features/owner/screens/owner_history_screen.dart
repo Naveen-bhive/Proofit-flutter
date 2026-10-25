@@ -17,6 +17,8 @@ import '../../../shared/widgets/ui_kit.dart';
 import '../widgets/reports_history_ui.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../../../shared/services/auth_storage.dart';
+import '../../../core/network/api_service.dart';
+import '../widgets/export_videos.dart';
 import '../controllers/owner_controller.dart';
 import '../../../shared/permissions/app_permissions.dart';
 import '../../../shared/permissions/permission_session.dart';
@@ -126,17 +128,22 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
         options: Options(headers: {'Authorization': 'Bearer $token'}, responseType: ResponseType.bytes));
       await File(path).writeAsBytes(res.data);
       if (!mounted) return;
-      _showFileOptions(path);
+      // Videos are separate files, never inside the PDF.
+      final videos = format == 'pdf'
+          ? await offerExportVideos(context, ref.read(apiServiceProvider), body, dir.path)
+          : const <XFile>[];
+      if (!mounted) return;
+      _showFileOptions(path, videos);
     } catch (e) {
       if (mounted) showErrorSnackBar(context, e, fallback: 'Could not export reports. Please try again.');
     } finally { if (mounted) setState(() => _exporting = false); }
   }
 
-  void _showFileOptions(String path) => showExportReadySheet(
+  void _showFileOptions(String path, [List<XFile> videos = const []]) => showExportReadySheet(
     context,
     path: path,
     onOpen: () => OpenFile.open(path),
-    onShare: () => SharePlus.instance.share(ShareParams(files: [XFile(path)])),
+    onShare: () => SharePlus.instance.share(ShareParams(files: [XFile(path), ...videos])),
   );
 
   Future<void> _showExportOptions() async {

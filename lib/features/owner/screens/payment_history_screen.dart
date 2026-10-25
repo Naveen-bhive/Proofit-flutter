@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import '../../../core/network/api_service.dart';
+import '../../../core/utils/ui_feedback.dart';
 import '../../../shared/widgets/ui_kit.dart';
 import '../controllers/owner_controller.dart';
 
@@ -15,6 +19,8 @@ class PaymentHistoryScreen extends ConsumerStatefulWidget {
 
 class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
   bool _loading = true;
+  List<Map<String, dynamic>> _invoices = [];
+  String? _downloadingInvoice;
 
   @override
   void initState() {
@@ -24,8 +30,74 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    await ref.read(ownerControllerProvider.notifier).loadPaymentHistory();
+    await Future.wait([
+      ref.read(ownerControllerProvider.notifier).loadPaymentHistory(),
+      _loadInvoices(),
+    ]);
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _loadInvoices() async {
+    try {
+      final res = await ref.read(apiServiceProvider).get('/billing/invoices');
+      if (mounted) setState(() => _invoices = List<Map<String, dynamic>>.from((res.data['data'] as List).map((e) => Map<String, dynamic>.from(e as Map))));
+    } catch (_) {}
+  }
+
+  /// Invoice PDFs are rendered by the server for this organisation only.
+  Future<void> _openInvoice(Map<String, dynamic> inv) async {
+    final id = inv['_id'].toString();
+    setState(() => _downloadingInvoice = id);
+    try {
+      final dir = await getTemporaryDirectory();
+      final name = (inv['invoiceNumber']?.toString() ?? 'invoice').replaceAll(RegExp(r'[^\w-]+'), '');
+      final path = '${dir.path}/Proofit-$name.pdf';
+      await ref.read(apiServiceProvider).downloadToFile('/billing/invoices/$id/pdf', path);
+      await OpenFile.open(path);
+    } catch (e) {
+      if (mounted) showErrorSnackBar(context, e, fallback: 'Could not download the invoice.');
+    } finally {
+      if (mounted) setState(() => _downloadingInvoice = null);
+    }
+  }
+
+  Color _invoiceColor(String? status) => switch (status) {
+    'paid' => AppColors.greenDark,
+    'sent' => AppColors.amberDark,
+    'overdue' => AppColors.red,
+    'refunded' => AppColors.purple,
+    _ => AppColors.silver,
+  };
+
+  Widget _invoiceRow(Map<String, dynamic> inv) {
+    final date = _parseDate(inv['invoiceDate']);
+    final status = inv['status']?.toString() ?? '';
+    final total = (inv['total'] as num?)?.toDouble() ?? 0;
+    final id = inv['_id'].toString();
+    return SurfaceCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      onTap: _downloadingInvoice == null ? () => _openInvoice(inv) : null,
+      child: Row(children: [
+        const Icon(Icons.description_outlined, color: AppColors.brand),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(inv['invoiceNumber']?.toString() ?? 'Invoice', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14)),
+            Text('${inv['description'] ?? ''}${date != null ? ' · ${DateFormat('d MMM yyyy').format(date)}' : ''}',
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.silver, fontSize: 12)),
+          ]),
+        ),
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('₹${NumberFormat('#,##,##0.00', 'en_IN').format(total)}', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
+          SoftBadge(label: status, color: _invoiceColor(status), uppercase: true, fontSize: 10),
+        ]),
+        const SizedBox(width: 4),
+        _downloadingInvoice == id
+            ? const Padding(padding: EdgeInsets.all(10), child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand)))
+            : const Icon(Icons.download_rounded, color: AppColors.silver),
+      ]),
+    );
   }
 
   String _planLabel(String? slug) {
@@ -77,7 +149,7 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
                 : RefreshIndicator(
                     color: AppColors.brand,
                     onRefresh: _load,
-                    child: history.isEmpty
+                    child: history.isEmpty && _invoices.isEmpty
                         ? ListView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             children: const [
@@ -89,12 +161,20 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
                               ),
                             ],
                           )
-                        : ListView.separated(
+                        : ListView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                            itemCount: history.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 16),
-                            itemBuilder: (_, i) => _card(history[i], i == 0),
+                            children: [
+                              if (_invoices.isNotEmpty) ...[
+                                const SectionLabel('Invoices'),
+                                ..._invoices.map(_invoiceRow),
+                                const SectionLabel('Subscriptions'),
+                              ],
+                              for (int i = 0; i < history.length; i++) ...[
+                                if (i > 0) const SizedBox(height: 16),
+                                _card(history[i], i == 0),
+                              ],
+                            ],
                           ),
                   ),
           ),

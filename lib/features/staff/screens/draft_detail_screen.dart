@@ -154,9 +154,9 @@ class _DraftDetailScreenState extends ConsumerState<DraftDetailScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(child: _mediaBox('Before', report.beforeMedia, report.id ?? widget.reportId, 'before')),
+                          Expanded(child: _slotColumn('Before', report.beforePhotos, report.id ?? widget.reportId, 'before')),
                           const SizedBox(width: 12),
-                          Expanded(child: _mediaBox('After', report.afterMedia, report.id ?? widget.reportId, 'after')),
+                          Expanded(child: _slotColumn('After', report.afterPhotos, report.id ?? widget.reportId, 'after')),
                         ],
                       ),
                       if (report.notes != null && report.notes!.isNotEmpty) ...[
@@ -178,7 +178,23 @@ class _DraftDetailScreenState extends ConsumerState<DraftDetailScreen> {
     );
   }
 
-  Widget _mediaBox(String label, MediaData? media, String reportId, String slot) {
+
+  /// "Before" for a single photo, "Before 2/3" when there are several.
+  static String _slotLabel(String label, int i, int count) =>
+      count > 1 ? '$label ${i + 1}/$count' : label;
+
+  Widget _slotColumn(String label, List<MediaData> photos, String reportId, String slot) {
+    if (photos.isEmpty) return _mediaBox(label, null, reportId, slot, 0);
+    return Column(children: [
+      for (int i = 0; i < photos.length; i++)
+        Padding(
+          padding: EdgeInsets.only(bottom: i == photos.length - 1 ? 0 : 12),
+          child: _mediaBox(_slotLabel(label, i, photos.length), photos[i], reportId, slot, i),
+        ),
+    ]);
+  }
+
+  Widget _mediaBox(String label, MediaData? media, String reportId, String slot, int index) {
     final hasPhoto = media?.driveFileId != null || media?.url != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,6 +206,7 @@ class _DraftDetailScreenState extends ConsumerState<DraftDetailScreen> {
             driveFileId: media?.driveFileId,
             reportId: reportId,
             photoSlot: slot,
+            photoIndex: index,
             height: 140,
             showFullscreen: false,
           )

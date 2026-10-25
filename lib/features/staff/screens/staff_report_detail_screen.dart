@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../shared/widgets/drive_photo_widget.dart';
+import '../../../shared/widgets/report_media_tile.dart';
 import '../../../shared/models/report_model.dart';
 import '../controllers/staff_controller.dart';
 
@@ -98,12 +98,12 @@ class _StaffReportDetailScreenState extends ConsumerState<StaffReportDetailScree
               ],
 
               // Before / After
-              const Text('BEFORE & AFTER', style: TextStyle(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+              const Text('BEFORE & AFTER PHOTOS / VIDEOS', style: TextStyle(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
               const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: _mediaBox('Before', report.beforeMedia, report.id, 'before')),
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: _slotColumn('Before', report.beforePhotos, report.id, 'before')),
                 const SizedBox(width: 12),
-                Expanded(child: _mediaBox('After', report.afterMedia, report.id, 'after')),
+                Expanded(child: _slotColumn('After', report.afterPhotos, report.id, 'after')),
               ]),
 
               if (report.notes != null && report.notes!.isNotEmpty) ...[
@@ -117,23 +117,36 @@ class _StaffReportDetailScreenState extends ConsumerState<StaffReportDetailScree
     );
   }
 
-  Widget _mediaBox(String label, MediaData? media, String? reportId, String slot) {
+
+  /// "Before" for a single photo, "Before 2/3" when there are several.
+  static String _slotLabel(String label, int i, int count) =>
+      count > 1 ? '$label ${i + 1}/$count' : label;
+
+  Widget _slotColumn(String label, List<MediaData> photos, String? reportId, String slot) {
+    if (photos.isEmpty) return _mediaBox(label, null, reportId, slot, 0);
+    return Column(children: [
+      for (int i = 0; i < photos.length; i++)
+        Padding(
+          padding: EdgeInsets.only(bottom: i == photos.length - 1 ? 0 : 16),
+          child: _mediaBox(_slotLabel(label, i, photos.length), photos[i], reportId, slot, i),
+        ),
+    ]);
+  }
+
+  Widget _mediaBox(String label, MediaData? media, String? reportId, String slot, int index) {
     final driveFileId = media?.driveFileId;
     final url = media?.url;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(color: AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600)),
+      Text(media?.isVideo == true ? '$label (video)' : label, style: const TextStyle(color: AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
-      if (driveFileId != null || url != null)
-        DrivePhotoWidget(
-          driveFileId: driveFileId,
-          reportId: reportId,
-          photoSlot: slot,
-          height: 180,
-          showFullscreen: false,
-        )
-      else
-        Container(height: 180, decoration: BoxDecoration(color: AppColors.dark3, borderRadius: BorderRadius.circular(12)),
-          child: const Center(child: Icon(Icons.image_outlined, color: AppColors.muted, size: 40))),
+      ReportMediaTile(
+        media: (driveFileId != null || url != null || media?.isDeleted == true) ? media : null,
+        reportId: reportId,
+        slot: slot,
+        index: index,
+        label: label,
+        height: 180,
+      ),
       if (media?.capturedAt != null) ...[
         const SizedBox(height: 8),
         Text(DateFormat('d MMM yyyy, h:mm:ss a').format(media!.capturedAt!.toLocal()),

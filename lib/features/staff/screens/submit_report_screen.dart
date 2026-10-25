@@ -1,13 +1,15 @@
-import 'dart:io';
+import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/network/api_service.dart';
 import '../../../core/utils/api_error_utils.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/ui_kit.dart';
-import '../../../shared/widgets/camera_capture_widget.dart';
+import '../../../shared/widgets/multi_photo_picker.dart';
 import '../../../shared/services/location_service.dart';
 import '../../../shared/services/drive_service.dart';
 import '../../../shared/services/auth_storage.dart';
@@ -33,22 +35,17 @@ class SubmitReportScreen extends ConsumerStatefulWidget {
 class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
   final _notesCtrl = TextEditingController();
 
-  File? _beforeImage;
-  File? _afterImage;
-  CapturedPhoto? _beforeCapture;
-  CapturedPhoto? _afterCapture;
-  String? _beforeDriveId;
-  String? _afterDriveId;
-  String? _beforeServerUrl;
-  String? _afterServerUrl;
+  static const _maxPhotosPerSlot = 10;
+  static const _parallelUploads = 3;
+  // Client-side hints only (refreshed from GET /media/limits); the server enforces the real limits.
+  int _maxVideoSeconds = 180;
+  int? _maxVideoBytes;
 
-  /// True once the server-confirmed photo for this draft slot has loaded (or was in the draft payload).
-  bool _beforeOnServer = false;
-  bool _afterOnServer = false;
-  bool _beforeUploading = false;
-  bool _afterUploading = false;
-  String? _beforeUploadStatus;
-  String? _afterUploadStatus;
+  final List<ReportPhoto> _beforePhotos = [];
+  final List<ReportPhoto> _afterPhotos = [];
+  bool _pickingBefore = false;
+  bool _pickingAfter = false;
+  String? _orgName;
   double? _lat, _lng;
   String? _address;
   bool _locationLoading = false;
@@ -67,9 +64,23 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     super.initState();
     // Keep continuing an existing draft on the same report id - never create a second draft.
     _savedDraftId = widget.reportId;
+    AuthStorage.getOrg().then((org) => _orgName = org?.name);
     _loadJobs();
+    _loadMediaLimits();
     _getLocation();
     if (widget.reportId != null) _loadDraft();
+  }
+
+  Future<void> _loadMediaLimits() async {
+    try {
+      final res = await ref.read(apiServiceProvider).get('/media/limits');
+      final d = res.data['data'];
+      if (!mounted || d is! Map) return;
+      setState(() {
+        _maxVideoSeconds = (d['maxVideoDurationSec'] as num?)?.toInt() ?? _maxVideoSeconds;
+        _maxVideoBytes = (d['maxVideoBytes'] as num?)?.toInt();
+      });
+    } catch (_) {}
   }
 
   Future<void> _loadJobs() async {
@@ -106,64 +117,27 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
       _selectedJobTitle = (r.jobTitle.isNotEmpty ? r.jobTitle : null) ??
           widget.prefillTitle ??
           _selectedJobTitle;
-      _beforeDriveId = r.beforeMedia?.driveFileId;
-      _afterDriveId = r.afterMedia?.driveFileId;
-      _beforeServerUrl = _normalizePhotoUrl(r.beforeMedia?.url);
-      _afterServerUrl = _normalizePhotoUrl(r.afterMedia?.url);
-      _beforeOnServer = r.beforeMedia?.hasStoredPhoto == true;
-      _afterOnServer = r.afterMedia?.hasStoredPhoto == true;
-      // Drop any stale local files - remote draft media is source of truth on reopen.
-      if (_beforeOnServer) _beforeImage = null;
-      if (_afterOnServer) _afterImage = null;
+      _beforePhotos
+        ..clear()
+        ..addAll(r.beforePhotos.map((m) =>
+            ReportPhoto.remote(m, normalizedUrl: _normalizePhotoUrl(m.url))));
+      _afterPhotos
+        ..clear()
+        ..addAll(r.afterPhotos.map((m) =>
+            ReportPhoto.remote(m, normalizedUrl: _normalizePhotoUrl(m.url))));
       if (r.location != null) {
         _lat = r.location!.latitude;
         _lng = r.location!.longitude;
         _address = r.location!.address;
       }
-      if (r.beforeMedia?.capturedAt != null) {
-        _beforeCapture = CapturedPhoto(
-          file: File(''),
-          capturedAt: r.beforeMedia!.capturedAt!,
-          latitude: r.beforeMedia!.latitude,
-          longitude: r.beforeMedia!.longitude,
-          address: r.beforeMedia!.address,
-        );
-      }
-      if (r.afterMedia?.capturedAt != null) {
-        _afterCapture = CapturedPhoto(
-          file: File(''),
-          capturedAt: r.afterMedia!.capturedAt!,
-          latitude: r.afterMedia!.latitude,
-          longitude: r.afterMedia!.longitude,
-          address: r.afterMedia!.address,
-        );
-      }
     });
   }
 
-  bool get _beforeReady {
-    if (_beforeOnServer) return true;
-    return _hasBeforeIds;
-  }
+  List<ReportPhoto> _photosFor(String slot) =>
+      slot == 'before' ? _beforePhotos : _afterPhotos;
 
-  bool get _afterReady {
-    if (_afterOnServer) return true;
-    return _hasAfterIds;
-  }
-
-  bool get _hasBeforeIds {
-    final drive = _beforeDriveId?.trim();
-    final url = _beforeServerUrl?.trim();
-    return (drive != null && drive.isNotEmpty) ||
-        (url != null && url.isNotEmpty);
-  }
-
-  bool get _hasAfterIds {
-    final drive = _afterDriveId?.trim();
-    final url = _afterServerUrl?.trim();
-    return (drive != null && drive.isNotEmpty) ||
-        (url != null && url.isNotEmpty);
-  }
+  bool _slotReady(List<ReportPhoto> photos) =>
+      photos.isNotEmpty && photos.every((p) => p.isDone);
 
   String? _normalizePhotoUrl(String? url) {
     if (url == null || url.isEmpty) return url;
@@ -174,259 +148,163 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     return url;
   }
 
-  Future<void> _rehydrateMediaIds() async {
-    final id = _savedDraftId ?? widget.reportId;
-    if (id == null) return;
-    final r =
-        await ref.read(staffControllerProvider.notifier).fetchReportDetail(id);
-    if (!mounted || r == null) return;
-    setState(() {
-      _beforeDriveId = r.beforeMedia?.driveFileId ?? _beforeDriveId;
-      _beforeServerUrl =
-          _normalizePhotoUrl(r.beforeMedia?.url) ?? _beforeServerUrl;
-      _afterDriveId = r.afterMedia?.driveFileId ?? _afterDriveId;
-      _afterServerUrl =
-          _normalizePhotoUrl(r.afterMedia?.url) ?? _afterServerUrl;
-      _beforeOnServer =
-          _beforeOnServer || r.beforeMedia?.hasStoredPhoto == true;
-      _afterOnServer = _afterOnServer || r.afterMedia?.hasStoredPhoto == true;
-    });
-  }
-
-  /// When a remote photo renders successfully, mark slot saved and re-pull IDs for submit.
-  Future<void> _onRemotePhotoLoaded(String slot) async {
-    final already = slot == 'before' ? _beforeReady : _afterReady;
-    if (!already && mounted) {
-      setState(() {
-        if (slot == 'before') {
-          _beforeOnServer = true;
-          _beforeImage = null;
-        } else {
-          _afterOnServer = true;
-          _afterImage = null;
-        }
-      });
-    }
-    await _rehydrateMediaIds();
-  }
-
-  Future<bool> _uploadPhoto({
-    required File file,
-    required String label,
-    required void Function(String? driveId, String? serverUrl) onSuccess,
-    required void Function(String message) onError,
-    required void Function(String status) onStatus,
-  }) async {
-    onStatus('Uploading to Supabase...');
-
-    final org = await AuthStorage.getOrg();
-    final result = await ref
-        .read(staffControllerProvider.notifier)
-        .uploadPhotoWithFallback(
-          file: file,
-          orgName: org?.name ?? 'ProofIt',
-          jobTitle: _jobTitle.isNotEmpty ? _jobTitle : 'Report',
-          label: label,
-          onStatus: onStatus,
-        );
-
-    if (result.serverUrl != null) {
-      onSuccess(result.driveId, result.serverUrl);
-      return true;
-    }
-
-    onError(friendlyErrorMessage(
-      result.error,
-      fallback: 'Photo upload failed. Check your connection and tap Retry.',
-    ));
-    return false;
-  }
-
   @override
   void dispose() {
     _notesCtrl.dispose();
     super.dispose();
   }
 
-  Future<bool> _uploadBeforePhoto([File? fileOverride]) async {
-    final file = fileOverride ?? _beforeImage;
-    if (file == null) return false;
-
-    setState(() {
-      _beforeUploading = true;
-      _beforeUploadStatus = 'Uploading to Supabase...';
-      _error = null;
-    });
-    var ok = false;
-    await _uploadPhoto(
-      file: file,
-      label: 'Before',
-      onStatus: (status) {
-        if (mounted) setState(() => _beforeUploadStatus = status);
-      },
-      onSuccess: (driveId, serverUrl) {
-        if (!mounted) return;
-        setState(() {
-          if (driveId != null && driveId.isNotEmpty) _beforeDriveId = driveId;
-          if (serverUrl != null && serverUrl.isNotEmpty) {
-            _beforeServerUrl = _normalizePhotoUrl(serverUrl);
-          }
-          _beforeOnServer = true;
-        });
-        ok = true;
-      },
-      onError: (msg) {
-        if (!mounted) return;
-        setState(() => _error = 'Before photo: $msg');
-      },
-    );
-    if (mounted) {
-      setState(() {
-        _beforeUploading = false;
-        _beforeUploadStatus = null;
+  void _setPicking(String slot, bool value) => setState(() {
+        if (slot == 'before') {
+          _pickingBefore = value;
+        } else {
+          _pickingAfter = value;
+        }
       });
-    }
-    return ok;
-  }
 
-  Future<bool> _uploadAfterPhoto([File? fileOverride]) async {
-    final file = fileOverride ?? _afterImage;
-    if (file == null) return false;
+  /// Opens the picker, then adds the photos to the grid straight away (each
+  /// tile shows its own spinner) and stamps + uploads them in the background.
+  /// Videos skip stamping and upload with a progress indicator.
+  Future<void> _addPhotos(String slot, MediaSource source) async {
+    final photos = _photosFor(slot);
+    final remaining = _maxPhotosPerSlot - photos.length;
+    if (remaining <= 0) return;
 
-    setState(() {
-      _afterUploading = true;
-      _afterUploadStatus = 'Uploading to Supabase...';
-      _error = null;
-    });
-    var ok = false;
-    await _uploadPhoto(
-      file: file,
-      label: 'After',
-      onStatus: (status) {
-        if (mounted) setState(() => _afterUploadStatus = status);
-      },
-      onSuccess: (driveId, serverUrl) {
-        if (!mounted) return;
-        setState(() {
-          if (driveId != null && driveId.isNotEmpty) _afterDriveId = driveId;
-          if (serverUrl != null && serverUrl.isNotEmpty) {
-            _afterServerUrl = _normalizePhotoUrl(serverUrl);
-          }
-          _afterOnServer = true;
-        });
-        ok = true;
-      },
-      onError: (msg) {
-        if (!mounted) return;
-        setState(() => _error = 'After photo: $msg');
-      },
-    );
-    if (mounted) {
+    if (source == MediaSource.cameraVideo || source == MediaSource.galleryVideo) {
+      _setPicking(slot, true);
+      final video = await CameraService.pickVideo(context,
+          fromCamera: source == MediaSource.cameraVideo,
+          maxDuration: Duration(seconds: _maxVideoSeconds),
+          maxBytes: _maxVideoBytes);
+      if (!mounted) return;
+      _setPicking(slot, false);
+      if (video == null) return;
+      final item = ReportPhoto.video(video);
       setState(() {
-        _afterUploading = false;
-        _afterUploadStatus = null;
-      });
-    }
-    return ok;
-  }
-
-  Future<void> _onBeforeCaptured(CapturedPhoto? captured) async {
-    if (captured == null) {
-      setState(() {
-        _beforeCapture = null;
-        _beforeImage = null;
-        _beforeDriveId = null;
-        _beforeServerUrl = null;
-        _beforeOnServer = false;
+        photos.add(item);
         _error = null;
       });
+      await _uploadVideo(item, slot);
       return;
     }
 
+    final fromCamera = source == MediaSource.cameraPhoto;
+    _setPicking(slot, true);
+    final raws = await CameraService.pickRaw(context,
+        fromCamera: fromCamera, limit: remaining);
+    if (!mounted) return;
+    final added = raws.map(ReportPhoto.local).toList();
     setState(() {
-      _beforeCapture = captured;
-      _beforeImage = captured.file;
-      _beforeDriveId = null;
-      _beforeServerUrl = null;
-      _beforeOnServer = false;
+      photos.addAll(added);
       _error = null;
     });
-    await _uploadBeforePhoto(captured.file);
+    _setPicking(slot, false);
+    await _processAll(added, slot);
   }
 
-  Future<void> _onAfterCaptured(CapturedPhoto? captured) async {
-    if (captured == null) {
+  /// Runs [_processPhoto] over [items] with a small worker pool so several
+  /// photos upload at once without decoding ten images in parallel.
+  Future<void> _processAll(List<ReportPhoto> items, String slot) async {
+    var next = 0;
+    Future<void> worker() async {
+      while (next < items.length) {
+        await _processPhoto(items[next++], slot);
+      }
+    }
+
+    await Future.wait(List.generate(
+        math.min(_parallelUploads, items.length), (_) => worker()));
+  }
+
+  Future<void> _uploadVideo(ReportPhoto item, String slot) async {
+    setState(() {
+      item.status = PhotoUploadStatus.uploading;
+      item.progress = 0;
+      item.error = null;
+    });
+    final result = await ref.read(staffControllerProvider.notifier).uploadMedia(
+          file: item.capture!.file,
+          onProgress: (p) {
+            if (mounted) setState(() => item.progress = p);
+          },
+        );
+    if (!mounted) return;
+    setState(() {
+      if (result.asset != null) {
+        item.applyUpload(result.asset!);
+        item.url = _normalizePhotoUrl(item.url);
+      } else {
+        item.status = PhotoUploadStatus.failed;
+        item.progress = null;
+        item.error = result.error;
+      }
+    });
+  }
+
+  Future<void> _processPhoto(ReportPhoto photo, String slot) async {
+    if (photo.isVideo) return _uploadVideo(photo, slot);
+    final user = ref.read(staffControllerProvider).userName;
+    try {
+      if (photo.capture == null) {
+        setState(() => photo.status = PhotoUploadStatus.processing);
+        final captured = await CameraService.stamp(photo.raw!,
+            staffName: user, jobTitle: _jobTitle);
+        if (!mounted) return;
+        photo.capture = captured;
+      }
+      if (!_photosFor(slot).contains(photo)) return; // removed meanwhile
       setState(() {
-        _afterCapture = null;
-        _afterImage = null;
-        _afterDriveId = null;
-        _afterServerUrl = null;
-        _afterOnServer = false;
-        _error = null;
+        photo.status = PhotoUploadStatus.uploading;
+        photo.progress = 0;
+        photo.error = null;
       });
-      return;
-    }
 
-    setState(() {
-      _afterCapture = captured;
-      _afterImage = captured.file;
-      _afterDriveId = null;
-      _afterServerUrl = null;
-      _afterOnServer = false;
-      _error = null;
-    });
-    await _uploadAfterPhoto(captured.file);
+      final index = _photosFor(slot).indexOf(photo) + 1;
+      final result = await ref
+          .read(staffControllerProvider.notifier)
+          .uploadPhotoWithFallback(
+            file: photo.capture!.file,
+            orgName: _orgName ?? 'ProofIt',
+            jobTitle: _jobTitle.isNotEmpty ? _jobTitle : 'Report',
+            label: '${slot == 'before' ? 'Before' : 'After'} $index',
+            onDriveSaved: (id) => photo.driveId = id,
+            onProgress: (p) {
+              if (mounted) setState(() => photo.progress = p);
+            },
+          );
+      if (!mounted) return;
+      setState(() {
+        photo.progress = null;
+        if (result.serverUrl != null) {
+          photo.url = _normalizePhotoUrl(result.serverUrl);
+          photo.assetId = result.assetId;
+          photo.status = PhotoUploadStatus.done;
+          photo.error = null;
+        } else {
+          photo.status = PhotoUploadStatus.failed;
+          photo.error = result.error;
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => photo.status = PhotoUploadStatus.failed);
+    }
   }
 
-  Future<bool> _ensurePhotosReady({required bool asDraft}) async {
-    final hasLocalBefore =
-        _beforeImage != null && _beforeImage!.path.isNotEmpty;
-    final hasLocalAfter = _afterImage != null && _afterImage!.path.isNotEmpty;
+  void _removePhoto(String slot, ReportPhoto photo) =>
+      setState(() => _photosFor(slot).remove(photo));
 
-    if (asDraft) {
-      // Drafts may omit photos, but any captured photo must finish uploading first.
-      if (_beforeUploading || _afterUploading) {
-        setState(() => _error = 'Photos are still uploading - please wait');
-        return false;
-      }
-      if (hasLocalBefore && !_beforeReady) await _uploadBeforePhoto();
-      if (hasLocalAfter && !_afterReady) await _uploadAfterPhoto();
-      if (hasLocalBefore && !_beforeReady) {
-        setState(() => _error =
-            'Before photo failed to upload. Tap Retry, or remove it, then save draft.');
-        return false;
-      }
-      if (hasLocalAfter && !_afterReady) {
-        setState(() => _error =
-            'After photo failed to upload. Tap Retry, or remove it, then save draft.');
-        return false;
-      }
-      return true;
+  String? _photosNotReadyError({required bool asDraft}) {
+    final all = [..._beforePhotos, ..._afterPhotos];
+    if (all.any((p) => p.isBusy)) {
+      return 'Photos and videos are still uploading - please wait';
     }
-
-    if (!hasLocalBefore && !_beforeReady) {
-      setState(() => _error = 'Before photo is required');
-      return false;
+    if (all.any((p) => p.status == PhotoUploadStatus.failed)) {
+      return 'Some files failed to upload. Tap a red tile to retry, or remove it.';
     }
-    if (!hasLocalAfter && !_afterReady) {
-      setState(() => _error = 'After photo is required');
-      return false;
-    }
-    if (_beforeUploading || _afterUploading) {
-      setState(() => _error = 'Photos are still uploading - please wait');
-      return false;
-    }
-
-    if (!_beforeReady && hasLocalBefore) await _uploadBeforePhoto();
-    if (!_afterReady && hasLocalAfter) await _uploadAfterPhoto();
-
-    if (_beforeUploading || _afterUploading) {
-      setState(() => _error = 'Photos are still uploading - please wait');
-      return false;
-    }
-
-    // Drive may fail - server backup is used automatically on submit if needed.
-    return true;
+    if (asDraft) return null;
+    if (_beforePhotos.isEmpty) return 'Add at least one before photo or video';
+    if (_afterPhotos.isEmpty) return 'Add at least one after photo or video';
+    return null;
   }
 
   Future<void> _getLocation() async {
@@ -449,17 +327,9 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
       setState(() => _error = 'Select an assigned job');
       return;
     }
-    if (!await _ensurePhotosReady(asDraft: asDraft)) return;
-
-    // Ensure Drive/URL ids are present for any photo already on the server.
-    if ((_beforeOnServer && !_hasBeforeIds) ||
-        (_afterOnServer && !_hasAfterIds)) {
-      await _rehydrateMediaIds();
-    }
-
-    if (!asDraft && (!_beforeReady || !_afterReady)) {
-      setState(() => _error =
-          'Both photos must finish uploading before submit. Tap Retry on any failed photo.');
+    final photoError = _photosNotReadyError(asDraft: asDraft);
+    if (photoError != null) {
+      setState(() => _error = photoError);
       return;
     }
 
@@ -468,30 +338,18 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
       _error = null;
     });
 
-    final hasLocalBefore =
-        _beforeImage != null && _beforeImage!.path.isNotEmpty;
-    final hasLocalAfter = _afterImage != null && _afterImage!.path.isNotEmpty;
-    final useServerBefore = !_hasBeforeIds && hasLocalBefore;
-    final useServerAfter = !_hasAfterIds && hasLocalAfter;
-
     final result =
-        await ref.read(staffControllerProvider.notifier).submitReport(
+        await ref.read(staffControllerProvider.notifier).saveReport(
               jobTitle: _jobTitle,
               notes: _notesCtrl.text.trim(),
-              beforeImage: useServerBefore ? _beforeImage : null,
-              afterImage: useServerAfter ? _afterImage : null,
-              beforeDriveId: _beforeDriveId,
-              afterDriveId: _afterDriveId,
-              beforeUrl: _beforeServerUrl,
-              afterUrl: _afterServerUrl,
-              beforeCapturedAt: _beforeCapture?.capturedAt,
-              beforeLatitude: _beforeCapture?.latitude,
-              beforeLongitude: _beforeCapture?.longitude,
-              beforeAddress: _beforeCapture?.address,
-              afterCapturedAt: _afterCapture?.capturedAt,
-              afterLatitude: _afterCapture?.latitude,
-              afterLongitude: _afterCapture?.longitude,
-              afterAddress: _afterCapture?.address,
+              beforePhotos: [
+                for (int i = 0; i < _beforePhotos.length; i++)
+                  _beforePhotos[i].toMedia('before_${i + 1}'),
+              ],
+              afterPhotos: [
+                for (int i = 0; i < _afterPhotos.length; i++)
+                  _afterPhotos[i].toMedia('after_${i + 1}'),
+              ],
               latitude: _lat,
               longitude: _lng,
               address: _address,
@@ -504,15 +362,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     setState(() => _submitting = false);
     if (result.ok) {
       if (result.reportId != null) _savedDraftId = result.reportId;
-      if (!asDraft) {
-        final org = await AuthStorage.getOrg();
-        await DriveService.shareReportPhotos(
-          beforeFileId: _beforeDriveId,
-          afterFileId: _afterDriveId,
-          ownerEmail: org?.ownerEmail ?? '',
-          serviceAccountEmail: org?.driveServiceEmail,
-        );
-      }
+      if (!asDraft) unawaited(_shareDriveCopies());
       if (!mounted) return;
       if (asDraft) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -534,6 +384,22 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
             result.error,
             fallback: 'Failed to submit. Check your connection.',
           ));
+    }
+  }
+
+  /// Shares whichever Drive archive copies exist with the owner. Runs in the
+  /// background so submitting never waits on Drive.
+  Future<void> _shareDriveCopies() async {
+    final org = await AuthStorage.getOrg();
+    final before = _beforePhotos.map((p) => p.driveId).whereType<String>().toList();
+    final after = _afterPhotos.map((p) => p.driveId).whereType<String>().toList();
+    for (int i = 0; i < math.max(before.length, after.length); i++) {
+      await DriveService.shareReportPhotos(
+        beforeFileId: i < before.length ? before[i] : null,
+        afterFileId: i < after.length ? after[i] : null,
+        ownerEmail: org?.ownerEmail ?? '',
+        serviceAccountEmail: org?.driveServiceEmail,
+      );
     }
   }
 
@@ -728,7 +594,6 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(staffControllerProvider).userName;
     final isDraft = widget.reportId != null;
     return Scaffold(
       backgroundColor: AppColors.page,
@@ -833,7 +698,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                 const SizedBox(height: 26),
 
                 _sectionLabel(
-                  'BEFORE & AFTER PHOTOS',
+                  'BEFORE & AFTER PHOTOS / VIDEOS',
                   required: isDraft,
                   trailing: isDraft
                       ? const Row(mainAxisSize: MainAxisSize.min, children: [
@@ -844,52 +709,36 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                       : null,
                 ),
                 const Text(
-                    'Photos are stamped with date, time and GPS – saved to Google Drive, with server backup if Drive is unavailable.',
+                    'Add the before and after photos or videos the job needs. Photos are stamped with date, time and GPS and appear in the report PDF; videos are shared as separate files.',
                     style: TextStyle(color: AppColors.silver, fontSize: 13, height: 1.5)),
                 const SizedBox(height: 16),
 
-                CameraCaptureWidget(
-                    label: 'Before',
-                    image: _beforeImage,
-                    isRequired: true,
-                    isUploading: _beforeUploading,
-                    uploadStatus: _beforeUploadStatus,
-                    uploadSucceeded: _beforeReady,
-                    uploadFailed:
-                        (_beforeImage != null && _beforeImage!.path.isNotEmpty) &&
-                            !_beforeUploading &&
-                            !_beforeReady,
-                    onRetry: _uploadBeforePhoto,
-                    staffName: user,
-                    jobTitle: _jobTitle,
-                    networkImageUrl: _beforeServerUrl,
-                    driveFileId: _beforeDriveId,
-                    reportId: _savedDraftId ?? widget.reportId,
-                    photoSlot: 'before',
-                    onRemoteLoaded: () => _onRemotePhotoLoaded('before'),
-                    onCaptured: _onBeforeCaptured),
-                const SizedBox(height: 20),
+                MultiPhotoPicker(
+                  label: 'Before',
+                  photos: _beforePhotos,
+                  maxPhotos: _maxPhotosPerSlot,
+                  enabled: !_submitting,
+                  picking: _pickingBefore,
+                  photoSlot: 'before',
+                  reportId: _savedDraftId ?? widget.reportId,
+                  onAdd: (source) => _addPhotos('before', source),
+                  onRemove: (p) => _removePhoto('before', p),
+                  onRetry: (p) => _processPhoto(p, 'before'),
+                ),
+                const SizedBox(height: 22),
 
-                CameraCaptureWidget(
-                    label: 'After',
-                    image: _afterImage,
-                    isRequired: true,
-                    isUploading: _afterUploading,
-                    uploadStatus: _afterUploadStatus,
-                    uploadSucceeded: _afterReady,
-                    uploadFailed:
-                        (_afterImage != null && _afterImage!.path.isNotEmpty) &&
-                            !_afterUploading &&
-                            !_afterReady,
-                    onRetry: _uploadAfterPhoto,
-                    staffName: user,
-                    jobTitle: _jobTitle,
-                    networkImageUrl: _afterServerUrl,
-                    driveFileId: _afterDriveId,
-                    reportId: _savedDraftId ?? widget.reportId,
-                    photoSlot: 'after',
-                    onRemoteLoaded: () => _onRemotePhotoLoaded('after'),
-                    onCaptured: _onAfterCaptured),
+                MultiPhotoPicker(
+                  label: 'After',
+                  photos: _afterPhotos,
+                  maxPhotos: _maxPhotosPerSlot,
+                  enabled: !_submitting,
+                  picking: _pickingAfter,
+                  photoSlot: 'after',
+                  reportId: _savedDraftId ?? widget.reportId,
+                  onAdd: (source) => _addPhotos('after', source),
+                  onRemove: (p) => _removePhoto('after', p),
+                  onRetry: (p) => _processPhoto(p, 'after'),
+                ),
                 const SizedBox(height: 22),
 
                 // Progress checklist
@@ -901,9 +750,9 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                     _div(),
                     _check('Location', _lat != null),
                     _div(),
-                    _check('Before', _beforeReady),
+                    _check('Before', _slotReady(_beforePhotos)),
                     _div(),
-                    _check('After', _afterReady),
+                    _check('After', _slotReady(_afterPhotos)),
                   ]),
                 ),
                 const SizedBox(height: 18),

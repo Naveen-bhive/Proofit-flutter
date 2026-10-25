@@ -321,91 +321,147 @@ class StaffController extends StateNotifier<StaffState> {
     return null;
   }
 
-  Future<String?> uploadPhotoToServer(File file) async => _uploadToApi(file);
+  Future<({String? url, String? publicId})> uploadPhotoToServer(
+      File file) async {
+    final r = await uploadMedia(file: file);
+    return (url: r.asset?['url'] as String?, publicId: null);
+  }
 
-  Future<String?> _uploadToApi(File file) async {
+  static String _mimeFor(String path) {
+    final ext = path.split('.').last.toLowerCase();
+    return switch (ext) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      'mp4' || 'm4v' => 'video/mp4',
+      'mov' => 'video/quicktime',
+      '3gp' => 'video/3gpp',
+      'webm' => 'video/webm',
+      _ => 'image/jpeg',
+    };
+  }
+
+  /// Uploads one photo or video to Proofit storage. The server checks the
+  /// type, size, duration and the organisation's free storage, and returns
+  /// the stored asset (`_id`, url, thumbnailUrl, bytes…) or an error message
+  /// suitable for showing to the user (e.g. "Not enough storage space").
+  Future<({Map<String, dynamic>? asset, String? error})> uploadMedia({
+    required File file,
+    String? filename,
+    void Function(double progress)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final mime = _mimeFor(file.path);
+    final isVideo = mime.startsWith('video/');
     try {
-      final ext = file.path.split('.').last.toLowerCase();
-      final mime = switch (ext) {
-        'png' => 'image/png',
-        'webp' => 'image/webp',
-        _ => 'image/jpeg'
-      };
-      final res = await _api.uploadMultipart('/reports/upload-photo',
-          file: file, mimeType: mime);
+      final res = await _api.uploadMultipart('/media/upload',
+          file: file,
+          mimeType: mime,
+          filename: filename,
+          cancelToken: cancelToken,
+          sendTimeout: Duration(minutes: isVideo ? 15 : 1),
+          onSendProgress: onProgress == null
+              ? null
+              : (sent, total) {
+                  if (total > 0) onProgress(sent / total);
+                });
       if (res.data['success'] == true) {
-        return res.data['data']['publicUrl'] as String?;
+        return (asset: Map<String, dynamic>.from(res.data['data'] as Map), error: null);
       }
-      return null;
+      return (asset: null, error: res.data['message']?.toString() ?? 'Upload failed');
+    } on DioException catch (e) {
+      return (
+        asset: null,
+        error: friendlyErrorMessage(e,
+            fallback: isVideo
+                ? 'Video upload failed. Check your connection and tap Retry.'
+                : 'Photo upload failed. Check your connection and tap Retry.'),
+      );
     } catch (_) {
-      return null;
+      return (asset: null, error: 'Upload failed. Tap Retry.');
     }
   }
 
-  /// Supabase/server is the primary store; Google Drive is an optional archive.
-  Future<({String? driveId, String? serverUrl, String? error})>
+  /// Proofit storage (via our API) is the primary store; Google Drive is an
+  /// optional archive for photos. Returns as soon as the server copy is
+  /// saved — the Drive copy continues in the background and reports back
+  /// through [onDriveSaved], so the upload spinner never waits on Drive.
+  Future<({String? serverUrl, String? publicId, String? assetId, String? error})>
       uploadPhotoWithFallback({
     required File file,
     required String orgName,
     required String jobTitle,
     required String label,
     void Function(String status)? onStatus,
+    void Function(String driveId)? onDriveSaved,
+    void Function(double progress)? onProgress,
   }) async {
-    onStatus?.call('Uploading to Supabase...');
-    final serverUrl = await uploadPhotoToServer(file)
-        .timeout(const Duration(seconds: 60), onTimeout: () => null);
-    if (serverUrl == null) {
+    onStatus?.call('Uploading...');
+    final uploaded = await uploadMedia(file: file, onProgress: onProgress);
+    final asset = uploaded.asset;
+    if (asset == null) {
       return (
-        driveId: null,
         serverUrl: null,
-        error: 'Photo upload failed. Check your connection and tap Retry.',
+        publicId: null,
+        assetId: null,
+        error: uploaded.error ?? 'Photo upload failed. Check your connection and tap Retry.',
       );
     }
 
-    onStatus?.call('Saving Drive copy...');
+    unawaited(_archiveToDrive(
+      file: file,
+      orgName: orgName,
+      jobTitle: jobTitle,
+      label: label,
+      onDriveSaved: onDriveSaved,
+    ));
 
-    if (GoogleAuthService.driveApi == null) {
-      await GoogleAuthService.ensureDriveAccess().timeout(
-        const Duration(seconds: 8),
-        onTimeout: () => const DriveAccessResult(
-          ok: false,
-          error: 'Google Drive authorization timed out',
-        ),
-      );
-    }
+    return (
+      serverUrl: asset['url'] as String?,
+      publicId: null,
+      assetId: asset['_id']?.toString(),
+      error: null,
+    );
+  }
 
-    if (GoogleAuthService.driveApi != null) {
+  Future<void> _archiveToDrive({
+    required File file,
+    required String orgName,
+    required String jobTitle,
+    required String label,
+    void Function(String driveId)? onDriveSaved,
+  }) async {
+    try {
+      if (GoogleAuthService.driveApi == null) {
+        await GoogleAuthService.ensureDriveAccess().timeout(
+          const Duration(seconds: 8),
+          onTimeout: () => const DriveAccessResult(
+            ok: false,
+            error: 'Google Drive authorization timed out',
+          ),
+        );
+      }
+      if (GoogleAuthService.driveApi == null) return;
       final driveResult = await DriveService.uploadPhoto(
         file: file,
         orgName: orgName,
         jobTitle: jobTitle,
         label: label,
       );
-      if (driveResult.ok) {
-        return (driveId: driveResult.fileId, serverUrl: serverUrl, error: null);
-      }
+      final id = driveResult.fileId;
+      if (driveResult.ok && id != null) onDriveSaved?.call(id);
+    } catch (_) {
+      // Drive is only an archive — the server copy is already saved.
     }
-
-    return (driveId: null, serverUrl: serverUrl, error: null);
   }
 
-  Future<({bool ok, String? error, String? reportId})> submitReport({
+  /// Creates or updates a report with every before/after photo. Photos must
+  /// already be uploaded (see [uploadPhotoWithFallback]); each entry is a
+  /// media map (`url`, `publicId`, `capturedAt`, GPS…).
+  Future<({bool ok, String? error, String? reportId})> saveReport({
     required String jobTitle,
     required String? notes,
-    File? beforeImage,
-    File? afterImage,
-    String? beforeDriveId,
-    String? afterDriveId,
-    String? beforeUrl,
-    String? afterUrl,
-    DateTime? beforeCapturedAt,
-    double? beforeLatitude,
-    double? beforeLongitude,
-    String? beforeAddress,
-    DateTime? afterCapturedAt,
-    double? afterLatitude,
-    double? afterLongitude,
-    String? afterAddress,
+    required List<Map<String, dynamic>> beforePhotos,
+    required List<Map<String, dynamic>> afterPhotos,
     required double? latitude,
     required double? longitude,
     required String? address,
@@ -413,139 +469,29 @@ class StaffController extends StateNotifier<StaffState> {
     String? existingReportId,
     String? jobId,
   }) async {
+    if (!asDraft && (jobId == null || jobId.isEmpty)) {
+      return (
+        ok: false,
+        error: 'Select an assigned job before submitting.',
+        reportId: null
+      );
+    }
+    if (!asDraft && beforePhotos.isEmpty) {
+      return (
+        ok: false,
+        error: 'Add at least one before photo.',
+        reportId: null
+      );
+    }
+    if (!asDraft && afterPhotos.isEmpty) {
+      return (
+        ok: false,
+        error: 'Add at least one after photo.',
+        reportId: null
+      );
+    }
+
     try {
-      Map<String, dynamic>? beforeMedia;
-      Map<String, dynamic>? afterMedia;
-
-      Map<String, dynamic> mediaMeta({
-        DateTime? capturedAt,
-        double? lat,
-        double? lng,
-        String? addr,
-      }) =>
-          {
-            if (capturedAt != null)
-              'capturedAt': capturedAt.toUtc().toIso8601String(),
-            if (lat != null) 'latitude': lat,
-            if (lng != null) 'longitude': lng,
-            if (addr != null && addr.isNotEmpty) 'address': addr,
-          };
-
-      if (beforeImage != null) {
-        final org = await AuthStorage.getOrg();
-        final uploaded = await uploadPhotoWithFallback(
-          file: beforeImage,
-          orgName: org?.name ?? state.orgName,
-          jobTitle: jobTitle,
-          label: 'Before',
-        );
-        if (uploaded.serverUrl != null) {
-          beforeMedia = {
-            'url': uploaded.serverUrl,
-            if (uploaded.driveId != null) 'driveFileId': uploaded.driveId,
-            'type': 'photo',
-            ...mediaMeta(
-              capturedAt: beforeCapturedAt,
-              lat: beforeLatitude,
-              lng: beforeLongitude,
-              addr: beforeAddress,
-            ),
-          };
-        }
-      } else if (beforeDriveId != null) {
-        beforeMedia = {
-          'driveFileId': beforeDriveId,
-          'type': 'photo',
-          ...mediaMeta(
-            capturedAt: beforeCapturedAt,
-            lat: beforeLatitude,
-            lng: beforeLongitude,
-            addr: beforeAddress,
-          ),
-        };
-      } else if (beforeUrl != null) {
-        beforeMedia = {
-          'url': beforeUrl,
-          'type': 'photo',
-          ...mediaMeta(
-            capturedAt: beforeCapturedAt,
-            lat: beforeLatitude,
-            lng: beforeLongitude,
-            addr: beforeAddress,
-          ),
-        };
-      }
-
-      if (afterImage != null) {
-        final org = await AuthStorage.getOrg();
-        final uploaded = await uploadPhotoWithFallback(
-          file: afterImage,
-          orgName: org?.name ?? state.orgName,
-          jobTitle: jobTitle,
-          label: 'After',
-        );
-        if (uploaded.serverUrl != null) {
-          afterMedia = {
-            'url': uploaded.serverUrl,
-            if (uploaded.driveId != null) 'driveFileId': uploaded.driveId,
-            'type': 'photo',
-            ...mediaMeta(
-              capturedAt: afterCapturedAt,
-              lat: afterLatitude,
-              lng: afterLongitude,
-              addr: afterAddress,
-            ),
-          };
-        }
-      } else if (afterDriveId != null) {
-        afterMedia = {
-          'driveFileId': afterDriveId,
-          'type': 'photo',
-          ...mediaMeta(
-            capturedAt: afterCapturedAt,
-            lat: afterLatitude,
-            lng: afterLongitude,
-            addr: afterAddress,
-          ),
-        };
-      } else if (afterUrl != null) {
-        afterMedia = {
-          'url': afterUrl,
-          'type': 'photo',
-          ...mediaMeta(
-            capturedAt: afterCapturedAt,
-            lat: afterLatitude,
-            lng: afterLongitude,
-            addr: afterAddress,
-          ),
-        };
-      }
-
-      if (!asDraft && (jobId == null || jobId.isEmpty)) {
-        return (
-          ok: false,
-          error: 'Select an assigned job before submitting.',
-          reportId: null
-        );
-      }
-
-      if (!asDraft) {
-        if (beforeMedia == null) {
-          return (
-            ok: false,
-            error: 'Before photo is missing — tap Retry on the photo upload.',
-            reportId: null
-          );
-        }
-        if (afterMedia == null) {
-          return (
-            ok: false,
-            error: 'After photo is missing — tap Retry on the photo upload.',
-            reportId: null
-          );
-        }
-      }
-
       final payload = {
         'jobTitle': jobTitle,
         'notes': notes,
@@ -553,8 +499,10 @@ class StaffController extends StateNotifier<StaffState> {
         'location': latitude != null
             ? {'latitude': latitude, 'longitude': longitude, 'address': address}
             : null,
-        if (beforeMedia != null) 'beforeMedia': beforeMedia,
-        if (afterMedia != null) 'afterMedia': afterMedia,
+        if (beforePhotos.isNotEmpty) 'beforeMedia': beforePhotos.first,
+        if (afterPhotos.isNotEmpty) 'afterMedia': afterPhotos.first,
+        'beforePhotos': beforePhotos,
+        'afterPhotos': afterPhotos,
         if (jobId != null && jobId.isNotEmpty) 'jobId': jobId,
       };
 
@@ -864,40 +812,32 @@ class StaffController extends StateNotifier<StaffState> {
     try {
       final org = await AuthStorage.getOrg();
       final orgName = org?.name ?? state.orgName;
-      final beforeUrls = <Map<String, dynamic>>[];
-      final afterUrls = <Map<String, dynamic>>[];
-      for (int i = 0; i < beforePhotos.length; i++) {
-        final uploaded = await uploadPhotoWithFallback(
-          file: beforePhotos[i],
-          orgName: orgName,
-          jobTitle: jobTitle,
-          label: 'before_${i + 1}',
-        );
-        if (uploaded.serverUrl != null) {
-          beforeUrls.add({
-            'url': uploaded.serverUrl,
-            if (uploaded.driveId != null) 'driveFileId': uploaded.driveId,
-            'type': 'photo',
-            'label': 'before_${i + 1}',
-          });
-        }
+      Future<List<Map<String, dynamic>>> uploadAll(
+          List<File> files, String prefix) async {
+        final results = await Future.wait([
+          for (int i = 0; i < files.length; i++)
+            uploadPhotoWithFallback(
+              file: files[i],
+              orgName: orgName,
+              jobTitle: jobTitle,
+              label: '${prefix}_${i + 1}',
+            ),
+        ]);
+        return [
+          for (int i = 0; i < results.length; i++)
+            if (results[i].serverUrl != null)
+              {
+                'url': results[i].serverUrl,
+                if (results[i].assetId != null)
+                  'assetId': results[i].assetId,
+                'type': 'photo',
+                'label': '${prefix}_${i + 1}',
+              },
+        ];
       }
-      for (int i = 0; i < afterPhotos.length; i++) {
-        final uploaded = await uploadPhotoWithFallback(
-          file: afterPhotos[i],
-          orgName: orgName,
-          jobTitle: jobTitle,
-          label: 'after_${i + 1}',
-        );
-        if (uploaded.serverUrl != null) {
-          afterUrls.add({
-            'url': uploaded.serverUrl,
-            if (uploaded.driveId != null) 'driveFileId': uploaded.driveId,
-            'type': 'photo',
-            'label': 'after_${i + 1}',
-          });
-        }
-      }
+
+      final beforeUrls = await uploadAll(beforePhotos, 'before');
+      final afterUrls = await uploadAll(afterPhotos, 'after');
       await _api.post('/reports', data: {
         'jobTitle': jobTitle,
         'notes': notes,

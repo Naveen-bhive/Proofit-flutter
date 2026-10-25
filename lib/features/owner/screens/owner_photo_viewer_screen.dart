@@ -12,12 +12,14 @@ class OwnerPhotoViewerScreen extends StatefulWidget {
   final String  label;
   final String? reportId;
   final String? photoSlot;
+  final int     photoIndex;
   const OwnerPhotoViewerScreen({
     super.key,
     required this.fileId,
     required this.label,
     this.reportId,
     this.photoSlot,
+    this.photoIndex = 0,
   });
   @override State<OwnerPhotoViewerScreen> createState() => _OwnerPhotoViewerScreenState();
 }
@@ -43,7 +45,10 @@ class _OwnerPhotoViewerScreenState extends State<OwnerPhotoViewerScreen> {
             headers: {'Authorization': 'Bearer $token'},
             responseType: ResponseType.bytes,
           ));
-          final res = await dio.get('/reports/${widget.reportId}/photo/${widget.photoSlot}');
+          final res = await dio.get(
+            '/reports/${widget.reportId}/photo/${widget.photoSlot}',
+            queryParameters: {if (widget.photoIndex > 0) 'index': widget.photoIndex},
+          );
           bytes = Uint8List.fromList(res.data as List<int>);
         }
       } catch (_) {}

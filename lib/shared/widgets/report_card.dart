@@ -21,8 +21,12 @@ class ReportCard extends StatelessWidget {
     this.actionLabel = 'View PDF',
   });
 
-  int get _photoCount =>
-      (report.beforeMedia?.hasStoredPhoto == true ? 1 : 0) + (report.afterMedia?.hasStoredPhoto == true ? 1 : 0);
+  List<MediaData> get _media => [...report.beforePhotos, ...report.afterPhotos].where((m) => !m.isDeleted).toList();
+  int get _videoCount => _media.where((m) => m.isVideo).length;
+  int get _photoCount => _media.length - _videoCount;
+  String get _mediaLabel => _videoCount == 0
+      ? '$_photoCount Photos'
+      : '$_photoCount Photos · $_videoCount Video${_videoCount == 1 ? '' : 's'}';
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +157,7 @@ class ReportCard extends StatelessWidget {
                   child: const Icon(Icons.description_outlined, size: 14, color: Color(0xFF93C5FD)),
                 ),
                 const SizedBox(height: 3),
-                Text('$_photoCount Photos', style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 8.5)),
+                Text(_mediaLabel, style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 8.5)),
               ]),
             ),
           if (report.location != null)

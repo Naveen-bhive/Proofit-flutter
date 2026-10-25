@@ -175,6 +175,7 @@ abstract final class AppPermissions {
     '/owner/subscription',
     '/owner/enterprise-request',
     '/owner/payment-history',
+    '/owner/storage',
     '/owner/account-deletion',
   };
 

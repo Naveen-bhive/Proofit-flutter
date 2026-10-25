@@ -10,6 +10,8 @@ class DrivePhotoWidget extends StatefulWidget {
   final String?  driveFileId;
   final String?  reportId;
   final String?  photoSlot;
+  /// Position within the slot's multi-photo list (0 = first/legacy photo).
+  final int      photoIndex;
   final double   height;
   final double?  width;
   final BoxFit   fit;
@@ -23,6 +25,7 @@ class DrivePhotoWidget extends StatefulWidget {
     this.driveFileId,
     this.reportId,
     this.photoSlot,
+    this.photoIndex    = 0,
     this.height        = 200,
     this.width,
     this.fit           = BoxFit.cover,
@@ -51,7 +54,8 @@ class _DrivePhotoWidgetState extends State<DrivePhotoWidget> {
     super.didUpdateWidget(old);
     if (old.driveFileId != widget.driveFileId ||
         old.reportId != widget.reportId ||
-        old.photoSlot != widget.photoSlot) {
+        old.photoSlot != widget.photoSlot ||
+        old.photoIndex != widget.photoIndex) {
       _notifiedLoad = false;
       _loadPhoto();
     }
@@ -66,7 +70,10 @@ class _DrivePhotoWidgetState extends State<DrivePhotoWidget> {
       headers: {'Authorization': 'Bearer $token'},
       responseType: ResponseType.bytes,
     ));
-    final res = await dio.get('/reports/${widget.reportId}/photo/${widget.photoSlot}');
+    final res = await dio.get(
+      '/reports/${widget.reportId}/photo/${widget.photoSlot}',
+      queryParameters: {if (widget.photoIndex > 0) 'index': widget.photoIndex},
+    );
     return Uint8List.fromList(res.data as List<int>);
   }
 

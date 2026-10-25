@@ -144,6 +144,8 @@ class _OwnerProfileScreenState extends ConsumerState<OwnerProfileScreen> {
                 onTap: () => context.push('/owner/subscription')),
             MenuRow(icon: Icons.receipt_long_outlined, color: AppColors.silver, label: 'Payment History',
                 onTap: () => context.push('/owner/payment-history')),
+            MenuRow(icon: Icons.sd_storage_outlined, color: AppColors.purple, label: 'Media and Storage',
+                onTap: () => context.push('/owner/storage')),
           ]),
 
           const SectionLabel('Account'),

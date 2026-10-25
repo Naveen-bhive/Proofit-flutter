@@ -9,7 +9,9 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/utils/ui_feedback.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../shared/widgets/drive_photo_widget.dart';
+import '../../../core/network/api_service.dart';
+import '../../../core/utils/export_file_utils.dart';
+import '../../../shared/widgets/report_media_tile.dart';
 import '../../../shared/models/report_model.dart';
 import '../../../shared/services/auth_storage.dart';
 import '../controllers/owner_controller.dart';
@@ -24,6 +26,7 @@ class ReportDetailScreen extends ConsumerStatefulWidget {
 
 class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
   bool _sharing = false;
+  String? _shareStatus;
 
   @override
   void initState() {
@@ -49,14 +52,20 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
       await File(path).writeAsBytes(res.data);
       if (!mounted) return;
 
+      // Videos aren't inside the PDF — download each one as its own file and
+      // share it alongside the PDF.
+      final videos = await _downloadVideos(dir.path);
+      if (!mounted) return;
+
       // Share sheet
       final box = context.findRenderObject() as RenderBox?;
+      final videoNote = videos.isEmpty ? '' : ' Photos are in the PDF; ${videos.length} video${videos.length == 1 ? ' is' : 's are'} attached as separate file${videos.length == 1 ? '' : 's'}.';
       await SharePlus.instance.share(ShareParams(
-        files: [XFile(path, mimeType: 'application/pdf')],
+        files: [XFile(path, mimeType: 'application/pdf'), ...videos],
         subject: 'Work Completion Report',
         text: customer != null
-            ? 'Dear ${customer['name']}, please find attached the work completion report. - ${ref.read(ownerControllerProvider).orgName}'
-            : 'Work Completion Report',
+            ? 'Dear ${customer['name']}, please find attached the work completion report.$videoNote - ${ref.read(ownerControllerProvider).orgName}'
+            : 'Work Completion Report.$videoNote',
         sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
       ));
     } catch (e) {
@@ -68,8 +77,35 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _sharing = false);
+      if (mounted) setState(() { _sharing = false; _shareStatus = null; });
     }
+  }
+
+  /// Downloads every (non-deleted) video on the report through the
+  /// authorised API endpoint, keeping the original filename (sanitised and
+  /// prefixed with its slot so names never collide).
+  Future<List<XFile>> _downloadVideos(String dirPath) async {
+    final report = ref.read(ownerControllerProvider).selectedReport;
+    if (report == null) return [];
+    final api = ref.read(apiServiceProvider);
+    final out = <XFile>[];
+    final entries = [
+      for (final (i, m) in report.beforePhotos.indexed) ('Before', i, m),
+      for (final (i, m) in report.afterPhotos.indexed) ('After', i, m),
+    ].where((e) => e.$3.isVideo && !e.$3.isDeleted && e.$3.assetId != null).toList();
+    for (final (n, (slot, i, m)) in entries.indexed) {
+      final original = m.originalFilename ?? 'video.mp4';
+      final dot = original.lastIndexOf('.');
+      final ext = dot > 0 ? original.substring(dot + 1).toLowerCase() : 'mp4';
+      final base = exportFileNamePart(dot > 0 ? original.substring(0, dot) : original, fallback: 'video');
+      final file = '$dirPath/$slot-${i + 1}-$base.$ext';
+      if (mounted) setState(() => _shareStatus = 'Downloading video ${n + 1} of ${entries.length}…');
+      await api.downloadToFile('/media/${m.assetId}/download', file, onReceiveProgress: (r, t) {
+        if (mounted && t > 0) setState(() => _shareStatus = 'Downloading video ${n + 1} of ${entries.length} — ${(r * 100 / t).round()}%');
+      });
+      out.add(XFile(file, mimeType: m.mimeType ?? 'video/mp4'));
+    }
+    return out;
   }
 
   @override
@@ -163,14 +199,19 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                   style: const TextStyle(color: AppColors.light, fontSize: 13))),
               ])),
 
-          // Before / After Photos
-          const Text('BEFORE & AFTER PHOTOS',
-            style: TextStyle(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+          // Before / After Photos and videos
+          Text(_videoCount(report) > 0 ? 'BEFORE & AFTER PHOTOS / VIDEOS' : 'BEFORE & AFTER PHOTOS',
+            style: const TextStyle(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+          if (_videoCount(report) > 0) ...[
+            const SizedBox(height: 6),
+            Text('Photos are included in the PDF. ${_videoCount(report)} video${_videoCount(report) == 1 ? ' is' : 's are'} shared as separate files.',
+              style: const TextStyle(color: AppColors.silver, fontSize: 12)),
+          ],
           const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: _photoCol(context, 'Before', report.beforeMedia, 'before')),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: _slotColumn(context, 'Before', report.beforePhotos, 'before')),
             const SizedBox(width: 12),
-            Expanded(child: _photoCol(context, 'After', report.afterMedia, 'after')),
+            Expanded(child: _slotColumn(context, 'After', report.afterPhotos, 'after')),
           ]),
 
           if (report.notes != null && report.notes!.isNotEmpty) ...[
@@ -188,9 +229,9 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
             icon: _sharing
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
               : const Icon(Icons.picture_as_pdf_outlined, size: 20),
-            label: Text(customer != null
-              ? 'Share PDF to ${customer['name']}'
-              : 'Export as PDF'),
+            label: Text(_shareStatus ?? (customer != null
+              ? 'Share PDF${_videoCount(report) > 0 ? ' + videos' : ''} to ${customer['name']}'
+              : 'Export PDF${_videoCount(report) > 0 ? ' + ${_videoCount(report)} video${_videoCount(report) == 1 ? '' : 's'}' : ''}')),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.brand,
               minimumSize: const Size(double.infinity, 54),
@@ -202,7 +243,26 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     );
   }
 
-  Widget _photoCol(BuildContext context, String label, MediaData? media, String slot) {
+
+  /// "Before" for a single photo, "Before 2/3" when there are several.
+  static String _slotLabel(String label, int i, int count) =>
+      count > 1 ? '$label ${i + 1}/$count' : label;
+
+  Widget _slotColumn(BuildContext context, String label, List<MediaData> photos, String slot) {
+    if (photos.isEmpty) return _photoCol(context, label, null, slot, 0);
+    return Column(children: [
+      for (int i = 0; i < photos.length; i++)
+        Padding(
+          padding: EdgeInsets.only(bottom: i == photos.length - 1 ? 0 : 16),
+          child: _photoCol(context, _slotLabel(label, i, photos.length), photos[i], slot, i),
+        ),
+    ]);
+  }
+
+  static int _videoCount(ReportModel r) =>
+      [...r.beforePhotos, ...r.afterPhotos].where((m) => m.isVideo && !m.isDeleted).length;
+
+  Widget _photoCol(BuildContext context, String label, MediaData? media, String slot, int index) {
     final driveFileId = media?.driveFileId;
     final capturedAt = media?.capturedAt;
     final gps = media?.gpsLine;
@@ -210,16 +270,18 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(color: AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600)),
+      Text(media?.isVideo == true ? '$label (video)' : label, style: const TextStyle(color: AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
-      DrivePhotoWidget(
-        driveFileId: driveFileId,
+      ReportMediaTile(
+        media: media,
         reportId: widget.reportId,
-        photoSlot: slot,
+        slot: slot,
+        index: index,
+        label: label,
         height: 200,
         // Photos can be stored via direct upload (no driveFileId) or Drive —
         // the viewer itself handles both, so don't gate navigation on Drive only.
-        onTap: () => context.push('/owner/photo-viewer?fileId=${driveFileId ?? ''}&label=$label&reportId=${widget.reportId}&slot=$slot')),
+        onPhotoTap: () => context.push('/owner/photo-viewer?fileId=${driveFileId ?? ''}&label=${Uri.encodeQueryComponent(label)}&reportId=${widget.reportId}&slot=$slot&index=$index')),
       if (capturedAt != null) ...[
         const SizedBox(height: 8),
         Text(DateFormat('d MMM yyyy, h:mm:ss a').format(capturedAt.toLocal()),

@@ -200,6 +200,8 @@ class NotificationService {
           ? '/owner/map'
           : '/owner/map?staffId=${Uri.encodeComponent(staffId)}';
     }
+    if (!isStaff && type == 'storage') return '/owner/storage';
+    if (!isStaff && (type == 'invoice' || type == 'payment')) return '/owner/payment-history';
     if (reportId != null && reportId.isNotEmpty) {
       if (type == 'draft_reminder' && isStaff) return '/staff/draft/$reportId';
       return isStaff ? '/staff/report/$reportId' : '/owner/report/$reportId';

@@ -35,114 +35,192 @@ class CameraService {
     return false;
   }
 
-  // ── Take photo → stamp → return file + capture metadata ─────────────
-  // Upload to Drive is handled by submit flow
-  static Future<CapturedPhoto?> takePhoto(BuildContext context,
-      {String? staffName, String? jobTitle}) async {
-    final hasCam = await requestCameraPermission(context);
-    if (!hasCam) return null;
-    try {
-      final picked = await _picker.pickImage(
-          source: ImageSource.camera,
-          imageQuality: 85,
-          maxWidth: 1920,
-          maxHeight: 1920,
-          preferredCameraDevice: CameraDevice.rear);
-      if (picked == null) return null;
+  static const _maxPhotoMB = 10.0;
 
+  /// Opens the camera (one shot) or the gallery (multi-select up to [limit])
+  /// and returns the raw files straight away — no GPS or stamping yet — so
+  /// the caller can show a spinner immediately. Pair with [stamp].
+  static Future<List<File>> pickRaw(BuildContext context,
+      {required bool fromCamera, int limit = 1}) async {
+    try {
+      final List<XFile> picked;
+      if (fromCamera) {
+        if (!await requestCameraPermission(context)) return [];
+        final shot = await _picker.pickImage(
+            source: ImageSource.camera,
+            imageQuality: 85,
+            maxWidth: 1920,
+            maxHeight: 1920,
+            preferredCameraDevice: CameraDevice.rear);
+        picked = [if (shot != null) shot];
+      } else if (limit <= 1) {
+        final one = await _picker.pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 85,
+            maxWidth: 1920,
+            maxHeight: 1920);
+        picked = [if (one != null) one];
+      } else {
+        picked = await _picker.pickMultiImage(
+            imageQuality: 85, maxWidth: 1920, maxHeight: 1920, limit: limit);
+      }
+
+      final files = <File>[];
+      for (final x in picked.take(limit)) {
+        final file = File(x.path);
+        final sizeMB = await getFileSizeMB(file);
+        if (sizeMB > _maxPhotoMB) {
+          if (context.mounted) {
+            _showError(context,
+                'Photo too large (${sizeMB.toStringAsFixed(1)}MB). Max 10MB.');
+          }
+          continue;
+        }
+        files.add(file);
+      }
+      return files;
+    } catch (e) {
+      debugPrint('Photo pick error: $e');
+      if (context.mounted) {
+        _showError(context,
+            fromCamera ? 'Camera error. Please try again.' : 'Could not open gallery.');
+      }
+      return [];
+    }
+  }
+
+  /// Records (camera) or picks (gallery) one video. Videos aren't stamped —
+  /// capture time and GPS travel as metadata. [maxBytes] is only a hint to
+  /// spare a pointless upload; the server enforces the real limits.
+  static Future<CapturedPhoto?> pickVideo(BuildContext context,
+      {required bool fromCamera,
+      Duration maxDuration = const Duration(minutes: 3),
+      int? maxBytes}) async {
+    try {
+      if (fromCamera) {
+        final granted = await requestCameraPermission(context);
+        if (!granted || !context.mounted) return null;
+      }
+      final picked = await _picker.pickVideo(
+        source: fromCamera ? ImageSource.camera : ImageSource.gallery,
+        maxDuration: maxDuration,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+      if (picked == null) return null;
       final file = File(picked.path);
       final sizeMB = await getFileSizeMB(file);
-      if (sizeMB > 10) {
+      if (maxBytes != null && sizeMB * 1024 * 1024 > maxBytes) {
         if (context.mounted) {
           _showError(context,
-              'Photo too large (${sizeMB.toStringAsFixed(1)}MB). Max 10MB.');
+              'Video too large (${sizeMB.toStringAsFixed(0)}MB). Max ${(maxBytes / (1024 * 1024)).round()}MB — record a shorter clip.');
         }
         return null;
       }
-
-      // Get GPS at capture moment
-      final capturedAt = DateTime.now();
-      double? lat, lng;
-      String? address;
-      try {
-        final pos = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high,
-            timeLimit: const Duration(seconds: 5));
-        lat = pos.latitude;
-        lng = pos.longitude;
-        address = await LocationService.getAddressFromCoords(lat, lng);
-      } catch (_) {}
-
-      // Stamp timestamp + GPS into photo
-      final stamped = await PhotoStampService.stampPhoto(
-        originalFile: file,
-        capturedAt: capturedAt,
-        latitude: lat,
-        longitude: lng,
-        address: address,
-        staffName: staffName,
-        jobTitle: jobTitle,
-      );
-
+      final fix = await _currentFix();
       return CapturedPhoto(
-        file: stamped,
-        capturedAt: capturedAt,
-        latitude: lat,
-        longitude: lng,
-        address: address,
+        file: file,
+        capturedAt: DateTime.now(),
+        latitude: fix?.lat,
+        longitude: fix?.lng,
+        address: fix?.address,
       );
     } catch (e) {
-      debugPrint('Camera error: $e');
+      debugPrint('Video pick error: $e');
       if (context.mounted) {
-        _showError(context, 'Camera error. Please try again.');
+        _showError(context,
+            fromCamera ? 'Could not record video. Please try again.' : 'Could not open videos.');
       }
       return null;
     }
   }
 
-  static Future<CapturedPhoto?> pickFromGallery(BuildContext context,
+  /// Stamps date/time/GPS onto [raw] (off the UI isolate) and returns the
+  /// stamped file with its capture metadata.
+  static Future<CapturedPhoto> stamp(File raw,
       {String? staffName, String? jobTitle}) async {
-    try {
-      final picked = await _picker.pickImage(
-          source: ImageSource.gallery,
-          imageQuality: 85,
-          maxWidth: 1920,
-          maxHeight: 1920);
-      if (picked == null) return null;
+    final capturedAt = DateTime.now();
+    final fix = await _currentFix();
+    final stamped = await PhotoStampService.stampPhoto(
+      originalFile: raw,
+      capturedAt: capturedAt,
+      latitude: fix?.lat,
+      longitude: fix?.lng,
+      address: fix?.address,
+      staffName: staffName,
+      jobTitle: jobTitle,
+    );
+    return CapturedPhoto(
+      file: stamped,
+      capturedAt: capturedAt,
+      latitude: fix?.lat,
+      longitude: fix?.lng,
+      address: fix?.address,
+    );
+  }
 
-      final file = File(picked.path);
-      final capturedAt = DateTime.now();
-      double? lat, lng;
-      String? address;
-      try {
-        final pos = await Geolocator.getCurrentPosition(
+  // ── GPS fix cache ───────────────────────────────────────────────────
+  // A fresh high-accuracy fix + reverse geocode costs several seconds; reuse
+  // one for photos taken close together, and share a single in-flight lookup
+  // when several gallery photos are stamped at once.
+  static ({double lat, double lng, String? address, DateTime at})? _fix;
+  static Future<({double lat, double lng, String? address, DateTime at})?>?
+      _fixInFlight;
+  static const _fixMaxAge = Duration(seconds: 60);
+
+  static Future<({double lat, double lng, String? address, DateTime at})?>
+      _currentFix() {
+    final cached = _fix;
+    if (cached != null && DateTime.now().difference(cached.at) < _fixMaxAge) {
+      return Future.value(cached);
+    }
+    return _fixInFlight ??= _lookupFix().whenComplete(() => _fixInFlight = null);
+  }
+
+  static Future<({double lat, double lng, String? address, DateTime at})?>
+      _lookupFix() async {
+    try {
+      Position? pos = await Geolocator.getLastKnownPosition();
+      final stale = pos == null ||
+          DateTime.now().difference(pos.timestamp) > const Duration(minutes: 2);
+      if (stale) {
+        pos = await Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.high,
             timeLimit: const Duration(seconds: 5));
-        lat = pos.latitude;
-        lng = pos.longitude;
-        address = await LocationService.getAddressFromCoords(lat, lng);
-      } catch (_) {}
-
-      final stamped = await PhotoStampService.stampPhoto(
-        originalFile: file,
-        capturedAt: capturedAt,
-        latitude: lat,
-        longitude: lng,
+      }
+      final p = pos;
+      final prev = _fix;
+      // Skip the reverse-geocode round trip when we haven't moved.
+      final sameSpot = prev != null &&
+          prev.address != null &&
+          Geolocator.distanceBetween(prev.lat, prev.lng, p.latitude, p.longitude) < 50;
+      final address = sameSpot
+          ? prev.address
+          : await LocationService.getAddressFromCoords(p.latitude, p.longitude);
+      return _fix = (
+        lat: p.latitude,
+        lng: p.longitude,
         address: address,
-        staffName: staffName,
-        jobTitle: jobTitle,
-      );
-
-      return CapturedPhoto(
-        file: stamped,
-        capturedAt: capturedAt,
-        latitude: lat,
-        longitude: lng,
-        address: address,
+        at: DateTime.now(),
       );
     } catch (_) {
-      return null;
+      return _fix;
     }
+  }
+
+  // ── Take photo → stamp → return file + capture metadata ─────────────
+  // Upload to Drive is handled by submit flow
+  static Future<CapturedPhoto?> takePhoto(BuildContext context,
+      {String? staffName, String? jobTitle}) async {
+    final raw = await pickRaw(context, fromCamera: true);
+    if (raw.isEmpty) return null;
+    return stamp(raw.first, staffName: staffName, jobTitle: jobTitle);
+  }
+
+  static Future<CapturedPhoto?> pickFromGallery(BuildContext context,
+      {String? staffName, String? jobTitle}) async {
+    final raw = await pickRaw(context, fromCamera: false);
+    if (raw.isEmpty) return null;
+    return stamp(raw.first, staffName: staffName, jobTitle: jobTitle);
   }
 
   static Future<double> getFileSizeMB(File file) async {

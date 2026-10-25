@@ -126,15 +126,40 @@ class ApiService {
   Future<Response> delete(String path) => _dio.delete(path);
 
   Future<Response> uploadMultipart(String path,
-      {required File file, required String mimeType}) async {
+      {required File file,
+      required String mimeType,
+      String? filename,
+      void Function(int sent, int total)? onSendProgress,
+      CancelToken? cancelToken,
+      Duration sendTimeout = const Duration(seconds: 60)}) async {
     final form = FormData.fromMap({
       'file': await MultipartFile.fromFile(file.path,
-          filename: file.path.split('/').last,
+          filename: filename ?? file.path.split('/').last,
           contentType: DioMediaType.parse(mimeType)),
     });
     return _dio.post(path,
-        data: form, options: Options(contentType: 'multipart/form-data'));
+        data: form,
+        onSendProgress: onSendProgress,
+        cancelToken: cancelToken,
+        // Videos can take minutes on mobile data; the 12s default would cut them off.
+        options: Options(
+          contentType: 'multipart/form-data',
+          sendTimeout: sendTimeout,
+          receiveTimeout: const Duration(minutes: 2),
+        ));
   }
+
+  /// Authenticated download straight to [savePath] (videos, invoice PDFs).
+  Future<void> downloadToFile(String path, String savePath,
+          {void Function(int received, int total)? onReceiveProgress,
+          Object? postData}) =>
+      _dio.download(path, savePath,
+          data: postData,
+          onReceiveProgress: onReceiveProgress,
+          options: Options(
+            method: postData != null ? 'POST' : 'GET',
+            receiveTimeout: const Duration(minutes: 10),
+          ));
 
   Future<void> saveToken(String token) =>
       _storage.write(key: AppConstants.tokenKey, value: token);

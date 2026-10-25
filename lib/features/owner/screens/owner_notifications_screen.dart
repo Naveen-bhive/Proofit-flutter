@@ -47,6 +47,8 @@ class _OwnerNotificationsScreenState
     if (n['type'] == 'leave_request') {
       context.push('/owner/leaves');
     }
+    if (n['type'] == 'storage') context.push('/owner/storage');
+    if (n['type'] == 'invoice') context.push('/owner/payment-history');
     if (n['type'] == 'staff_login' || n['type'] == 'staff_logout') {
       _openMap(n);
     }
@@ -366,7 +368,7 @@ class _OwnerNotificationsScreenState
   }
 
   String? _tag(String type) => switch (type) {
-        'payment' || 'enterprise_approved' || 'enterprise_rejected' || 'enterprise_deactivated' || 'account_deletion_approved' || 'account_deletion_rejected' => 'Account',
+        'payment' || 'invoice' || 'storage' || 'enterprise_approved' || 'enterprise_rejected' || 'enterprise_deactivated' || 'account_deletion_approved' || 'account_deletion_rejected' => 'Account',
         'enterprise_request' => 'Support',
         'new_report' || 'flagged' || 'draft' || 'draft_reminder' => 'Reports',
         'job_completed' || 'job_assigned' => 'Jobs',
@@ -449,7 +451,8 @@ class _OwnerNotificationsScreenState
         'new_report' => (Icons.assignment_outlined, AppColors.brand),
         'flagged' => (Icons.warning_amber_rounded, AppColors.red),
         'draft' || 'draft_reminder' => (Icons.drafts_outlined, AppColors.yellow),
-        'payment' => (Icons.receipt_long_outlined, AppColors.greenDark),
+        'payment' || 'invoice' => (Icons.receipt_long_outlined, AppColors.greenDark),
+        'storage' => (Icons.sd_storage_outlined, AppColors.purple),
         'tracking_stale' => (Icons.location_off_outlined, AppColors.yellow),
         'tracking_impaired' => (Icons.gpp_maybe_outlined, AppColors.red),
         'checkin' => (Icons.login_rounded, AppColors.greenDark),
