@@ -11,6 +11,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/ui_kit.dart';
 import '../controllers/owner_controller.dart';
+import '../widgets/storage_addons_section.dart';
 
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../shared/services/auth_storage.dart';
@@ -387,6 +388,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           ),
                         ]),
                       ),
+                      const SizedBox(height: 8),
+                      // Storage used + the current plan's add-ons, same as Media and Storage.
+                      const StorageAddOnsSection(showUsage: true),
                     ]),
                   ),
           ),
@@ -442,6 +446,16 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         ]),
       );
 
+  /// "5 GB storage included", for plans with the Storage feature.
+  /// (Storage add-ons are sold separately — see the Storage section below.)
+  List<String> _storageLines(Map<String, dynamic> plan) {
+    final flags = plan['flags'];
+    final storage = plan['storage'];
+    if (flags is! Map || flags['storage'] != true || storage is! Map) return const [];
+    final included = storage['includedGb'];
+    return [if (included != null) '$included GB storage included'];
+  }
+
   Widget _planCard({
     required Map<String, dynamic> plan,
     required Color color,
@@ -449,7 +463,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     DateTime? expiresAt,
     VoidCallback? onUpgrade,
   }) {
-    final features = List<String>.from(plan['features'] ?? const []);
+    final features = [..._storageLines(plan), ...List<String>.from(plan['features'] ?? const [])];
     final maxStaff = plan['maxStaff']?.toString() ?? '-';
     final name = plan['name'] as String? ?? 'Plan';
     final description = (plan['description'] ?? '').toString();

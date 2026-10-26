@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 
@@ -10,10 +11,25 @@ class CircleBackButton extends StatelessWidget {
   final IconData icon;
   const CircleBackButton({super.key, this.onTap, this.icon = Icons.chevron_left_rounded});
 
+  /// Pops when there is a screen to return to; otherwise (screen opened from
+  /// a notification or deep link) goes to the owner/staff home instead of
+  /// silently doing nothing.
+  static void goBack(BuildContext context) {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    final router = GoRouter.maybeOf(context);
+    if (router == null) return;
+    final path = router.routerDelegate.currentConfiguration.uri.path;
+    router.go(path.startsWith('/owner') ? '/owner' : '/staff');
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap ?? () => Navigator.of(context).maybePop(),
+      onTap: onTap ?? () => goBack(context),
       child: Container(
         width: 38,
         height: 38,

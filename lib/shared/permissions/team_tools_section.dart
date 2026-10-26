@@ -28,6 +28,7 @@ const _tools = [
   _TeamTool('Working Hours', Icons.schedule_rounded, AppColors.brand, '/owner/working-hours', [AppPermissions.workingHoursView], planFeature: 'workingHours'),
   _TeamTool('Live Map', Icons.map_outlined, AppColors.purple, '/owner/map', [AppPermissions.liveMapView], planFeature: 'liveMap'),
   _TeamTool('Broadcast', Icons.campaign_outlined, AppColors.brand, '/owner/notifications', [AppPermissions.notificationsSend]),
+  _TeamTool('Media and Storage', Icons.sd_storage_outlined, AppColors.purple, '/owner/storage', [AppPermissions.storageView]),
 ];
 
 /// The owner tools a staff member has been granted, shown on their profile.

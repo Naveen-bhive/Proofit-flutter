@@ -1,19 +1,19 @@
-import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:photo_view/photo_view.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/network/api_service.dart';
 import '../../../core/utils/api_error_utils.dart';
 import '../../../core/utils/ui_feedback.dart';
 import '../../../shared/models/storage_models.dart';
-import '../../../shared/services/auth_storage.dart';
+import '../../../shared/permissions/app_permissions.dart';
+import '../../../shared/permissions/permission_session.dart';
 import '../../../shared/widgets/ui_kit.dart';
 import '../../../shared/widgets/video_player_screen.dart';
+import '../widgets/storage_addons_section.dart';
 
 /// Owner settings → Media and Storage: how much of the organisation's
 /// storage is used, every stored photo and video (select + delete, like
@@ -26,10 +26,10 @@ class MediaStorageScreen extends ConsumerStatefulWidget {
 
 class _MediaStorageScreenState extends ConsumerState<MediaStorageScreen> with SingleTickerProviderStateMixin {
   late final TabController _tabs = TabController(length: 2, vsync: this)..addListener(_onTab);
-  Razorpay? _razorpay;
 
   StorageSummary? _summary;
-  List<AddOnProduct> _products = [];
+  // Bumped on pull-to-refresh so the add-ons section reloads too.
+  int _refreshCount = 0;
   final Map<String, List<StoredMedia>> _items = {'image': [], 'video': []};
   final Map<String, bool> _hasMore = {'image': true, 'video': true};
   final Map<String, int> _page = {'image': 0, 'video': 0};
@@ -38,25 +38,22 @@ class _MediaStorageScreenState extends ConsumerState<MediaStorageScreen> with Si
   bool _loading = true;
   bool _loadingMore = false;
   bool _deleting = false;
-  String? _buyingProductId;
   String? _error;
 
   String get _kind => _tabs.index == 0 ? 'image' : 'video';
+  // Owners can do everything; staff need storage.delete to delete and reports.view to open a report.
+  bool get _canDelete => ref.read(permissionSessionProvider).can(AppPermissions.storageDelete);
+  bool get _canOpenReport => ref.read(permissionSessionProvider).can(AppPermissions.reportsView);
   ApiService get _api => ref.read(apiServiceProvider);
 
   @override
   void initState() {
     super.initState();
-    _razorpay = Razorpay()
-      ..on(Razorpay.EVENT_PAYMENT_SUCCESS, _onPaymentSuccess)
-      ..on(Razorpay.EVENT_PAYMENT_ERROR, _onPaymentError)
-      ..on(Razorpay.EVENT_EXTERNAL_WALLET, (_) {});
     _refreshAll();
   }
 
   @override
   void dispose() {
-    _razorpay?.clear();
     _tabs.dispose();
     super.dispose();
   }
@@ -71,9 +68,10 @@ class _MediaStorageScreenState extends ConsumerState<MediaStorageScreen> with Si
     setState(() {
       _loading = true;
       _error = null;
+      _refreshCount++;
     });
     try {
-      await Future.wait([_loadSummary(), _loadAddOns(), _reloadList()]);
+      await Future.wait([_loadSummary(), _reloadList()]);
     } catch (e) {
       _error = friendlyErrorMessage(e, fallback: 'Could not load storage. Pull to retry.');
     }
@@ -83,15 +81,6 @@ class _MediaStorageScreenState extends ConsumerState<MediaStorageScreen> with Si
   Future<void> _loadSummary() async {
     final res = await _api.get('/storage/summary');
     if (mounted) setState(() => _summary = StorageSummary.fromJson(Map<String, dynamic>.from(res.data['data'] as Map)));
-  }
-
-  Future<void> _loadAddOns() async {
-    final res = await _api.get('/storage/addons');
-    final d = res.data['data'] as Map;
-    if (!mounted) return;
-    setState(() => _products = [
-          for (final p in (d['products'] as List? ?? const [])) AddOnProduct.fromJson(Map<String, dynamic>.from(p as Map)),
-        ]);
   }
 
   Future<void> _reloadList() async {
@@ -185,68 +174,6 @@ class _MediaStorageScreenState extends ConsumerState<MediaStorageScreen> with Si
     ));
   }
 
-  // ── Add-on purchase (Razorpay; iOS needs App Store IAP) ─────
-
-  Future<void> _buy(AddOnProduct product, {String? renewAddOnId}) async {
-    setState(() => _buyingProductId = product.id);
-    try {
-      final res = await _api.post('/storage/addons/order', data: {
-        'productId': product.id,
-        if (renewAddOnId != null) 'renewAddOnId': renewAddOnId,
-      });
-      final d = res.data['data'] as Map;
-      final user = await AuthStorage.getUser();
-      _razorpay!.open({
-        'key': d['key'],
-        'amount': d['amount'],
-        'currency': d['currency'] ?? 'INR',
-        'order_id': d['orderId'],
-        'name': 'ProofIt',
-        'description': d['productName'] ?? product.name,
-        'prefill': {'contact': user?.phone ?? '', 'email': user?.email ?? ''},
-        'theme': {'color': '#2F80ED'},
-      });
-    } catch (e) {
-      if (mounted) {
-        setState(() => _buyingProductId = null);
-        showErrorSnackBar(context, e, fallback: 'Could not start payment. Please try again.');
-      }
-    }
-  }
-
-  Future<void> _onPaymentSuccess(PaymentSuccessResponse r) async {
-    try {
-      final res = await _api.post('/storage/addons/verify', data: {
-        'razorpay_order_id': r.orderId,
-        'razorpay_payment_id': r.paymentId,
-        'razorpay_signature': r.signature,
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(res.data['message']?.toString() ?? 'Storage added'),
-        backgroundColor: AppColors.greenDark,
-      ));
-    } catch (e) {
-      // e.g. payment captured a moment later — the webhook activates it.
-      if (mounted) {
-        showErrorSnackBar(context, e,
-            fallback: 'Payment received. Storage will be added as soon as the payment is confirmed.');
-      }
-    } finally {
-      if (mounted) setState(() => _buyingProductId = null);
-      await _loadSummary();
-    }
-  }
-
-  void _onPaymentError(PaymentFailureResponse r) {
-    if (!mounted) return;
-    setState(() => _buyingProductId = null);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(friendlyErrorMessage(r.message ?? 'Payment cancelled', fallback: 'Payment was not completed.')),
-      backgroundColor: AppColors.red,
-    ));
-  }
-
   // ── UI ──────────────────────────────────────────────────────
 
   @override
@@ -289,7 +216,7 @@ class _MediaStorageScreenState extends ConsumerState<MediaStorageScreen> with Si
                             sliver: SliverList(delegate: SliverChildListDelegate([
                               if (_error != null) _errorBox(_error!),
                               if (_summary != null) _summaryCard(_summary!),
-                              if (_products.isNotEmpty || (_summary?.activeAddOns.isNotEmpty ?? false)) _addOnsSection(),
+                              StorageAddOnsSection(key: ValueKey(_refreshCount), onPurchased: _loadSummary),
                               const SizedBox(height: 8),
                               TabBar(
                                 controller: _tabs,
@@ -413,78 +340,6 @@ class _MediaStorageScreenState extends ConsumerState<MediaStorageScreen> with Si
         Text('$label  ${formatBytes(bytes)}', style: const TextStyle(color: AppColors.light, fontSize: 12.5)),
       ]);
 
-  Widget _addOnsSection() {
-    final s = _summary;
-    final fmt = DateFormat('d MMM yyyy');
-    final iosNoIap = Platform.isIOS;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SectionLabel('More storage'),
-      for (final a in s?.activeAddOns ?? const <ActiveAddOn>[])
-        SurfaceCard(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          child: Row(children: [
-            const IconTile(icon: Icons.cloud_done_outlined, color: AppColors.greenDark),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(a.name, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text)),
-                Text(
-                  a.isCurrent
-                      ? 'Active until ${a.expiresAt != null ? fmt.format(a.expiresAt!.toLocal()) : '-'}'
-                      : 'Starts ${a.startsAt != null ? fmt.format(a.startsAt!.toLocal()) : '-'} (renewal)',
-                  style: const TextStyle(color: AppColors.silver, fontSize: 12.5),
-                ),
-              ]),
-            ),
-            if (a.isCurrent && !iosNoIap && _products.isNotEmpty)
-              TextButton(
-                onPressed: _buyingProductId != null ? null : () => _renew(a),
-                child: const Text('Renew'),
-              ),
-          ]),
-        ),
-      for (final p in _products)
-        SurfaceCard(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          child: Row(children: [
-            const IconTile(icon: Icons.add_to_drive_outlined, color: AppColors.brand),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('+${p.sizeGb} GB storage', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text)),
-                Text('₹${NumberFormat('#,##,##0.##', 'en_IN').format(p.price)} for ${p.durationDays} days${p.description.isNotEmpty ? ' · ${p.description}' : ''}',
-                    style: const TextStyle(color: AppColors.silver, fontSize: 12.5)),
-              ]),
-            ),
-            if (!iosNoIap)
-              _buyingProductId == p.id
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand))
-                  : TextButton(onPressed: _buyingProductId != null ? null : () => _buy(p), child: const Text('Buy')),
-          ]),
-        ),
-      if (iosNoIap && _products.isNotEmpty)
-        const Padding(
-          padding: EdgeInsets.fromLTRB(4, 0, 4, 8),
-          child: Text('Storage add-ons can be purchased from the ProofIt Android app. Storage bought there applies to your whole organisation.',
-              style: TextStyle(color: AppColors.silver, fontSize: 12)),
-        ),
-    ]);
-  }
-
-  /// Renewing buys the same pack size; the new period starts when the current one ends.
-  void _renew(ActiveAddOn a) {
-    final match = _products.where((p) => p.sizeGb * 1024 * 1024 * 1024 == a.sizeBytes).toList();
-    if (match.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('This pack is no longer sold. Choose another size below.'),
-      ));
-      return;
-    }
-    _buy(match.first, renewAddOnId: a.id);
-  }
-
   Widget _grid() {
     final items = _items[_kind]!;
     if (items.isEmpty && !_loadingMore) {
@@ -509,7 +364,7 @@ class _MediaStorageScreenState extends ConsumerState<MediaStorageScreen> with Si
     final selected = _selected.contains(m.id);
     void toggle() => setState(() => selected ? _selected.remove(m.id) : _selected.add(m.id));
     return GestureDetector(
-      onLongPress: toggle,
+      onLongPress: _canDelete ? toggle : null,
       onTap: _selected.isNotEmpty ? toggle : () => _showDetails(m),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
@@ -576,7 +431,7 @@ class _MediaStorageScreenState extends ConsumerState<MediaStorageScreen> with Si
                 },
               ),
             ),
-            if (m.reportId != null) ...[
+            if (m.reportId != null && _canOpenReport) ...[
               const SizedBox(width: 10),
               Expanded(
                 child: SecondaryButton(
@@ -591,17 +446,19 @@ class _MediaStorageScreenState extends ConsumerState<MediaStorageScreen> with Si
               ),
             ],
           ]),
-          const SizedBox(height: 10),
-          SecondaryButton(
-            label: 'Delete',
-            icon: Icons.delete_outline_rounded,
-            color: AppColors.red,
-            height: 46,
-            onPressed: () {
-              Navigator.pop(ctx);
-              _deleteSelected([m]);
-            },
-          ),
+          if (_canDelete) ...[
+            const SizedBox(height: 10),
+            SecondaryButton(
+              label: 'Delete',
+              icon: Icons.delete_outline_rounded,
+              color: AppColors.red,
+              height: 46,
+              onPressed: () {
+                Navigator.pop(ctx);
+                _deleteSelected([m]);
+              },
+            ),
+          ],
         ]),
       ),
     );

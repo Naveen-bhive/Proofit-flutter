@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/network/api_service.dart';
 import '../../../core/utils/export_file_utils.dart';
 import '../../../shared/models/storage_models.dart' show formatBytes;
+import 'share_report_files_sheet.dart' show videoMimeFor;
 
 /// After a PDF export: videos are never embedded in the PDF, so if the
 /// exported reports have any, offer to download them as separate files.
@@ -58,7 +59,7 @@ Future<List<XFile>> offerExportVideos(
     onStatus?.call('Downloading video ${n + 1} of ${videos.length}…');
     try {
       await api.downloadToFile('/media/$assetId/download', path);
-      files.add(XFile(path, mimeType: v['mimeType']?.toString() ?? 'video/mp4'));
+      files.add(XFile(path, mimeType: v['mimeType']?.toString() ?? videoMimeFor(path)));
     } catch (_) {
       failed += 1;
     }

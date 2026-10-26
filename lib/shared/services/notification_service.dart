@@ -177,13 +177,11 @@ class NotificationService {
     }
     unawaited(_routeForTap(data).then((route) {
       if (route == null) return; // signed out — nothing to open
-      if (route.startsWith('/owner/map')) {
-        // Keep the owner shell underneath so Back returns to the app.
-        router.go('/owner');
-        router.push(route);
-      } else {
-        router.go(route);
-      }
+      // Keep the home shell underneath so Back returns to the app instead of
+      // doing nothing (go() alone replaces the whole stack).
+      final home = route.startsWith('/owner') ? '/owner' : '/staff';
+      router.go(home);
+      if (route != home) router.push(route);
     }));
   }
 

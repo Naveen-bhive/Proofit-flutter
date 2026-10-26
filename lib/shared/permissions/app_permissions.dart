@@ -59,6 +59,8 @@ abstract final class AppPermissions {
   static const workingHoursView = 'workingHours.view';
   static const liveMapView = 'liveMap.view';
   static const notificationsSend = 'notifications.send';
+  static const storageView = 'storage.view';
+  static const storageDelete = 'storage.delete';
 
   static const holidaysAny = [holidaysCreate, holidaysEdit, holidaysDelete];
 
@@ -137,6 +139,14 @@ abstract final class AppPermissions {
       feature: 'notifications', label: 'Notifications', description: 'Messages to the whole team',
       actions: [PermissionAction(notificationsSend, 'Broadcast & send reminders')],
     ),
+    // Buying storage add-ons is a payment, so it stays owner-only.
+    PermissionGroup(
+      feature: 'storage', label: 'Media & storage', description: 'Stored photos and videos, and storage use',
+      actions: [
+        PermissionAction(storageView, 'View storage & media'),
+        PermissionAction(storageDelete, 'Delete photos & videos', requires: [storageView]),
+      ],
+    ),
   ];
 
   static final List<PermissionAction> all = [for (final g in groups) ...g.actions];
@@ -175,7 +185,6 @@ abstract final class AppPermissions {
     '/owner/subscription',
     '/owner/enterprise-request',
     '/owner/payment-history',
-    '/owner/storage',
     '/owner/account-deletion',
   };
 
@@ -198,6 +207,7 @@ abstract final class AppPermissions {
     '/owner/holidays': holidaysAny,
     '/owner/working-hours': [workingHoursView],
     '/owner/notifications': [notificationsSend],
+    '/owner/storage': [storageView],
   };
 
   /// The permissions that unlock [path] for staff, or null if staff can never

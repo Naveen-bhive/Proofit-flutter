@@ -11,6 +11,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/network/api_service.dart';
 import '../../../core/utils/export_file_utils.dart';
+import '../widgets/share_report_files_sheet.dart';
 import '../../../shared/widgets/report_media_tile.dart';
 import '../../../shared/models/report_model.dart';
 import '../../../shared/services/auth_storage.dart';
@@ -57,17 +58,17 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
       final videos = await _downloadVideos(dir.path);
       if (!mounted) return;
 
-      // Share sheet
-      final box = context.findRenderObject() as RenderBox?;
-      final videoNote = videos.isEmpty ? '' : ' Photos are in the PDF; ${videos.length} video${videos.length == 1 ? ' is' : 's are'} attached as separate file${videos.length == 1 ? '' : 's'}.';
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(path, mimeType: 'application/pdf'), ...videos],
-        subject: 'Work Completion Report',
+      // PDF and videos are shared separately — see shareReportFiles.
+      final videoNote = videos.isEmpty ? '' : ' Photos are in the PDF; ${videos.length} video${videos.length == 1 ? ' follows' : 's follow'} separately.';
+      if (mounted) setState(() => _shareStatus = null);
+      await shareReportFiles(
+        context,
+        pdf: XFile(path, mimeType: 'application/pdf'),
+        videos: videos,
         text: customer != null
             ? 'Dear ${customer['name']}, please find attached the work completion report.$videoNote - ${ref.read(ownerControllerProvider).orgName}'
             : 'Work Completion Report.$videoNote',
-        sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
-      ));
+      );
     } catch (e) {
       if (mounted) {
         showErrorSnackBar(
@@ -103,7 +104,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
       await api.downloadToFile('/media/${m.assetId}/download', file, onReceiveProgress: (r, t) {
         if (mounted && t > 0) setState(() => _shareStatus = 'Downloading video ${n + 1} of ${entries.length} — ${(r * 100 / t).round()}%');
       });
-      out.add(XFile(file, mimeType: m.mimeType ?? 'video/mp4'));
+      out.add(XFile(file, mimeType: m.mimeType ?? videoMimeFor(file)));
     }
     return out;
   }

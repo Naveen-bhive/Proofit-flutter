@@ -19,6 +19,7 @@ import '../../../shared/widgets/shimmer_loader.dart';
 import '../../../shared/services/auth_storage.dart';
 import '../../../core/network/api_service.dart';
 import '../widgets/export_videos.dart';
+import '../widgets/share_report_files_sheet.dart';
 import '../controllers/owner_controller.dart';
 import '../../../shared/permissions/app_permissions.dart';
 import '../../../shared/permissions/permission_session.dart';
@@ -139,7 +140,7 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
     context,
     path: path,
     onOpen: () => OpenFile.open(path),
-    onShare: () => SharePlus.instance.share(ShareParams(files: [XFile(path), ...videos], subject: 'Work Completion Report')),
+    onShare: () => shareReportFiles(context, pdf: XFile(path), videos: videos, text: 'Work Completion Report'),
   );
 
   Future<void> _showExportOptions() async {

@@ -56,6 +56,12 @@ void main() {
       expect(redirect('/owner/export-pdf/r1', 'staff', {'reports.view'}), '/no-access');
     });
 
+    test('Media and Storage opens for staff with storage.view only', () {
+      expect(redirect('/owner/storage', 'staff', {}), '/no-access');
+      expect(redirect('/owner/storage', 'staff', {'storage.view'}), isNull);
+      expect(AppPermissions.normalize(['storage.delete']), ['storage.view', 'storage.delete']);
+    });
+
     test('staff screens are unaffected', () {
       expect(redirect('/staff/jobs', 'staff', {}), isNull);
     });
