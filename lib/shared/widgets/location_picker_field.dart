@@ -12,6 +12,8 @@ class LocationPickerField extends StatefulWidget {
   final String? initialAddress;
   final double? initialLat;
   final double? initialLng;
+  /// Optional visible coverage circle, in meters, centered on the selected pin.
+  final double? coverageRadiusMeters;
   final ValueChanged<SelectedPlace?> onPlaceSelected;
 
   const LocationPickerField({
@@ -19,6 +21,7 @@ class LocationPickerField extends StatefulWidget {
     this.initialAddress,
     this.initialLat,
     this.initialLng,
+    this.coverageRadiusMeters,
     required this.onPlaceSelected,
   });
 
@@ -424,6 +427,18 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                           target: _pinPosition,
                           zoom: _zoom,
                         ),
+                        circles: widget.coverageRadiusMeters == null
+                            ? const <Circle>{}
+                            : {
+                                Circle(
+                                  circleId: const CircleId('coverage-radius'),
+                                  center: _pinPosition,
+                                  radius: widget.coverageRadiusMeters!,
+                                  fillColor: AppColors.brand.withValues(alpha: 0.18),
+                                  strokeColor: AppColors.brand,
+                                  strokeWidth: 2,
+                                ),
+                              },
                         onMapCreated: _onMapCreated,
                         onCameraMove: (pos) {
                           _pinPosition = pos.target;

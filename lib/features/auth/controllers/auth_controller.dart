@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:geolocator/geolocator.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../../core/utils/api_error_utils.dart';
 import '../../../core/network/api_service.dart';
 import '../../../shared/models/user_model.dart';
@@ -21,15 +23,34 @@ final authControllerProvider =
 
 class AuthController extends StateNotifier<AsyncValue<void>> {
   final ApiService _api;
+  static const _secureStorage = FlutterSecureStorage();
   AuthController(this._api) : super(const AsyncData(null));
 
   Future<String?> _fcmToken() async {
     try {
       return await NotificationService.getToken()
           .timeout(const Duration(seconds: 5));
-    } catch (_) {
+    } catch (e) {
+      state = AsyncError(friendlyErrorMessage(e, fallback: 'Could not verify OTP. Please try again.'), StackTrace.current);
       return null;
     }
+  }
+
+  Future<Map<String, String>> _deviceIdentity() async {
+    try {
+      const key = 'proofit_install_device_id';
+      var id = await _secureStorage.read(key: key);
+      if (id == null || id.isEmpty) {
+        id = const Uuid().v4();
+        await _secureStorage.write(key: key, value: id);
+      }
+      return {
+        'deviceId': id,
+        'deviceName': Platform.isAndroid ? 'Android device' : 'iPhone / iPad',
+        'devicePlatform': Platform.isAndroid ? 'Android' : 'iOS',
+      };
+    } catch (_) {}
+    return {};
   }
 
   Future<bool> sendOtp(String phone) async {
@@ -53,18 +74,24 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   Future<String?> verifyOtp(String phone, String otp) async {
     try {
       final fcmToken = await _fcmToken();
+      final device = await _deviceIdentity();
       final res = await _api.post('/auth/verify-otp', data: {
         'phone': phone,
         'otp': otp,
         if (fcmToken != null) 'fcmToken': fcmToken,
+        ...device,
       });
-      if (res.data['success'] != true) return null;
+      if (res.data['success'] != true) {
+        state = AsyncError(res.data['message'] ?? 'Could not verify OTP.', StackTrace.current);
+        return null;
+      }
       final data = res.data['data'] as Map<String, dynamic>?;
       if (data == null) return null;
       await _saveSession(data);
       _afterLogin(data);
       return data['user']['role'] ?? 'owner';
-    } catch (_) {
+    } catch (e) {
+      state = AsyncError(friendlyErrorMessage(e, fallback: 'Could not verify OTP. Please try again.'), StackTrace.current);
       return null;
     }
   }
@@ -75,11 +102,13 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     try {
       state = const AsyncLoading();
       final fcmToken = await _fcmToken();
+      final device = await _deviceIdentity();
 
       final res = await _api.post('/auth/login', data: {
         'email': email.trim(),
         'password': password,
         if (fcmToken != null) 'fcmToken': fcmToken,
+        ...device,
         if (inviteToken != null) 'inviteToken': inviteToken,
       });
 
@@ -137,6 +166,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       }
 
       final fcmToken = await _fcmToken();
+      final device = await _deviceIdentity();
       final res = await _api.post('/auth/google', data: {
         if (googleData['idToken'] != null) 'idToken': googleData['idToken'],
         if (googleData['accessToken'] != null)
@@ -146,6 +176,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         'photoUrl': googleData['photoUrl'],
         'googleId': googleData['googleId'],
         if (fcmToken != null) 'fcmToken': fcmToken,
+        ...device,
         if (inviteToken != null) 'inviteToken': inviteToken,
       });
 
@@ -190,10 +221,12 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       }
 
       final fcmToken = await _fcmToken();
+      final device = await _deviceIdentity();
       final res = await _api.post('/auth/apple', data: {
         'identityToken': appleData['identityToken'],
         if (appleData['name'] != null) 'name': appleData['name'],
         if (fcmToken != null) 'fcmToken': fcmToken,
+        ...device,
         if (inviteToken != null) 'inviteToken': inviteToken,
       });
 

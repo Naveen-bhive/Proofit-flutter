@@ -333,23 +333,14 @@ class BatteryOptimizationService {
           ),
         ),
         actions: [
-          TextButton(
+          FilledButton(
             onPressed: () async {
               await skipGuideForToday();
               if (forceMarkShown) await _markWarningShown();
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text('I understand - Continue',
-                style: TextStyle(color: AppColors.muted)),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (forceMarkShown) await _markWarningShown();
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Done',
-                style: TextStyle(
-                    color: AppColors.brand, fontWeight: FontWeight.w700)),
+            child: const Text('I understand — Continue',
+                style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/ui_kit.dart';
+import '../../../shared/widgets/work_mode_badge.dart';
 import '../controllers/owner_controller.dart';
 import '../../../shared/permissions/app_permissions.dart';
 import '../../../shared/permissions/permission_editor.dart';
@@ -15,13 +16,15 @@ import '../../../shared/permissions/permission_session.dart';
 class StaffManagementScreen extends ConsumerStatefulWidget {
   const StaffManagementScreen({super.key});
   @override
-  ConsumerState<StaffManagementScreen> createState() => _StaffManagementScreenState();
+  ConsumerState<StaffManagementScreen> createState() =>
+      _StaffManagementScreenState();
 }
 
 class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
   bool _loading = true;
   String _filter = 'all';
   String _query = '';
+
   /// Permission ids the signed-in user may grant (owner: all).
   Set<String> _grantable = const {};
 
@@ -31,24 +34,34 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
     Future.microtask(() async {
       final notifier = ref.read(ownerControllerProvider.notifier);
       await notifier.loadStaff();
-      final grantable = ref.read(permissionSessionProvider).can(AppPermissions.staffPermissions)
+      final grantable = ref
+              .read(permissionSessionProvider)
+              .can(AppPermissions.staffPermissions)
           ? await notifier.loadGrantablePermissions()
           : <String>{};
-      if (mounted) setState(() { _loading = false; _grantable = grantable; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+          _grantable = grantable;
+        });
     });
   }
 
   Future<void> _editPermissions(Map<String, dynamic> staff) async {
     final id = staff['_id']?.toString() ?? '';
     if (id.isEmpty) return;
-    final current = {for (final p in (staff['permissions'] as List? ?? const [])) p.toString()};
+    final current = {
+      for (final p in (staff['permissions'] as List? ?? const [])) p.toString()
+    };
     await PermissionEditorSheet.show(
       context,
       title: 'Permissions for ${staff['name'] ?? 'staff'}',
       initial: current,
       grantable: _grantable,
       featureEnabled: ref.read(ownerControllerProvider).isEnabled,
-      onSave: (perms) => ref.read(ownerControllerProvider.notifier).setStaffPermissions(id, perms),
+      onSave: (perms) => ref
+          .read(ownerControllerProvider.notifier)
+          .setStaffPermissions(id, perms),
     );
   }
 
@@ -60,13 +73,28 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
         parentContext: parentContext,
         grantable: _grantable,
         featureEnabled: ref.read(ownerControllerProvider).isEnabled,
-        onSubmit: ({required String name, required String phone, required String email, required int target, required Set<String> permissions}) async {
+        onSubmit: (
+            {required String name,
+            required String phone,
+            required String email,
+            required int target,
+            required Set<String> permissions,
+            required String workLocation}) async {
           final notifier = ref.read(ownerControllerProvider.notifier);
-          final result = await notifier.addStaff(name: name, phone: phone, email: email, permissions: permissions.toList());
+          final result = await notifier.addStaff(
+              name: name,
+              phone: phone,
+              email: email,
+              permissions: permissions.toList(),
+              workLocation: workLocation);
           if (result.ok && target > 0) {
             final added = ref.read(ownerControllerProvider).staffList.where(
-                (s) => (s['email'] ?? '').toString().toLowerCase() == email.toLowerCase());
-            if (added.isNotEmpty) await notifier.setStaffTarget(added.first['_id'].toString(), target);
+                (s) =>
+                    (s['email'] ?? '').toString().toLowerCase() ==
+                    email.toLowerCase());
+            if (added.isNotEmpty)
+              await notifier.setStaffTarget(
+                  added.first['_id'].toString(), target);
           }
           return result;
         },
@@ -80,39 +108,210 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
       context,
       icon: pending ? Icons.mail_lock_outlined : Icons.person_remove_outlined,
       title: pending ? 'Cancel invitation?' : 'Remove staff member?',
-      message: 'Are you sure you want to ${pending ? 'cancel this invitation' : 'remove $name'}?',
+      message:
+          'Are you sure you want to ${pending ? 'cancel this invitation' : 'remove $name'}?',
       confirmLabel: pending ? 'Cancel invite' : 'Remove',
       cancelLabel: 'Keep',
     );
-    if (confirmed) await ref.read(ownerControllerProvider.notifier).removeStaff(staff['_id'].toString());
+    if (confirmed)
+      await ref
+          .read(ownerControllerProvider.notifier)
+          .removeStaff(staff['_id'].toString());
+  }
+
+  Future<void> _resetDevice(Map<String, dynamic> staff) async {
+    final id = staff['_id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    final ok = await showConfirmDialog(context,
+        icon: Icons.phonelink_erase_rounded,
+        title: 'Remove saved device?',
+        message:
+            'The current device will be signed out. ${staff['name'] ?? 'This staff member'} can register a new device next time they sign in.',
+        confirmLabel: 'Remove device',
+        cancelLabel: 'Keep device');
+    if (!ok || !mounted) return;
+    final message =
+        await ref.read(ownerControllerProvider.notifier).resetStaffDevice(id);
+    if (mounted && message != null)
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _editStaffDetails(Map<String, dynamic> staff) async {
+    final id = staff['_id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    final nameController =
+        TextEditingController(text: (staff['name'] ?? '').toString());
+    final phoneController =
+        TextEditingController(text: (staff['phone'] ?? '').toString());
+    final emailController =
+        TextEditingController(text: (staff['email'] ?? '').toString());
+    final current = ['wfo', 'wfh', 'hybrid'].contains(staff['workLocation'])
+        ? staff['workLocation'] as String
+        : 'wfo';
+    var selected = current;
+    String? nameValidation;
+    String? phoneValidation;
+    String? emailValidation;
+    final isPending = staff['inviteAccepted'] == false ||
+        staff['kind'] == 'invite' || staff['invitePending'] == true;
+    final result = await showDialog<Map<String, String>>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+            builder: (ctx, setDialogState) => AlertDialog(
+                  title: const Text('Edit staff'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextField(
+                            controller: nameController,
+                            autofocus: true,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: InputDecoration(
+                                labelText: 'Full name', errorText: nameValidation)),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: phoneController,
+                          keyboardType: TextInputType.phone,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(10),
+                          ],
+                          decoration: InputDecoration(
+                            labelText: 'Phone number',
+                            errorText: phoneValidation,
+                            prefixIcon: const Icon(Icons.phone_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: emailController,
+                          enabled: isPending,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            labelText: 'Email address',
+                            errorText: emailValidation,
+                            prefixIcon: const Icon(Icons.mail_outline_rounded),
+                            helperText: isPending ? null : 'Email cannot be changed after the invite is accepted.',
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        const Text('Work location',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 9),
+                        _WorkLocationPicker(
+                          value: selected,
+                          onChanged: (value) =>
+                              setDialogState(() => selected = value),
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel')),
+                    FilledButton(
+                        onPressed: () {
+                          final name = nameController.text.trim();
+                          final phone = phoneController.text.trim();
+                          final email = emailController.text.trim();
+                          final normalizedPhone = phone.replaceAll(RegExp(r'\D'), '');
+                          final validPhone = RegExp(r'^[6-9]\d{9}$').hasMatch(normalizedPhone);
+                          final validEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+                          setDialogState(() {
+                            nameValidation = null;
+                            phoneValidation = null;
+                            emailValidation = null;
+                          });
+                          if (name.length < 2 || name.length > 80) {
+                            setDialogState(() => nameValidation =
+                                'Enter a name between 2 and 80 characters');
+                            return;
+                          }
+                          if (!validPhone) {
+                            setDialogState(() => phoneValidation =
+                                'Enter a valid 10-digit Indian mobile number');
+                            return;
+                          }
+                          if (isPending && !validEmail) {
+                            setDialogState(() => emailValidation = 'Enter a valid email address');
+                            return;
+                          }
+                          Navigator.pop(ctx, {
+                            'name': name,
+                            'phone': normalizedPhone,
+                            'email': email,
+                            'workLocation': selected,
+                          });
+                        },
+                        child: const Text('Save')),
+                  ],
+                )));
+    nameController.dispose();
+    phoneController.dispose();
+    emailController.dispose();
+    if (result == null || !mounted) return;
+    final message = await ref
+        .read(ownerControllerProvider.notifier)
+        .editStaffDetails(
+            staffId: id,
+            name: result['name']!,
+            phone: result['phone']!,
+            email: result['email']!,
+            workLocation: result['workLocation']!);
+    if (mounted && message != null)
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _showSetTarget(Map<String, dynamic> staff) async {
-    final controller = TextEditingController(text: '${staff['dailyTarget'] ?? 0}');
+    final controller =
+        TextEditingController(text: '${staff['dailyTarget'] ?? 0}');
     String? error;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (_, setDialogState) => AlertDialog(
-          title: const Text('Set Daily Target', style: TextStyle(color: AppColors.text)),
-          content: TextField(controller: controller, autofocus: true, keyboardType: TextInputType.number, style: const TextStyle(color: AppColors.text), decoration: InputDecoration(labelText: 'Jobs per day', errorText: error)),
+          title: const Text('Set Daily Target',
+              style: TextStyle(color: AppColors.text)),
+          content: TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: AppColors.text),
+              decoration:
+                  InputDecoration(labelText: 'Jobs per day', errorText: error)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
-            TextButton(onPressed: () async {
-              final value = int.tryParse(controller.text.trim());
-              if (value == null || value < 0) {
-                setDialogState(() => error = 'Enter zero or a positive whole number');
-                return;
-              }
-              final result = await ref.read(ownerControllerProvider.notifier).setStaffTarget(staff['_id'].toString(), value);
-              if (!dialogContext.mounted) return;
-              if (result.ok) {
-                Navigator.pop(dialogContext);
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message), backgroundColor: AppColors.green));
-              } else {
-                setDialogState(() => error = result.message);
-              }
-            }, child: const Text('Save', style: TextStyle(color: AppColors.brand))),
+            TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel')),
+            TextButton(
+                onPressed: () async {
+                  final value = int.tryParse(controller.text.trim());
+                  if (value == null || value < 0) {
+                    setDialogState(
+                        () => error = 'Enter zero or a positive whole number');
+                    return;
+                  }
+                  final result = await ref
+                      .read(ownerControllerProvider.notifier)
+                      .setStaffTarget(staff['_id'].toString(), value);
+                  if (!dialogContext.mounted) return;
+                  if (result.ok) {
+                    Navigator.pop(dialogContext);
+                    if (mounted)
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(result.message),
+                          backgroundColor: AppColors.green));
+                  } else {
+                    setDialogState(() => error = result.message);
+                  }
+                },
+                child: const Text('Save',
+                    style: TextStyle(color: AppColors.brand))),
           ],
         ),
       ),
@@ -120,12 +319,14 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
     controller.dispose();
   }
 
-  bool _isPending(Map<String, dynamic> s) => s['invitePending'] == true || s['inviteStatus'] == 'pending';
+  bool _isPending(Map<String, dynamic> s) =>
+      s['invitePending'] == true || s['inviteStatus'] == 'pending';
 
   Future<void> _call(String phone) async {
     final uri = Uri(scheme: 'tel', path: phone);
     if (!await launchUrl(uri) && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not start a call')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not start a call')));
     }
   }
 
@@ -142,7 +343,8 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
       if (_filter == 'active' && pending) return false;
       if (_filter == 'pending' && !pending) return false;
       if (q.isEmpty) return true;
-      return ['name', 'phone', 'email'].any((k) => (s[k] ?? '').toString().toLowerCase().contains(q));
+      return ['name', 'phone', 'email']
+          .any((k) => (s[k] ?? '').toString().toLowerCase().contains(q));
     }).toList();
 
     return Scaffold(
@@ -153,47 +355,78 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
             title: 'Staff Management',
             actions: [
               if (canInvite)
-                HeaderIconButton(icon: Icons.person_add_alt_outlined, tinted: true, round: false, onTap: _showAddStaffSheet),
+                HeaderIconButton(
+                    icon: Icons.person_add_alt_outlined,
+                    tinted: true,
+                    round: false,
+                    onTap: _showAddStaffSheet),
             ],
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-            child: SearchBox(hint: 'Search staff by name, phone...', onChanged: (v) => setState(() => _query = v)),
+            child: SearchBox(
+                hint: 'Search staff by name, phone...',
+                onChanged: (v) => setState(() => _query = v)),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Row(children: [
               Expanded(
                 child: PillChipBar(chips: [
-                  PillChip(label: 'All', count: all.isEmpty ? null : all.length, selected: _filter == 'all',
-                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6), onTap: () => setState(() => _filter = 'all')),
-                  PillChip(label: 'Active', selected: _filter == 'active',
-                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6), onTap: () => setState(() => _filter = 'active')),
-                  PillChip(label: 'Pending', count: pendingCount == 0 ? null : pendingCount, selected: _filter == 'pending',
-                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6), onTap: () => setState(() => _filter = 'pending')),
+                  PillChip(
+                      label: 'All',
+                      count: all.isEmpty ? null : all.length,
+                      selected: _filter == 'all',
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 13, vertical: 6),
+                      onTap: () => setState(() => _filter = 'all')),
+                  PillChip(
+                      label: 'Active',
+                      selected: _filter == 'active',
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 13, vertical: 6),
+                      onTap: () => setState(() => _filter = 'active')),
+                  PillChip(
+                      label: 'Pending',
+                      count: pendingCount == 0 ? null : pendingCount,
+                      selected: _filter == 'pending',
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 13, vertical: 6),
+                      onTap: () => setState(() => _filter = 'pending')),
                 ]),
               ),
-              Text('Total: ${all.length} staff', style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
+              Text('Total: ${all.length} staff',
+                  style:
+                      const TextStyle(color: AppColors.muted, fontSize: 12.5)),
             ]),
           ),
           const SizedBox(height: 8),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.brand))
                 : all.isEmpty
-                    ? ListView(padding: const EdgeInsets.fromLTRB(16, 70, 16, 24), children: [
-                        if (canInvite)
-                          _inviteCard()
-                        else
-                          const Center(child: Text('No staff yet', style: TextStyle(color: AppColors.silver))),
-                      ])
+                    ? ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 70, 16, 24),
+                        children: [
+                            if (canInvite)
+                              _inviteCard()
+                            else
+                              const Center(
+                                  child: Text('No staff yet',
+                                      style:
+                                          TextStyle(color: AppColors.silver))),
+                          ])
                     : ListView(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                         children: [
                           if (visible.isEmpty)
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 40),
-                              child: Center(child: Text('No staff match this filter', style: TextStyle(color: AppColors.silver))),
+                              child: Center(
+                                  child: Text('No staff match this filter',
+                                      style:
+                                          TextStyle(color: AppColors.silver))),
                             ),
                           ...visible.map((s) => _staffCard(s, session)),
                           const SizedBox(height: 4),
@@ -213,12 +446,22 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
         painter: const DashedBorderPainter(color: AppColors.border, radius: 18),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), boxShadow: AppColors.softShadow, color: AppColors.white),
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: AppColors.softShadow,
+              color: AppColors.white),
           child: const Column(children: [
-            Text('Invite New Staff Member', style: TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w600)),
+            Text('Invite New Staff Member',
+                style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600)),
             SizedBox(height: 6),
-            Text('Assign inspection jobs, set targets and monitor field proofs in real time.',
-              textAlign: TextAlign.center, style: TextStyle(color: AppColors.silver, fontSize: 12.5, height: 1.4)),
+            Text(
+                'Assign inspection jobs, set targets and monitor field proofs in real time.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: AppColors.silver, fontSize: 12.5, height: 1.4)),
           ]),
         ),
       ),
@@ -236,12 +479,15 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
           border: Border.all(color: AppColors.brandBorder),
           boxShadow: AppColors.softShadow,
         ),
-        child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child:
+            const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(Icons.info_outline_rounded, color: AppColors.brand, size: 20),
           SizedBox(width: 12),
           Expanded(
-            child: Text('Need more team members? Tap here to send an email invitation to a new staff member.',
-              style: TextStyle(color: AppColors.brandDark, fontSize: 13, height: 1.45)),
+            child: Text(
+                'Need more team members? Tap here to send an email invitation to a new staff member.',
+                style: TextStyle(
+                    color: AppColors.brandDark, fontSize: 13, height: 1.45)),
           ),
         ]),
       ),
@@ -255,17 +501,38 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
     final isUser = s['kind'] != 'invite';
     final canTarget = manageable && session.can(AppPermissions.staffEdit);
     final canRemove = manageable && session.can(AppPermissions.staffDelete);
-    final canPermit = manageable && isUser && session.can(AppPermissions.staffPermissions);
+    final canPermit =
+        manageable && isUser && session.can(AppPermissions.staffPermissions);
+    final device = s['trustedDevice'] is Map
+        ? Map<String, dynamic>.from(s['trustedDevice'])
+        : <String, dynamic>{};
+    final canResetDevice =
+        session.isOwner && manageable && isUser && device['registered'] == true;
     final grantedCount = (s['permissions'] as List? ?? const []).length;
     final menu = [
       if (!pending && canTarget)
-        const PopupMenuItem(value: 'target', child: Text('Set Target', style: TextStyle(color: AppColors.text))),
+        const PopupMenuItem(
+            value: 'target',
+            child: Text('Set Target', style: TextStyle(color: AppColors.text))),
       if (canPermit)
-        const PopupMenuItem(value: 'permissions', child: Text('Permissions', style: TextStyle(color: AppColors.text))),
+        const PopupMenuItem(
+            value: 'permissions',
+            child:
+                Text('Permissions', style: TextStyle(color: AppColors.text))),
+      if (!pending && manageable && session.isOwner)
+        const PopupMenuItem(
+            value: 'edit',
+            child: Text('Edit staff', style: TextStyle(color: AppColors.text))),
+      if (canResetDevice)
+        const PopupMenuItem(
+            value: 'device',
+            child: Text('Remove saved device',
+                style: TextStyle(color: AppColors.red))),
       if (canRemove)
         PopupMenuItem(
           value: 'remove',
-          child: Text(pending ? 'Cancel invite' : 'Remove', style: const TextStyle(color: AppColors.red)),
+          child: Text(pending ? 'Cancel invite' : 'Remove',
+              style: const TextStyle(color: AppColors.red)),
         ),
     ];
     final name = (s['name'] ?? 'Staff').toString();
@@ -277,35 +544,66 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
       child: SurfaceCard(
         radius: 18,
         padding: const EdgeInsets.fromLTRB(16, 16, 8, 14),
-        onTap: pending || id.isEmpty ? null : () => context.push('/owner/staff/$id'),
+        onTap: pending || id.isEmpty
+            ? null
+            : () => context.push('/owner/staff/$id'),
         child: Column(children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            InitialAvatar(name: name, size: 48, color: pending ? AppColors.yellow : AppColors.brand, online: pending ? null : true),
+            InitialAvatar(
+                name: name,
+                size: 48,
+                color: pending ? AppColors.yellow : AppColors.brand,
+                online: pending ? null : true),
             const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Flexible(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.h3.copyWith(fontSize: 16.5, fontWeight: FontWeight.w600))),
-                if (!pending) ...[
-                  const SizedBox(width: 8),
-                  const SoftBadge(label: 'Active', color: AppColors.greenDark, fontSize: 11),
-                ],
-                if (grantedCount > 0) ...[
-                  const SizedBox(width: 6),
-                  const SoftBadge(label: 'Team access', color: AppColors.brand, icon: Icons.verified_user_outlined, fontSize: 11),
-                ],
-              ]),
-              const SizedBox(height: 4),
-              if (phone.isNotEmpty) _line(Icons.phone_outlined, phone),
-              if (email.isNotEmpty) _line(Icons.mail_outline_rounded, email),
-            ])),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Row(children: [
+                    Flexible(
+                        child: Text(name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.h3.copyWith(
+                                fontSize: 16.5, fontWeight: FontWeight.w600))),
+                    if (!pending) ...[
+                      const SizedBox(width: 8),
+                      const SoftBadge(
+                          label: 'Active',
+                          color: AppColors.greenDark,
+                          fontSize: 11),
+                    ],
+                    if (grantedCount > 0) ...[
+                      const SizedBox(width: 6),
+                      const SoftBadge(
+                          label: 'Team access',
+                          color: AppColors.brand,
+                          icon: Icons.verified_user_outlined,
+                          fontSize: 11),
+                    ],
+                  ]),
+                  const SizedBox(height: 4),
+                  if (phone.isNotEmpty) _line(Icons.phone_outlined, phone),
+                  if (email.isNotEmpty)
+                    _line(Icons.mail_outline_rounded, email),
+                  if (!pending)
+                    WorkModeBadge(
+                        mode: (s['workLocation'] ?? 'wfo').toString(),
+                        compact: true),
+                  if (canResetDevice)
+                    _line(Icons.phonelink_rounded,
+                        (device['name'] ?? 'Saved device').toString()),
+                ])),
             if (menu.isNotEmpty)
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded, color: AppColors.muted, size: 20),
+                icon: const Icon(Icons.more_vert_rounded,
+                    color: AppColors.muted, size: 20),
                 itemBuilder: (_) => menu,
                 onSelected: (val) {
                   if (val == 'target') _showSetTarget(s);
                   if (val == 'permissions') _editPermissions(s);
+                  if (val == 'device') _resetDevice(s);
+                  if (val == 'edit') _editStaffDetails(s);
                   if (val == 'remove') _confirmRemove(s, pending);
                 },
               ),
@@ -318,23 +616,38 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
             padding: const EdgeInsets.only(right: 8),
             child: pending
                 ? const Row(children: [
-                    SoftBadge(label: 'Invitation yet to be accepted', color: AppColors.amberDark, icon: Icons.schedule_rounded,
-                      background: AppColors.amberSoft, fontSize: 12),
+                    SoftBadge(
+                        label: 'Invitation yet to be accepted',
+                        color: AppColors.amberDark,
+                        icon: Icons.schedule_rounded,
+                        background: AppColors.amberSoft,
+                        fontSize: 12),
                   ])
                 : Row(children: [
                     GestureDetector(
                       onTap: canTarget ? () => _showSetTarget(s) : null,
-                      child: SoftBadge(label: 'Target: ${s['dailyTarget'] ?? 0} jobs/day', color: AppColors.amberDark,
-                        icon: Icons.track_changes_rounded, background: AppColors.amberSoft, fontSize: 12),
+                      child: SoftBadge(
+                          label: 'Target: ${s['dailyTarget'] ?? 0} jobs/day',
+                          color: AppColors.amberDark,
+                          icon: Icons.track_changes_rounded,
+                          background: AppColors.amberSoft,
+                          fontSize: 12),
                     ),
                     const Spacer(),
                     if (session.can(AppPermissions.jobsCreate))
                       GestureDetector(
                         onTap: () => context.push('/owner/jobs'),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(color: AppColors.dark4, borderRadius: BorderRadius.circular(8)),
-                          child: const Text('Assign Job', style: TextStyle(color: AppColors.light, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                              color: AppColors.dark4,
+                              borderRadius: BorderRadius.circular(8)),
+                          child: const Text('Assign Job',
+                              style: TextStyle(
+                                  color: AppColors.light,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600)),
                         ),
                       ),
                     if (phone.isNotEmpty) ...[
@@ -343,8 +656,11 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                         onTap: () => _call(phone),
                         child: Container(
                           padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(color: AppColors.brandSoft, borderRadius: BorderRadius.circular(8)),
-                          child: const Icon(Icons.call_outlined, color: AppColors.brand, size: 16),
+                          decoration: BoxDecoration(
+                              color: AppColors.brandSoft,
+                              borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.call_outlined,
+                              color: AppColors.brand, size: 16),
                         ),
                       ),
                     ],
@@ -356,14 +672,18 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
   }
 
   Widget _line(IconData icon, String text) => Padding(
-    padding: const EdgeInsets.only(top: 3),
-    child: Row(children: [
-      Icon(icon, size: 14, color: AppColors.muted),
-      const SizedBox(width: 6),
-      Expanded(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: AppColors.silver, fontSize: 13))),
-    ]),
-  );
+        padding: const EdgeInsets.only(top: 3),
+        child: Row(children: [
+          Icon(icon, size: 14, color: AppColors.muted),
+          const SizedBox(width: 6),
+          Expanded(
+              child: Text(text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      const TextStyle(color: AppColors.silver, fontSize: 13))),
+        ]),
+      );
 }
 
 typedef _AddStaffSubmit = Future<({bool ok, String message})> Function({
@@ -372,11 +692,121 @@ typedef _AddStaffSubmit = Future<({bool ok, String message})> Function({
   required String email,
   required int target,
   required Set<String> permissions,
+  required String workLocation,
 });
+
+class _WorkLocationPicker extends StatelessWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+  final bool enabled;
+
+  const _WorkLocationPicker({
+    required this.value,
+    required this.onChanged,
+    this.enabled = true,
+  });
+
+  static const _options = [
+    (
+      id: 'wfo',
+      title: 'Work from office',
+      description: 'Check in and out within the office area.',
+      icon: Icons.business_outlined,
+      color: AppColors.greenDark,
+    ),
+    (
+      id: 'wfh',
+      title: 'Work from home',
+      description: 'Check in and out from any location.',
+      icon: Icons.home_work_outlined,
+      color: AppColors.purple,
+    ),
+    (
+      id: 'hybrid',
+      title: 'Hybrid',
+      description: 'Check in and out from any location.',
+      icon: Icons.swap_horiz_rounded,
+      color: AppColors.blue,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          for (final option in _options) ...[
+            if (option != _options.first) const SizedBox(height: 8),
+            _buildOption(option),
+          ],
+        ],
+      );
+
+  Widget _buildOption(
+    ({String id, String title, String description, IconData icon, Color color}) option,
+  ) {
+    final selected = value == option.id;
+    final color = option.color;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? () => onChanged(option.id) : null,
+        borderRadius: BorderRadius.circular(13),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? color.withValues(alpha: 0.08) : AppColors.white,
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(
+              color: selected ? color.withValues(alpha: 0.55) : AppColors.border,
+              width: selected ? 1.4 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(option.icon, color: color, size: 19),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(option.title,
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13)),
+                    const SizedBox(height: 2),
+                    Text(option.description,
+                        style: const TextStyle(
+                            color: AppColors.silver, fontSize: 11.5)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                color: selected ? color : AppColors.muted,
+                size: 21,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _AddStaffSheet extends StatefulWidget {
   final BuildContext parentContext;
   final _AddStaffSubmit onSubmit;
+
   /// Permissions the inviter may grant; empty hides the permissions picker.
   final Set<String> grantable;
   final bool Function(String feature) featureEnabled;
@@ -392,7 +822,7 @@ class _AddStaffSheet extends StatefulWidget {
 }
 
 class _AddStaffSheetState extends State<_AddStaffSheet> {
-  final _nameCtrl  = TextEditingController();
+  final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
 
@@ -402,12 +832,14 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
   String? _successMessage;
   int _target = 0;
   Set<String> _permissions = {};
+  String _workLocation = 'wfo';
 
   Future<void> _pickPermissions() async {
     final picked = await PermissionEditorSheet.show(
       context,
       title: 'Team access',
-      subtitle: 'Optional. Choose owner features this member can use; you can change it later.',
+      subtitle:
+          'Optional. Choose owner features this member can use; you can change it later.',
       initial: _permissions,
       grantable: widget.grantable,
       featureEnabled: widget.featureEnabled,
@@ -427,7 +859,9 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
 
   String? _validatePhone(String raw) {
     final digits = raw.replaceAll(RegExp(r'\D'), '');
-    final phone = digits.length == 12 && digits.startsWith('91') ? digits.substring(2) : digits;
+    final phone = digits.length == 12 && digits.startsWith('91')
+        ? digits.substring(2)
+        : digits;
     if (!RegExp(r'^[6-9]\d{9}$').hasMatch(phone)) {
       return 'Enter a valid 10-digit Indian mobile number';
     }
@@ -436,7 +870,9 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
 
   String _normalizePhone(String raw) {
     final digits = raw.replaceAll(RegExp(r'\D'), '');
-    return digits.length == 12 && digits.startsWith('91') ? digits.substring(2) : digits;
+    return digits.length == 12 && digits.startsWith('91')
+        ? digits.substring(2)
+        : digits;
   }
 
   Future<void> _sendInvite() async {
@@ -471,6 +907,7 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
       email: email,
       target: _target,
       permissions: _permissions,
+      workLocation: _workLocation,
     );
 
     if (!mounted) return;
@@ -498,6 +935,7 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
       _formError = null;
       _target = 0;
       _permissions = {};
+      _workLocation = 'wfo';
       _nameCtrl.clear();
       _phoneCtrl.clear();
       _emailCtrl.clear();
@@ -517,14 +955,16 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
     final phone = _normalizePhone(_phoneCtrl.text);
     return AppSheet(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Align(alignment: Alignment.centerRight, child: SheetCloseButton()),
+        const Align(
+            alignment: Alignment.centerRight, child: SheetCloseButton()),
         Container(
           width: 96,
           height: 96,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: AppColors.green.withValues(alpha: 0.10),
-            border: Border.all(color: AppColors.green.withValues(alpha: 0.18), width: 6),
+            border: Border.all(
+                color: AppColors.green.withValues(alpha: 0.18), width: 6),
           ),
           child: Center(
             child: Container(
@@ -532,25 +972,36 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
               height: 60,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(colors: [AppColors.green, AppColors.greenDark],
-                  begin: Alignment.topLeft, end: Alignment.bottomRight),
+                gradient: const LinearGradient(
+                    colors: [AppColors.green, AppColors.greenDark],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight),
                 boxShadow: AppColors.glow(AppColors.green),
               ),
-              child: const Icon(Icons.check_rounded, color: AppColors.white, size: 34),
+              child: const Icon(Icons.check_rounded,
+                  color: AppColors.white, size: 34),
             ),
           ),
         ),
         const SizedBox(height: 18),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Flexible(child: Text('Invitation Sent!', style: AppTextStyles.h2.copyWith(fontSize: 22))),
+          Flexible(
+              child: Text('Invitation Sent!',
+                  style: AppTextStyles.h2.copyWith(fontSize: 22))),
           const SizedBox(width: 10),
-          const SoftBadge(label: 'Delivered', color: AppColors.greenDark, uppercase: true, fontSize: 10),
+          const SoftBadge(
+              label: 'Delivered',
+              color: AppColors.greenDark,
+              uppercase: true,
+              fontSize: 10),
         ]),
         const SizedBox(height: 10),
         Text(
-          _successMessage ?? "We've emailed an onboarding link to your staff member to join ProofIt and start reporting.",
+          _successMessage ??
+              "We've emailed an onboarding link to your staff member to join ProofIt and start reporting.",
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.silver, fontSize: 14, height: 1.5),
+          style: const TextStyle(
+              color: AppColors.silver, fontSize: 14, height: 1.5),
         ),
         const SizedBox(height: 20),
         SurfaceCard(
@@ -560,180 +1011,297 @@ class _AddStaffSheetState extends State<_AddStaffSheet> {
             Row(children: [
               InitialAvatar(name: name, size: 42, color: AppColors.brand),
               const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 15)),
-                Row(children: [
-                  const Icon(Icons.mail_outline_rounded, size: 13, color: AppColors.muted),
-                  const SizedBox(width: 5),
-                  Expanded(child: Text(_emailCtrl.text.trim(), maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: AppColors.silver, fontSize: 12.5))),
-                ]),
-              ])),
-              const SoftBadge(label: 'Pending', color: AppColors.yellow, dot: true, fontSize: 11.5),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text(name,
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15)),
+                    Row(children: [
+                      const Icon(Icons.mail_outline_rounded,
+                          size: 13, color: AppColors.muted),
+                      const SizedBox(width: 5),
+                      Expanded(
+                          child: Text(_emailCtrl.text.trim(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: AppColors.silver, fontSize: 12.5))),
+                    ]),
+                  ])),
+              const SoftBadge(
+                  label: 'Pending',
+                  color: AppColors.yellow,
+                  dot: true,
+                  fontSize: 11.5),
             ]),
-            const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: AppColors.border)),
+            const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Divider(height: 1, color: AppColors.border)),
             Row(children: [
-              Expanded(child: _summaryBox('Phone', phone.isEmpty ? '-' : '+91 $phone')),
+              Expanded(
+                  child:
+                      _summaryBox('Phone', phone.isEmpty ? '-' : '+91 $phone')),
               const SizedBox(width: 10),
-              Expanded(child: _summaryBox('Daily Target', '$_target jobs / day', dot: true)),
+              Expanded(
+                  child: _summaryBox('Daily Target', '$_target jobs / day',
+                      dot: true)),
             ]),
           ]),
         ),
         const SizedBox(height: 22),
         SizedBox(
           width: double.infinity,
-          child: PrimaryButton(label: 'Done', trailingIcon: Icons.check_rounded, onPressed: () => Navigator.pop(context)),
+          child: PrimaryButton(
+              label: 'Done',
+              trailingIcon: Icons.check_rounded,
+              onPressed: () => Navigator.pop(context)),
         ),
         const SizedBox(height: 6),
         TextButton.icon(
           onPressed: _inviteAnother,
           icon: const Icon(Icons.add_rounded, size: 18, color: AppColors.light),
-          label: const Text('Invite Another Member', style: TextStyle(color: AppColors.light, fontWeight: FontWeight.w600)),
+          label: const Text('Invite Another Member',
+              style: TextStyle(
+                  color: AppColors.light, fontWeight: FontWeight.w600)),
         ),
       ]),
     );
   }
 
-  Widget _summaryBox(String label, String value, {bool dot = false}) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 11.5)),
-      const SizedBox(height: 4),
-      Row(children: [
-        if (dot) ...[
-          Container(width: 7, height: 7, decoration: const BoxDecoration(color: AppColors.brand, shape: BoxShape.circle)),
-          const SizedBox(width: 6),
-        ],
-        Flexible(child: Text(value, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13.5))),
-      ]),
-    ]),
-  );
+  Widget _summaryBox(String label, String value, {bool dot = false}) =>
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label,
+              style: const TextStyle(color: AppColors.muted, fontSize: 11.5)),
+          const SizedBox(height: 4),
+          Row(children: [
+            if (dot) ...[
+              Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                      color: AppColors.brand, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+            ],
+            Flexible(
+                child: Text(value,
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5))),
+          ]),
+        ]),
+      );
 
   Widget _buildForm() {
     return AppSheet(
       title: 'Add Staff Member',
-      titleTrailing: const SoftBadge(label: 'Invite', color: AppColors.brand, uppercase: true, fontSize: 10),
-      subtitle: 'Invite team members to assign jobs, set daily targets, and track live activity.',
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const FieldLabel('Full Name', required: true),
-        TextFormField(
-          controller: _nameCtrl,
-          enabled: !_sending,
-          textCapitalization: TextCapitalization.words,
-          style: const TextStyle(color: AppColors.text),
-          decoration: const InputDecoration(hintText: 'e.g. John Doe', prefixIcon: Icon(Icons.person_outline_rounded, size: 20)),
-        ),
-        const SizedBox(height: 16),
-        const FieldLabel('Phone Number'),
-        TextFormField(
-          controller: _phoneCtrl,
-          enabled: !_sending,
-          keyboardType: TextInputType.phone,
-          style: const TextStyle(color: AppColors.text),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(10),
-          ],
-          decoration: InputDecoration(
-            hintText: '97561 34513',
-            prefixIcon: Container(
-              margin: const EdgeInsets.only(right: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: const BoxDecoration(border: Border(right: BorderSide(color: AppColors.border))),
-              child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('\u{1F1EE}\u{1F1F3}', style: TextStyle(fontSize: 14)),
-                SizedBox(width: 6),
-                Text('+91', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 14)),
-                Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppColors.muted),
-              ]),
+      titleTrailing: const SoftBadge(
+          label: 'Invite',
+          color: AppColors.brand,
+          uppercase: true,
+          fontSize: 10),
+      subtitle:
+          'Invite team members to assign jobs, set daily targets, and track live activity.',
+      child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const FieldLabel('Full Name', required: true),
+            TextFormField(
+              controller: _nameCtrl,
+              enabled: !_sending,
+              textCapitalization: TextCapitalization.words,
+              style: const TextStyle(color: AppColors.text),
+              decoration: const InputDecoration(
+                  hintText: 'e.g. John Doe',
+                  prefixIcon: Icon(Icons.person_outline_rounded, size: 20)),
             ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        const FieldLabel('Email Address', required: true, hint: 'Used for invitation link'),
-        TextFormField(
-          controller: _emailCtrl,
-          enabled: !_sending,
-          keyboardType: TextInputType.emailAddress,
-          style: const TextStyle(color: AppColors.text),
-          decoration: const InputDecoration(hintText: 'name@company.com', prefixIcon: Icon(Icons.mail_outline_rounded, size: 20)),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.dark3,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border),
-            boxShadow: AppColors.softShadow,
-          ),
-          child: Row(children: [
-            const IconTile(icon: Icons.track_changes_rounded, color: AppColors.brand, size: 36, iconSize: 18, radius: 10),
-            const SizedBox(width: 12),
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Daily Job Target', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13.5)),
-              Text('Target completed jobs/day', style: TextStyle(color: AppColors.silver, fontSize: 11.5)),
-            ])),
+            const SizedBox(height: 16),
+            const FieldLabel('Phone Number'),
+            TextFormField(
+              controller: _phoneCtrl,
+              enabled: !_sending,
+              keyboardType: TextInputType.phone,
+              style: const TextStyle(color: AppColors.text),
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(10),
+              ],
+              decoration: InputDecoration(
+                hintText: '97561 34513',
+                prefixIcon: Container(
+                  margin: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: const BoxDecoration(
+                      border:
+                          Border(right: BorderSide(color: AppColors.border))),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('\u{1F1EE}\u{1F1F3}', style: TextStyle(fontSize: 14)),
+                    SizedBox(width: 6),
+                    Text('+91',
+                        style: TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14)),
+                    Icon(Icons.keyboard_arrow_down_rounded,
+                        size: 16, color: AppColors.muted),
+                  ]),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const FieldLabel('Email Address',
+                required: true, hint: 'Used for invitation link'),
+            TextFormField(
+              controller: _emailCtrl,
+              enabled: !_sending,
+              keyboardType: TextInputType.emailAddress,
+              style: const TextStyle(color: AppColors.text),
+              decoration: const InputDecoration(
+                  hintText: 'name@company.com',
+                  prefixIcon: Icon(Icons.mail_outline_rounded, size: 20)),
+            ),
+            const SizedBox(height: 16),
+            const FieldLabel('Work Location'),
+            _WorkLocationPicker(
+              value: _workLocation,
+              enabled: !_sending,
+              onChanged: (value) => setState(() => _workLocation = value),
+            ),
+            const SizedBox(height: 16),
             Container(
-              decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                _stepBtn(Icons.remove_rounded, _target > 0 && !_sending ? () => setState(() => _target--) : null),
-                SizedBox(width: 26, child: Text('$_target', textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700))),
-                _stepBtn(Icons.add_rounded, _target < 999 && !_sending ? () => setState(() => _target++) : null),
-              ]),
-            ),
-          ]),
-        ),
-        if (widget.grantable.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          InkWell(
-            onTap: _sending ? null : _pickPermissions,
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppColors.dark3,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: AppColors.border),
+                boxShadow: AppColors.softShadow,
               ),
               child: Row(children: [
-                const IconTile(icon: Icons.verified_user_outlined, color: AppColors.brand, size: 36, iconSize: 18, radius: 10),
+                const IconTile(
+                    icon: Icons.track_changes_rounded,
+                    color: AppColors.brand,
+                    size: 36,
+                    iconSize: 18,
+                    radius: 10),
                 const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Team access', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13.5)),
-                  Text(
-                    _permissions.isEmpty ? 'Staff app only (default)' : '${_permissions.length} permission${_permissions.length == 1 ? '' : 's'} selected',
-                    style: const TextStyle(color: AppColors.silver, fontSize: 11.5),
-                  ),
-                ])),
-                const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+                const Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text('Daily Job Target',
+                          style: TextStyle(
+                              color: AppColors.text,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13.5)),
+                      Text('Target completed jobs/day',
+                          style: TextStyle(
+                              color: AppColors.silver, fontSize: 11.5)),
+                    ])),
+                Container(
+                  decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.border)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    _stepBtn(
+                        Icons.remove_rounded,
+                        _target > 0 && !_sending
+                            ? () => setState(() => _target--)
+                            : null),
+                    SizedBox(
+                        width: 26,
+                        child: Text('$_target',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: AppColors.text,
+                                fontWeight: FontWeight.w700))),
+                    _stepBtn(
+                        Icons.add_rounded,
+                        _target < 999 && !_sending
+                            ? () => setState(() => _target++)
+                            : null),
+                  ]),
+                ),
               ]),
             ),
-          ),
-        ],
-        if (_formError != null) ...[
-          const SizedBox(height: 12),
-          Text(_formError!, style: const TextStyle(color: AppColors.red, fontSize: 13)),
-        ],
-        const SizedBox(height: 22),
-        PrimaryButton(
-          label: 'Send Invite',
-          icon: Icons.send_outlined,
-          loading: _sending,
-          onPressed: _sending ? null : _sendInvite,
-        ),
-      ]),
+            if (widget.grantable.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: _sending ? null : _pickPermissions,
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.dark3,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(children: [
+                    const IconTile(
+                        icon: Icons.verified_user_outlined,
+                        color: AppColors.brand,
+                        size: 36,
+                        iconSize: 18,
+                        radius: 10),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          const Text('Team access',
+                              style: TextStyle(
+                                  color: AppColors.text,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13.5)),
+                          Text(
+                            _permissions.isEmpty
+                                ? 'Staff app only (default)'
+                                : '${_permissions.length} permission${_permissions.length == 1 ? '' : 's'} selected',
+                            style: const TextStyle(
+                                color: AppColors.silver, fontSize: 11.5),
+                          ),
+                        ])),
+                    const Icon(Icons.chevron_right_rounded,
+                        color: AppColors.muted),
+                  ]),
+                ),
+              ),
+            ],
+            if (_formError != null) ...[
+              const SizedBox(height: 12),
+              Text(_formError!,
+                  style: const TextStyle(color: AppColors.red, fontSize: 13)),
+            ],
+            const SizedBox(height: 22),
+            PrimaryButton(
+              label: 'Send Invite',
+              icon: Icons.send_outlined,
+              loading: _sending,
+              onPressed: _sending ? null : _sendInvite,
+            ),
+          ]),
     );
   }
 
   Widget _stepBtn(IconData icon, VoidCallback? onTap) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(8),
-    child: Padding(
-      padding: const EdgeInsets.all(8),
-      child: Icon(icon, size: 16, color: onTap == null ? AppColors.border : AppColors.silver),
-    ),
-  );
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(icon,
+              size: 16,
+              color: onTap == null ? AppColors.border : AppColors.silver),
+        ),
+      );
 }

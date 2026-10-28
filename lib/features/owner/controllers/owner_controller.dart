@@ -406,12 +406,14 @@ class OwnerController extends StateNotifier<OwnerState> {
     required String phone,
     required String email,
     List<String> permissions = const [],
+    String workLocation = 'wfo',
   }) async {
     try {
       final res = await _api.post('/staff', data: {
         'name': name,
         'phone': phone,
         'email': email,
+        'workLocation': workLocation,
         if (permissions.isNotEmpty) 'permissions': permissions,
       });
       await loadStaff();
@@ -440,6 +442,52 @@ class OwnerController extends StateNotifier<OwnerState> {
         message: friendlyErrorMessage(e, fallback: 'Could not add staff')
       );
     }
+  }
+
+  Future<String?> saveAttendanceGeofence({required bool enabled, double? latitude, double? longitude, required double radiusMeters, String address = ''}) async {
+    try {
+      final res = await _api.put('/owner/attendance-geofence', data: {
+        'enabled': enabled, 'latitude': latitude, 'longitude': longitude,
+        'radiusMeters': radiusMeters.round(), 'address': address,
+      });
+      return res.data['success'] == true ? null : (res.data['message']?.toString() ?? 'Could not save location restriction');
+    } catch (e) { return friendlyErrorMessage(e, fallback: 'Could not save location restriction'); }
+  }
+
+  Future<Map<String, dynamic>> loadAttendanceGeofence() async {
+    try {
+      final res = await _api.get('/owner/attendance-geofence');
+      return Map<String, dynamic>.from(res.data['data']?['geofence'] ?? const {});
+    } catch (_) { return const {}; }
+  }
+
+  Future<String?> resetStaffDevice(String staffId) async {
+    try {
+      final res = await _api.delete('/staff/$staffId/trusted-device');
+      if (res.data['success'] == true) { await loadStaff(); return null; }
+      return res.data['message']?.toString() ?? 'Could not remove saved device';
+    } catch (e) { return friendlyErrorMessage(e, fallback: 'Could not remove saved device'); }
+  }
+
+  Future<String?> setStaffWorkLocation(String staffId, String workLocation) async {
+    try {
+      final res = await _api.put('/staff/$staffId/work-location', data: {'workLocation': workLocation});
+      if (res.data['success'] == true) { await loadStaff(); return null; }
+      return res.data['message']?.toString() ?? 'Could not update staff work location';
+    } catch (e) { return friendlyErrorMessage(e, fallback: 'Could not update staff work location'); }
+  }
+
+  Future<String?> editStaffDetails({required String staffId, required String name, required String phone, required String email, required String workLocation}) async {
+    try {
+      final res = await _api.put('/staff/$staffId', data: {
+        'name': name,
+        'phone': phone,
+        if (email.isNotEmpty) 'email': email,
+        'workLocation': workLocation,
+      });
+      if (res.data['success'] == true) { await loadStaff(); return null; }
+      return res.data['message']?.toString() ?? 'Could not update staff details';
+    } catch (e) { return friendlyErrorMessage(e, fallback: 'Could not update staff details'); }
   }
 
   Future<Map<String, dynamic>?> fetchAccountDeletionStatus() async {

@@ -16,7 +16,7 @@ import 'new_leave_screen.dart';
 import '../../shared/permissions/app_permissions.dart';
 import '../../shared/permissions/permission_session.dart';
 
-/// "Leaves" table. Owners (`isOwner: true`) manage the whole organisation;
+/// Leave cards. Owners (`isOwner: true`) manage the whole organisation;
 /// staff (`isOwner: false`) see "My Leaves" — their own requests.
 class LeaveManagementScreen extends ConsumerStatefulWidget {
   final bool isOwner;
@@ -325,7 +325,7 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
               _bulkBar(),
             ],
             const SizedBox(height: 18),
-            _table(),
+            _leaveCards(),
           ],
         ),
             ),
@@ -501,147 +501,143 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
         ]),
       );
 
-  // ─── Table ──────────────────────────────────────────────────────────────
+  // ─── Leave cards ───────────────────────────────────────────────────────
 
-  static const _rowHeight = 68.0;
-  static const _headerHeight = 48.0;
-
-  Widget _table() {
-    final isOwner = widget.isOwner;
-    final columns = <(String, double)>[
-      ('Leave Type', 120),
-      ('Date', isOwner ? 190 : 170),
-      ('Days', 80),
-      ('Duration', 110),
-      ('Status', 120),
-      ('Reason', 180),
-      ('Actions', isOwner ? 120 : 80),
-    ];
-    final leftWidth = isOwner ? 190.0 : 110.0;
-    final allSelected = _leaves.isNotEmpty && _leaves.every((l) => _selected.contains(l.id));
-
-    Widget headerCell(String text) => Text(isOwner ? text : text.toUpperCase(),
-        style: const TextStyle(color: AppColors.silver, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.4));
-    const rowBorder = BoxDecoration(border: Border(top: BorderSide(color: AppColors.borderSoft)));
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppColors.cardShadow,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+  Widget _leaveCards() {
+    if (_loading) {
+      return const SizedBox(
+        height: 220,
+        child: Center(child: CircularProgressIndicator(color: AppColors.brand)),
+      );
+    }
+    if (_leaves.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 42, horizontal: 20),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.border),
+        ),
         child: Column(children: [
-          if (_loading)
-            const SizedBox(height: 220, child: Center(child: CircularProgressIndicator(color: AppColors.brand)))
-          else if (_leaves.isEmpty)
-            SizedBox(
-              height: 220,
-              child: Center(
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.event_available_outlined, color: AppColors.muted, size: 46),
-                  const SizedBox(height: 12),
-                  Text(isOwner ? 'No leave records found' : 'No leave requests yet',
-                      style: const TextStyle(color: AppColors.light, fontSize: 14.5, fontWeight: FontWeight.w500)),
-                ]),
-              ),
-            )
-          else
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Fixed first column.
-              SizedBox(
-                width: leftWidth,
-                child: Column(children: [
-                  Container(
-                    height: _headerHeight,
-                    color: AppColors.dark3,
-                    padding: const EdgeInsets.only(left: 6),
-                    child: Row(children: [
-                      if (isOwner)
-                        _checkbox(allSelected, (v) => setState(() {
-                              if (v) {
-                                _selected.addAll(_leaves.map((l) => l.id));
-                              } else {
-                                _selected.clear();
-                              }
-                            })),
-                      Padding(
-                        padding: EdgeInsets.only(left: isOwner ? 4 : 10),
-                        child: headerCell(isOwner ? 'Employee' : 'Applied'),
-                      ),
-                    ]),
-                  ),
-                  for (final l in _leaves)
-                    InkWell(
-                      onTap: () => _showDetails(l),
-                      child: Container(
-                        height: _rowHeight,
-                        decoration: rowBorder,
-                        padding: const EdgeInsets.only(left: 6, right: 6),
-                        child: isOwner
-                            ? Row(children: [
-                                _checkbox(_selected.contains(l.id), (v) => setState(() {
-                                      v ? _selected.add(l.id) : _selected.remove(l.id);
-                                    })),
-                                const SizedBox(width: 4),
-                                LeaveAvatar(name: l.staff?.name ?? '?', photoUrl: l.staff?.photoUrl, size: 34),
-                                const SizedBox(width: 8),
-                                Expanded(child: _twoLine(l.staff?.name ?? 'Removed staff', l.staff?.phone ?? '')),
-                              ])
-                            : Padding(
-                                padding: const EdgeInsets.only(left: 4),
-                                child: _twoLine(
-                                  l.createdAt != null ? DateFormat('d MMM').format(l.createdAt!) : '—',
-                                  l.createdAt != null ? DateFormat('h:mm a').format(l.createdAt!) : '',
-                                ),
-                              ),
-                      ),
-                    ),
-                ]),
-              ),
-              // Scrollable columns.
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Container(
-                      height: _headerHeight,
-                      color: AppColors.dark3,
-                      child: Row(children: [
-                        for (final (label, w) in columns)
-                          SizedBox(width: w, child: Padding(padding: const EdgeInsets.only(left: 8), child: headerCell(label))),
-                      ]),
-                    ),
-                    for (final l in _leaves)
-                      InkWell(
-                        onTap: () => _showDetails(l),
-                        child: Container(
-                          height: _rowHeight,
-                          decoration: rowBorder,
-                          child: Row(children: [
-                            _cell(columns[0].$2, _typeLabel(l)),
-                            _cell(columns[1].$2, Text(l.dateLabel, style: const TextStyle(color: AppColors.light, fontSize: 13))),
-                            _cell(columns[2].$2, Text(l.daysLabel, style: const TextStyle(color: AppColors.light, fontSize: 13))),
-                            _cell(columns[3].$2,
-                                Text(leaveDurations[l.duration] ?? l.duration, style: const TextStyle(color: AppColors.light, fontSize: 13))),
-                            _cell(columns[4].$2, Align(alignment: Alignment.centerLeft, child: LeaveStatusBadge(l.status))),
-                            _cell(columns[5].$2, Text(l.reason,
-                                maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.silver, fontSize: 12.5))),
-                            _cell(columns[6].$2, _rowActions(l)),
-                          ]),
-                        ),
-                      ),
-                  ]),
-                ),
-              ),
-            ]),
-          _pager(),
+          const Icon(Icons.event_available_outlined, color: AppColors.muted, size: 42),
+          const SizedBox(height: 10),
+          Text(widget.isOwner ? 'No leave records found' : 'No leave requests yet',
+              style: const TextStyle(color: AppColors.light, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          const Text('Try changing the filters or date range.',
+              style: TextStyle(color: AppColors.silver, fontSize: 12)),
         ]),
+      );
+    }
+
+    final allSelected = _leaves.every((l) => _selected.contains(l.id));
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (widget.isOwner && _canApprove)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+          child: Row(children: [
+            _checkbox(allSelected, (selected) => setState(() {
+              if (selected) {
+                _selected.addAll(_leaves.map((l) => l.id));
+              } else {
+                _selected.clear();
+              }
+            })),
+            const SizedBox(width: 4),
+            Text(allSelected ? 'All ${_leaves.length} selected' : 'Select all on this page',
+                style: const TextStyle(color: AppColors.silver, fontSize: 12.5, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+      for (final leave in _leaves) ...[
+        _leaveCard(leave),
+        const SizedBox(height: 12),
+      ],
+      _pager(),
+    ]);
+  }
+
+  Widget _leaveCard(LeaveRecord leave) {
+    final isOwner = widget.isOwner;
+    final typeColor = _types.where((t) => t.id == leave.leaveTypeId).firstOrNull?.color ?? AppColors.brand;
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: () => _showDetails(leave),
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppColors.softShadow,
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (isOwner && _canApprove) ...[
+                _checkbox(_selected.contains(leave.id), (selected) => setState(() {
+                  selected ? _selected.add(leave.id) : _selected.remove(leave.id);
+                })),
+                const SizedBox(width: 6),
+              ],
+              LeaveAvatar(name: leave.staff?.name ?? 'Staff', photoUrl: leave.staff?.photoUrl, size: 42),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    isOwner ? (leave.staff?.name ?? 'Removed staff') : leave.leaveTypeName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    isOwner ? (leave.staff?.phone ?? 'No phone number') : 'Applied ${leave.createdAt != null ? DateFormat('d MMM, h:mm a').format(leave.createdAt!) : '—'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.silver, fontSize: 12),
+                  ),
+                ]),
+              ),
+              const SizedBox(width: 8),
+              LeaveStatusBadge(leave.status),
+            ]),
+            const SizedBox(height: 14),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              _infoPill(Icons.event_outlined, leave.dateLabel),
+              _infoPill(Icons.timelapse_rounded, leaveDurations[leave.duration] ?? leave.duration),
+              _infoPill(Icons.calendar_today_outlined, leave.daysLabel),
+            ]),
+            const SizedBox(height: 12),
+            Row(children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
+              const SizedBox(width: 7),
+              Expanded(child: Text(leave.leaveTypeName, style: TextStyle(color: typeColor, fontSize: 12.5, fontWeight: FontWeight.w700))),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 20),
+            ]),
+            if (leave.reason.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(leave.reason, maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppColors.silver, fontSize: 12.5, height: 1.35)),
+            ],
+            const SizedBox(height: 8),
+            Align(alignment: Alignment.centerRight, child: _rowActions(leave)),
+          ]),
+        ),
       ),
     );
   }
+
+  Widget _infoPill(IconData icon, String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        decoration: BoxDecoration(color: AppColors.dark3, borderRadius: BorderRadius.circular(9)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: AppColors.silver, size: 14),
+          const SizedBox(width: 5),
+          Text(label, style: const TextStyle(color: AppColors.light, fontSize: 11.5, fontWeight: FontWeight.w500)),
+        ]),
+      );
 
   Widget _checkbox(bool value, ValueChanged<bool> onChanged) => SizedBox(
         width: 32,
@@ -666,27 +662,11 @@ class _LeaveManagementScreenState extends ConsumerState<LeaveManagementScreen> {
               style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5)),
           if (subtitle.isNotEmpty)
             Text(subtitle,
-                maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.silver, fontSize: 11)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.silver, fontSize: 11)),
         ],
       );
-
-  Widget _cell(double width, Widget child) => SizedBox(
-        width: width,
-        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Align(alignment: Alignment.centerLeft, child: child)),
-      );
-
-  Widget _typeLabel(LeaveRecord l) {
-    final color = _types.where((t) => t.id == l.leaveTypeId).firstOrNull?.color ?? AppColors.brand;
-    return Row(children: [
-      Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-      const SizedBox(width: 6),
-      Flexible(
-        child: Text(l.leaveTypeName,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600)),
-      ),
-    ]);
-  }
 
   Widget _rowActions(LeaveRecord l) {
     Widget btn(IconData icon, Color c, String tip, VoidCallback onTap) => Tooltip(

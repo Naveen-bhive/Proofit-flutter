@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/api_error_utils.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../controllers/auth_controller.dart';
 
@@ -88,7 +89,14 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         .verifyOtp(_phoneCtrl.text.trim(), otp);
     if (!mounted) return;
     setState(() => _loading = false);
-    if (result == null) { setState(() => _error = 'Invalid OTP. Try again.'); return; }
+    if (result == null) {
+      final authState = ref.read(authControllerProvider);
+      final message = authState.hasError
+          ? friendlyErrorMessage(authState.error, fallback: 'Invalid OTP. Try again.')
+          : 'Invalid OTP. Try again.';
+      setState(() => _error = message);
+      return;
+    }
     if (result == 'new_owner') { context.go('/owner-setup'); return; }
     context.go(result == 'owner' ? '/owner' : '/staff');
   }

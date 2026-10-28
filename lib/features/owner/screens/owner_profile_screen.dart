@@ -9,12 +9,76 @@ import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/ui_kit.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../controllers/owner_controller.dart';
+import '../../../shared/widgets/location_picker_field.dart';
 
 class OwnerProfileScreen extends ConsumerStatefulWidget {
   const OwnerProfileScreen({super.key});
 
   @override
   ConsumerState<OwnerProfileScreen> createState() => _OwnerProfileScreenState();
+}
+
+class _AttendanceGeofenceSheet extends ConsumerStatefulWidget {
+  const _AttendanceGeofenceSheet();
+  @override
+  ConsumerState<_AttendanceGeofenceSheet> createState() => _AttendanceGeofenceSheetState();
+}
+
+class _AttendanceGeofenceSheetState extends ConsumerState<_AttendanceGeofenceSheet> {
+  bool _enabled = false, _saving = false;
+  bool _fenceLoaded = false;
+  double? _lat, _lng;
+  double _radius = 250;
+  String _address = '';
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() async {
+      final fence = await ref.read(ownerControllerProvider.notifier).loadAttendanceGeofence();
+      if (!mounted) return;
+      final state = ref.read(ownerControllerProvider);
+      setState(() {
+        _enabled = fence['enabled'] == true;
+        _lat = (fence['latitude'] as num?)?.toDouble() ?? state.addressLatitude;
+        _lng = (fence['longitude'] as num?)?.toDouble() ?? state.addressLongitude;
+        _radius = (fence['radiusMeters'] as num?)?.toDouble() ?? 250;
+        _address = fence['address']?.toString() ?? state.address;
+        _fenceLoaded = true;
+      });
+    });
+  }
+
+  Future<void> _save(bool enabled) async {
+    if (enabled && (_lat == null || _lng == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Choose an office pin first.')));
+      return;
+    }
+    setState(() => _saving = true);
+    final message = await ref.read(ownerControllerProvider.notifier).saveAttendanceGeofence(enabled: enabled, latitude: _lat, longitude: _lng, radiusMeters: _radius, address: _address);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (message != null) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message))); return; }
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(child: Padding(
+    padding: EdgeInsets.fromLTRB(22, 10, 22, 20 + MediaQuery.of(context).viewInsets.bottom),
+    child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const SheetHandle(),
+      Text('Attendance location restriction', style: AppTextStyles.h2.copyWith(fontSize: 20)),
+      const SizedBox(height: 6),
+      const Text('WFO staff must check in and out inside this area. WFH and Hybrid staff can check in and out anywhere.', style: TextStyle(color: AppColors.silver, height: 1.4)),
+      const SizedBox(height: 12),
+      SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, title: const Text('Restrict attendance to this area', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)), value: _enabled, onChanged: _saving ? null : (v) => setState(() => _enabled = v)),
+      LocationPickerField(key: ValueKey(_fenceLoaded), initialLat: _lat, initialLng: _lng, initialAddress: _address.isEmpty ? null : _address, coverageRadiusMeters: _radius,
+        onPlaceSelected: (place) { if (place != null) setState(() { _lat = place.latitude; _lng = place.longitude; _address = place.address; }); }),
+      const SizedBox(height: 12),
+      Text('Coverage radius: ${_radius.round()} m', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
+      Slider(value: _radius, min: 50, max: 5000, divisions: 99, label: '${_radius.round()} m', onChanged: _saving ? null : (v) => setState(() => _radius = v)),
+      PrimaryButton(label: _enabled ? 'Save and enable restriction' : 'Save settings', loading: _saving, onPressed: _saving ? null : () => _save(_enabled)),
+    ])),
+  ));
 }
 
 class _OwnerProfileScreenState extends ConsumerState<OwnerProfileScreen> {
@@ -128,6 +192,13 @@ class _OwnerProfileScreenState extends ConsumerState<OwnerProfileScreen> {
             if (state.isEnabled(AppFeature.attendance))
               MenuRow(icon: Icons.event_available_outlined, color: AppColors.greenDark, label: 'Staff Attendance',
                   onTap: () => context.push('/owner/staff-attendance')),
+            if (state.isEnabled(AppFeature.attendance))
+              MenuRow(icon: Icons.my_location_rounded, color: AppColors.blue, label: 'Attendance Location Restriction',
+                  subtitle: 'Office check-in and check-out area',
+                  onTap: () => showModalBottomSheet<void>(context: context, isScrollControlled: true,
+                    backgroundColor: AppColors.white,
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+                    builder: (_) => const _AttendanceGeofenceSheet())),
             if (state.isEnabled(AppFeature.leaves))
               MenuRow(icon: Icons.event_busy_outlined, color: AppColors.red, label: 'Leave Management',
                   onTap: () => context.push('/owner/leaves')),

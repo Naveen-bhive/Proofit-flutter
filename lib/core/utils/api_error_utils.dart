@@ -26,6 +26,13 @@ String friendlyErrorMessage(
     if (status == 400) return 'Please check your details and try again.';
     if (status == 401) return 'Please sign in again.';
     if (status == 403) {
+      final lower = apiMessage?.toLowerCase() ?? '';
+      if (lower.contains('outside the office attendance area') ||
+          lower.contains('registered to another device') ||
+          lower.contains('device identity is required') ||
+          lower.contains('attendance area is not configured')) {
+        return _humanizeBusinessMessage(apiMessage!);
+      }
       return 'This feature is not available on your current plan. Upgrade in Settings to continue.';
     }
     if (status == 404) return 'We couldn\'t find what you were looking for.';

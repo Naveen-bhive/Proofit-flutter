@@ -1,4 +1,5 @@
-﻿import 'dart:io';
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -7,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/ui_kit.dart';
+import '../../../shared/widgets/work_mode_badge.dart';
 import '../../../shared/services/location_service.dart';
 import '../../../shared/services/battery_optimization_service.dart';
 import '../../../shared/services/review_service.dart';
@@ -18,7 +20,8 @@ class CheckInScreen extends ConsumerStatefulWidget {
   ConsumerState<CheckInScreen> createState() => _CheckInScreenState();
 }
 
-class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindingObserver {
+class _CheckInScreenState extends ConsumerState<CheckInScreen>
+    with WidgetsBindingObserver {
   double? _lat, _lng;
   String? _address;
   bool _locLoading = true;
@@ -35,6 +38,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(ref.read(staffControllerProvider.notifier).loadCheckInStatus());
     Future.microtask(_bootstrap);
   }
 
@@ -95,7 +99,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
     }
     if (!forcePrompt || !mounted) return false;
 
-    final granted = await LocationService.ensureAlwaysLocationPermission(context);
+    final granted =
+        await LocationService.ensureAlwaysLocationPermission(context);
     if (mounted) setState(() => _hasAlwaysPermission = granted);
     return granted;
   }
@@ -113,7 +118,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
 
   Future<bool> _ensureBatteryWarning() async {
     if (!mounted) return false;
-    final ok = await BatteryOptimizationService.ensureWarningShownBeforeCheckIn(context);
+    final ok = await BatteryOptimizationService.ensureWarningShownBeforeCheckIn(
+        context);
     if (mounted) setState(() => _batteryWarningReady = ok);
     return ok;
   }
@@ -122,7 +128,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
     setState(() => _locLoading = true);
     final pos = await LocationService.getCurrentPosition();
     if (pos != null) {
-      final addr = await LocationService.getAddressFromCoords(pos.latitude, pos.longitude);
+      final addr = await LocationService.getAddressFromCoords(
+          pos.latitude, pos.longitude);
       if (!mounted) return;
       setState(() {
         _lat = pos.latitude;
@@ -155,7 +162,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
     if (!await _ensurePrecise()) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Turn on Precise location so your owner can track you accurately.'),
+        content: Text(
+            'Turn on Precise location so your owner can track you accurately.'),
         backgroundColor: AppColors.brand,
         duration: Duration(seconds: 4),
       ));
@@ -166,7 +174,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
     if (!await _ensureBatteryWarning()) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Please review the battery warning so live tracking is not stopped by your phone.'),
+        content: Text(
+            'Please review the battery warning so live tracking is not stopped by your phone.'),
         backgroundColor: AppColors.yellow,
         duration: Duration(seconds: 4),
       ));
@@ -178,7 +187,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
       if (_lat == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not get your location. Turn on GPS and try again.'),
+          content:
+              Text('Could not get your location. Turn on GPS and try again.'),
           backgroundColor: AppColors.red,
         ));
         return;
@@ -186,14 +196,14 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
     }
 
     setState(() => _submitting = true);
-    final ok = await ref.read(staffControllerProvider.notifier).checkIn(
+    final result = await ref.read(staffControllerProvider.notifier).checkIn(
           latitude: _lat!,
           longitude: _lng!,
           address: _address,
         );
     if (!mounted) return;
     setState(() => _submitting = false);
-    if (ok) {
+    if (result.ok) {
       ReviewService.maybePromptAfterSuccess();
       // Soft follow-up for OEM autostart if still needed.
       await BatteryOptimizationService.maybePromptAfterCheckIn(context);
@@ -202,6 +212,12 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
         _success = true;
         _checkedInAt = DateTime.now();
       });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:
+            Text(result.message ?? 'Could not check in. Please try again.'),
+        backgroundColor: AppColors.red,
+      ));
     }
   }
 
@@ -224,12 +240,19 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
         Container(
           width: 32,
           height: 32,
-          decoration: BoxDecoration(color: AppColors.amberSoft, borderRadius: BorderRadius.circular(9)),
+          decoration: BoxDecoration(
+              color: AppColors.amberSoft,
+              borderRadius: BorderRadius.circular(9)),
           child: Icon(ok ? Icons.check_rounded : Icons.warning_amber_rounded,
               color: ok ? AppColors.greenDark : AppColors.yellow, size: 18),
         ),
         const SizedBox(width: 12),
-        Expanded(child: Text(label, style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w500))),
+        Expanded(
+            child: Text(label,
+                style: const TextStyle(
+                    color: AppColors.text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500))),
         GestureDetector(
           onTap: ok ? null : onFix,
           child: Container(
@@ -239,7 +262,10 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
               borderRadius: BorderRadius.circular(100),
             ),
             child: Text(ok ? 'Fixed' : 'Fix',
-                style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 12.5)),
+                style: const TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5)),
           ),
         ),
       ]),
@@ -259,7 +285,12 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
           end: Alignment.bottomCenter,
         ),
         border: Border.all(color: AppColors.brandBorder, width: 1.5),
-        boxShadow: [BoxShadow(color: AppColors.brand.withValues(alpha: 0.18), blurRadius: 30, offset: const Offset(0, 10))],
+        boxShadow: [
+          BoxShadow(
+              color: AppColors.brand.withValues(alpha: 0.18),
+              blurRadius: 30,
+              offset: const Offset(0, 10))
+        ],
       ),
       child: Container(
         decoration: BoxDecoration(
@@ -275,12 +306,19 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(DateFormat('hh:mm a').format(_now),
-                style: AppTextStyles.h1.copyWith(fontSize: 30, fontWeight: FontWeight.w700)),
+                style: AppTextStyles.h1
+                    .copyWith(fontSize: 30, fontWeight: FontWeight.w700)),
           ),
           const SizedBox(height: 4),
-          Text(DateFormat('d MMM yyyy').format(_now), style: const TextStyle(color: AppColors.silver, fontSize: 13.5)),
+          Text(DateFormat('d MMM yyyy').format(_now),
+              style: const TextStyle(color: AppColors.silver, fontSize: 13.5)),
           const SizedBox(height: 10),
-          const SoftBadge(label: 'Shift Start', color: AppColors.brand, dot: true, uppercase: true, fontSize: 11),
+          const SoftBadge(
+              label: 'Shift Start',
+              color: AppColors.brand,
+              dot: true,
+              uppercase: true,
+              fontSize: 11),
         ]),
       ),
     );
@@ -301,18 +339,27 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
-              _locLoading ? 'Fetching location...' : (_address ?? (hasFix ? 'Location found' : 'Location unavailable')),
+              _locLoading
+                  ? 'Fetching location...'
+                  : (_address ??
+                      (hasFix ? 'Location found' : 'Location unavailable')),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 2),
             Text(
               hasFix
                   ? '${_lat!.toStringAsFixed(5)}, ${_lng!.toStringAsFixed(5)}'
-                  : (_locLoading ? 'Waiting for GPS signal' : 'GPS signal not detected'),
+                  : (_locLoading
+                      ? 'Waiting for GPS signal'
+                      : 'GPS signal not detected'),
               style: const TextStyle(color: AppColors.muted, fontSize: 12),
             ),
           ]),
@@ -322,7 +369,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
             onTap: _getLocation,
             child: const Padding(
               padding: EdgeInsets.all(4),
-              child: Icon(Icons.refresh_rounded, color: AppColors.brand, size: 22),
+              child:
+                  Icon(Icons.refresh_rounded, color: AppColors.brand, size: 22),
             ),
           ),
       ]),
@@ -332,7 +380,13 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
   @override
   Widget build(BuildContext context) {
     if (_success) return _successView();
-    final issues = [_gpsOn, _hasAlwaysPermission, _hasPrecise, _batteryWarningReady].where((ok) => !ok).length;
+    final staffState = ref.watch(staffControllerProvider);
+    final issues = [
+      _gpsOn,
+      _hasAlwaysPermission,
+      _hasPrecise,
+      _batteryWarningReady
+    ].where((ok) => !ok).length;
 
     return Scaffold(
       backgroundColor: AppColors.dark,
@@ -347,12 +401,45 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                 _clockDial(),
                 const SizedBox(height: 22),
                 _locationCard(),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                      color: AppColors.dark2,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.border)),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        WorkModeBadge(
+                            mode: staffState.workLocation, compact: true),
+                        const SizedBox(height: 6),
+                        Text(
+                          !staffState.attendancePolicyLoaded
+                              ? 'Loading your attendance location rule…'
+                              : staffState.attendanceLocationRestricted
+                              ? staffState.attendanceRadiusMeters == null
+                                  ? 'Check in within your designated office attendance area.'
+                                  : 'Check in within ${staffState.attendanceRadiusMeters} m of your office.'
+                              : 'Your check-in is not limited to the office area.',
+                          style: const TextStyle(
+                              color: AppColors.silver,
+                              fontSize: 12,
+                              height: 1.4),
+                        ),
+                      ]),
+                ),
                 const SizedBox(height: 18),
                 Row(children: [
                   const Expanded(
                     child: Text(
                       'REQUIRED FOR LIVE TRACKING',
-                      style: TextStyle(color: AppColors.silver, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+                      style: TextStyle(
+                          color: AppColors.silver,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8),
                     ),
                   ),
                   if (issues > 0)
@@ -363,24 +450,34 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                       fontSize: 11.5,
                     )
                   else
-                    const SoftBadge(label: 'All set', color: AppColors.greenDark, fontSize: 11.5),
+                    const SoftBadge(
+                        label: 'All set',
+                        color: AppColors.greenDark,
+                        fontSize: 11.5),
                 ]),
                 const SizedBox(height: 10),
                 _gateChip(
                   ok: _gpsOn,
-                  label: _gpsOn ? 'Location / GPS is on' : 'Location / GPS is off',
+                  label:
+                      _gpsOn ? 'Location / GPS is on' : 'Location / GPS is off',
                   onFix: () => _ensureGpsOn(),
                 ),
                 _gateChip(
                   ok: _hasAlwaysPermission,
                   label: Platform.isIOS
-                      ? (_hasAlwaysPermission ? 'Location permission enabled' : 'Location permission required')
-                      : (_hasAlwaysPermission ? 'Allow all the time enabled' : 'Allow all the time required'),
+                      ? (_hasAlwaysPermission
+                          ? 'Location permission enabled'
+                          : 'Location permission required')
+                      : (_hasAlwaysPermission
+                          ? 'Allow all the time enabled'
+                          : 'Allow all the time required'),
                   onFix: () => _ensureBackgroundPermission(forcePrompt: true),
                 ),
                 _gateChip(
                   ok: _hasPrecise,
-                  label: _hasPrecise ? 'Precise location enabled' : 'Precise location required',
+                  label: _hasPrecise
+                      ? 'Precise location enabled'
+                      : 'Precise location required',
                   onFix: () => _ensurePrecise(),
                 ),
                 _gateChip(
@@ -396,7 +493,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                   icon: Icons.login_rounded,
                   height: 56,
                   color: AppColors.green,
-                  gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFF10B981), Color(0xFF059669)]),
                   loading: _submitting,
                   onPressed: _locLoading ? null : _checkIn,
                 ),
@@ -406,10 +504,12 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                       ? 'ProofIt shares your live location with your owner while the app is open.'
                       : 'ProofIt will keep a permanent notification while you are checked in and share your live location with your owner/admin.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.silver, fontSize: 12, height: 1.5),
+                  style: const TextStyle(
+                      color: AppColors.silver, fontSize: 12, height: 1.5),
                 ),
                 const SizedBox(height: 14),
-                SecondaryButton(label: 'Cancel', onPressed: () => context.pop()),
+                SecondaryButton(
+                    label: 'Cancel', onPressed: () => context.pop()),
               ]),
             ),
           ),
@@ -435,7 +535,9 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.green.withValues(alpha: 0.10),
-                    border: Border.all(color: AppColors.green.withValues(alpha: 0.18), width: 10),
+                    border: Border.all(
+                        color: AppColors.green.withValues(alpha: 0.18),
+                        width: 10),
                   ),
                   child: Center(
                     child: Container(
@@ -443,21 +545,27 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                       height: 78,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(colors: [AppColors.green, AppColors.greenDark],
-                            begin: Alignment.topLeft, end: Alignment.bottomRight),
+                        gradient: const LinearGradient(
+                            colors: [AppColors.green, AppColors.greenDark],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight),
                         boxShadow: AppColors.glow(AppColors.green),
                       ),
-                      child: const Icon(Icons.check_rounded, color: AppColors.white, size: 42),
+                      child: const Icon(Icons.check_rounded,
+                          color: AppColors.white, size: 42),
                     ),
                   ),
                 ),
                 const SizedBox(height: 26),
-                Text('Successfully Checked In!', textAlign: TextAlign.center, style: AppTextStyles.h1.copyWith(fontSize: 24)),
+                Text('Successfully Checked In!',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.h1.copyWith(fontSize: 24)),
                 const SizedBox(height: 10),
                 const Text(
                   'Your work session has started and GPS tracking is now actively synced.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.silver, fontSize: 14.5, height: 1.5),
+                  style: TextStyle(
+                      color: AppColors.silver, fontSize: 14.5, height: 1.5),
                 ),
                 const SizedBox(height: 18),
                 Container(
@@ -470,11 +578,23 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Text(DateFormat('h:mm a').format(at),
-                        style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13)),
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('•', style: TextStyle(color: AppColors.muted))),
-                    Text(DateFormat('d MMM yyyy').format(at), style: const TextStyle(color: AppColors.light, fontSize: 13)),
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13)),
+                    const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('•',
+                            style: TextStyle(color: AppColors.muted))),
+                    Text(DateFormat('d MMM yyyy').format(at),
+                        style: const TextStyle(
+                            color: AppColors.light, fontSize: 13)),
                     const SizedBox(width: 10),
-                    const SoftBadge(label: 'Shift Active', color: AppColors.greenDark, uppercase: true, fontSize: 10.5),
+                    const SoftBadge(
+                        label: 'Shift Active',
+                        color: AppColors.greenDark,
+                        uppercase: true,
+                        fontSize: 10.5),
                   ]),
                 ),
                 const SizedBox(height: 22),
@@ -483,25 +603,55 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
                   child: Column(children: [
                     Row(children: [
-                      Container(width: 7, height: 7, decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle)),
+                      Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                              color: AppColors.green, shape: BoxShape.circle)),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text('SESSION DETAILS',
-                            style: TextStyle(color: AppColors.silver, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+                            style: TextStyle(
+                                color: AppColors.silver,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.8)),
                       ),
-                      const Icon(Icons.sync_rounded, color: AppColors.brand, size: 15),
+                      const Icon(Icons.sync_rounded,
+                          color: AppColors.brand, size: 15),
                       const SizedBox(width: 4),
-                      const Text('Live Sync', style: TextStyle(color: AppColors.brand, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                      const Text('Live Sync',
+                          style: TextStyle(
+                              color: AppColors.brand,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600)),
                     ]),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Divider(height: 1, color: AppColors.borderSoft)),
-                    _sessionRow(Icons.location_on_outlined, AppColors.greenDark, 'Check-in Location',
-                        _address ?? (_lat != null ? '${_lat!.toStringAsFixed(5)}, ${_lng!.toStringAsFixed(5)}' : '-'),
+                    const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        child: Divider(height: 1, color: AppColors.borderSoft)),
+                    _sessionRow(
+                        Icons.location_on_outlined,
+                        AppColors.greenDark,
+                        'Check-in Location',
+                        _address ??
+                            (_lat != null
+                                ? '${_lat!.toStringAsFixed(5)}, ${_lng!.toStringAsFixed(5)}'
+                                : '-'),
                         trailing: _lat != null
-                            ? const SoftBadge(label: 'GPS', color: AppColors.greenDark, fontSize: 11)
+                            ? const SoftBadge(
+                                label: 'GPS',
+                                color: AppColors.greenDark,
+                                fontSize: 11)
                             : null),
-                    _sessionRow(Icons.schedule_rounded, AppColors.brand, 'Shift Started At', DateFormat('h:mm:ss a').format(at)),
-                    _sessionRow(Icons.shield_outlined, AppColors.yellow, 'Supervisor Visibility',
-                        org.isEmpty ? 'Owner / Admin (Live)' : '$org Admin (Live)'),
+                    _sessionRow(Icons.schedule_rounded, AppColors.brand,
+                        'Shift Started At', DateFormat('h:mm:ss a').format(at)),
+                    _sessionRow(
+                        Icons.shield_outlined,
+                        AppColors.yellow,
+                        'Supervisor Visibility',
+                        org.isEmpty
+                            ? 'Owner / Admin (Live)'
+                            : '$org Admin (Live)'),
                   ]),
                 ),
                 const SizedBox(height: 16),
@@ -512,29 +662,45 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const IconTile(icon: Icons.notifications_none_rounded, color: AppColors.light, background: AppColors.white, size: 32, iconSize: 17, radius: 8),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text.rich(
-                        TextSpan(children: [
-                          const TextSpan(text: 'Foreground tracking is active. ', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
-                          TextSpan(
-                              text: Platform.isIOS
-                                  ? 'ProofIt shares your location while the app is open.'
-                                  : 'ProofIt will keep a persistent notification to ensure reliable location updates.'),
-                        ]),
-                        style: const TextStyle(color: AppColors.light, fontSize: 13, height: 1.45),
-                      ),
-                    ),
-                  ]),
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const IconTile(
+                            icon: Icons.notifications_none_rounded,
+                            color: AppColors.light,
+                            background: AppColors.white,
+                            size: 32,
+                            iconSize: 17,
+                            radius: 8),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(children: [
+                              const TextSpan(
+                                  text: 'Foreground tracking is active. ',
+                                  style: TextStyle(
+                                      color: AppColors.text,
+                                      fontWeight: FontWeight.w700)),
+                              TextSpan(
+                                  text: Platform.isIOS
+                                      ? 'ProofIt shares your location while the app is open.'
+                                      : 'ProofIt will keep a persistent notification to ensure reliable location updates.'),
+                            ]),
+                            style: const TextStyle(
+                                color: AppColors.light,
+                                fontSize: 13,
+                                height: 1.45),
+                          ),
+                        ),
+                      ]),
                 ),
               ]),
             ),
           ),
           Container(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-            decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.borderSoft))),
+            decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: AppColors.borderSoft))),
             child: PrimaryButton(
               label: 'Go to Assigned Jobs',
               trailingIcon: Icons.arrow_forward_rounded,
@@ -548,17 +714,28 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> with WidgetsBindi
     );
   }
 
-  Widget _sessionRow(IconData icon, Color color, String title, String value, {Widget? trailing}) => Padding(
+  Widget _sessionRow(IconData icon, Color color, String title, String value,
+          {Widget? trailing}) =>
+      Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          IconTile(icon: icon, color: color, size: 36, iconSize: 18, radius: 10),
+          IconTile(
+              icon: icon, color: color, size: 36, iconSize: 18, radius: 10),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title,
+                  style: const TextStyle(
+                      color: AppColors.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600)),
               const SizedBox(height: 2),
-              Text(value, maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.silver, fontSize: 12.5)),
+              Text(value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      const TextStyle(color: AppColors.silver, fontSize: 12.5)),
             ]),
           ),
           if (trailing != null) trailing,

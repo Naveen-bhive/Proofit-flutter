@@ -34,6 +34,10 @@ class StaffState {
   final ReportModel? selectedReport;
   final String userName;
   final String orgName;
+  final String workLocation;
+  final bool attendanceLocationRestricted;
+  final bool attendancePolicyLoaded;
+  final int? attendanceRadiusMeters;
   final int dailyTarget;
   final int submittedToday;
   final int streak;
@@ -58,6 +62,10 @@ class StaffState {
     this.selectedReport,
     this.userName = '',
     this.orgName = '',
+    this.workLocation = 'wfo',
+    this.attendanceLocationRestricted = false,
+    this.attendancePolicyLoaded = false,
+    this.attendanceRadiusMeters,
     this.dailyTarget = 0,
     this.submittedToday = 0,
     this.streak = 0,
@@ -87,6 +95,10 @@ class StaffState {
     bool clearSelectedReport = false,
     String? userName,
     String? orgName,
+    String? workLocation,
+    bool? attendanceLocationRestricted,
+    bool? attendancePolicyLoaded,
+    int? attendanceRadiusMeters,
     int? dailyTarget,
     int? submittedToday,
     int? streak,
@@ -113,6 +125,13 @@ class StaffState {
             : (selectedReport ?? this.selectedReport),
         userName: userName ?? this.userName,
         orgName: orgName ?? this.orgName,
+        workLocation: workLocation ?? this.workLocation,
+        attendanceLocationRestricted:
+            attendanceLocationRestricted ?? this.attendanceLocationRestricted,
+        attendancePolicyLoaded:
+            attendancePolicyLoaded ?? this.attendancePolicyLoaded,
+        attendanceRadiusMeters:
+            attendanceRadiusMeters ?? this.attendanceRadiusMeters,
         dailyTarget: dailyTarget ?? this.dailyTarget,
         submittedToday: submittedToday ?? this.submittedToday,
         streak: streak ?? this.streak,
@@ -170,6 +189,7 @@ class StaffController extends StateNotifier<StaffState> {
     state = state.copyWith(
       userName: user.name,
       orgName: org?.name ?? '',
+      workLocation: user.workLocation,
       features: org?.features,
       dailyTarget: user.dailyTarget,
       streak: user.streak,
@@ -365,9 +385,15 @@ class StaffController extends StateNotifier<StaffState> {
                   if (total > 0) onProgress(sent / total);
                 });
       if (res.data['success'] == true) {
-        return (asset: Map<String, dynamic>.from(res.data['data'] as Map), error: null);
+        return (
+          asset: Map<String, dynamic>.from(res.data['data'] as Map),
+          error: null
+        );
       }
-      return (asset: null, error: res.data['message']?.toString() ?? 'Upload failed');
+      return (
+        asset: null,
+        error: res.data['message']?.toString() ?? 'Upload failed'
+      );
     } on DioException catch (e) {
       return (
         asset: null,
@@ -385,8 +411,13 @@ class StaffController extends StateNotifier<StaffState> {
   /// optional archive for photos. Returns as soon as the server copy is
   /// saved — the Drive copy continues in the background and reports back
   /// through [onDriveSaved], so the upload spinner never waits on Drive.
-  Future<({String? serverUrl, String? publicId, String? assetId, String? error})>
-      uploadPhotoWithFallback({
+  Future<
+      ({
+        String? serverUrl,
+        String? publicId,
+        String? assetId,
+        String? error
+      })> uploadPhotoWithFallback({
     required File file,
     required String orgName,
     required String jobTitle,
@@ -403,7 +434,8 @@ class StaffController extends StateNotifier<StaffState> {
         serverUrl: null,
         publicId: null,
         assetId: null,
-        error: uploaded.error ?? 'Photo upload failed. Check your connection and tap Retry.',
+        error: uploaded.error ??
+            'Photo upload failed. Check your connection and tap Retry.',
       );
     }
 
@@ -553,6 +585,12 @@ class StaffController extends StateNotifier<StaffState> {
               d['checkInTime'] != null ? parseApiDate(d['checkInTime']) : null,
           submittedToday:
               (d['submittedToday'] as num?)?.toInt() ?? state.submittedToday,
+          workLocation: (d['workLocation'] ?? state.workLocation).toString(),
+          attendanceLocationRestricted:
+              d['attendanceLocationRestricted'] == true,
+          attendancePolicyLoaded: true,
+          attendanceRadiusMeters:
+              (d['attendanceRadiusMeters'] as num?)?.toInt(),
         );
       }
     } catch (_) {
@@ -562,7 +600,7 @@ class StaffController extends StateNotifier<StaffState> {
     unawaited(evaluateTrackingHealth());
   }
 
-  Future<bool> checkIn(
+  Future<({bool ok, String? message})> checkIn(
       {required double latitude,
       required double longitude,
       String? address}) async {
@@ -574,9 +612,19 @@ class StaffController extends StateNotifier<StaffState> {
       });
       state = state.copyWith(isCheckedIn: true, checkInTime: DateTime.now());
       await evaluateTrackingHealth();
-      return true;
-    } catch (_) {
-      return false;
+      return (ok: true, message: null);
+    } on DioException catch (e) {
+      return (
+        ok: false,
+        message: friendlyErrorMessage(e,
+            fallback: 'Could not check in. Please try again.')
+      );
+    } catch (e) {
+      return (
+        ok: false,
+        message: friendlyErrorMessage(e,
+            fallback: 'Could not check in. Please try again.')
+      );
     }
   }
 
@@ -828,8 +876,7 @@ class StaffController extends StateNotifier<StaffState> {
             if (results[i].serverUrl != null)
               {
                 'url': results[i].serverUrl,
-                if (results[i].assetId != null)
-                  'assetId': results[i].assetId,
+                if (results[i].assetId != null) 'assetId': results[i].assetId,
                 'type': 'photo',
                 'label': '${prefix}_${i + 1}',
               },
