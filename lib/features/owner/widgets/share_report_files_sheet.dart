@@ -14,7 +14,7 @@ import '../../../shared/widgets/ui_kit.dart';
 ///    file shares carry no text — the message is copied to the clipboard for
 ///    pasting instead.
 /// "Share everything at once" (one mixed share, with the message) remains for
-/// apps that handle it, e.g. Gmail and Drive.
+/// apps that handle it, such as messaging and mail clients.
 Future<void> shareReportFiles(
   BuildContext context, {
   required XFile pdf,
@@ -24,10 +24,13 @@ Future<void> shareReportFiles(
 }) async {
   Rect? origin() {
     final box = context.findRenderObject() as RenderBox?;
-    return box != null && box.hasSize ? box.localToGlobal(Offset.zero) & box.size : null;
+    return box != null && box.hasSize
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
   }
 
-  Future<void> share(List<XFile> files, {String? message}) => SharePlus.instance.share(ShareParams(
+  Future<void> share(List<XFile> files, {String? message}) =>
+      SharePlus.instance.share(ShareParams(
         files: files,
         text: message,
         subject: subject,
@@ -38,7 +41,8 @@ Future<void> shareReportFiles(
   await Clipboard.setData(ClipboardData(text: text));
   if (context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Message copied — paste it in the chat if you want to send it.'),
+      content:
+          Text('Message copied — paste it in the chat if you want to send it.'),
       duration: Duration(seconds: 4),
     ));
   }
@@ -56,45 +60,53 @@ Future<void> shareReportFiles(
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setSheet) => AppSheet(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('Share report', style: TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          Text(
-            'Photos are inside the PDF. The $videoLabel go as a second share, because apps like WhatsApp '
-            "can't send a PDF and videos in one message.",
-            style: const TextStyle(color: AppColors.silver, fontSize: 13, height: 1.45),
-          ),
-          const SizedBox(height: 18),
-          _StepButton(
-            step: 1,
-            label: 'Share PDF',
-            icon: Icons.picture_as_pdf_outlined,
-            done: pdfDone,
-            onTap: () async {
-              await share([pdf]);
-              setSheet(() => pdfDone = true);
-            },
-          ),
-          const SizedBox(height: 10),
-          _StepButton(
-            step: 2,
-            label: 'Share $videoLabel',
-            icon: Icons.videocam_outlined,
-            done: videosDone,
-            onTap: () async {
-              await share(videos);
-              setSheet(() => videosDone = true);
-            },
-          ),
-          const SizedBox(height: 6),
-          TextButton(
-            onPressed: () async {
-              await share([pdf, ...videos], message: text);
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Share everything at once (Gmail, Drive…)'),
-          ),
-        ]),
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Share report',
+                  style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Text(
+                'Photos are inside the PDF. The $videoLabel go as a second share, because apps like WhatsApp '
+                "can't send a PDF and videos in one message.",
+                style: const TextStyle(
+                    color: AppColors.silver, fontSize: 13, height: 1.45),
+              ),
+              const SizedBox(height: 18),
+              _StepButton(
+                step: 1,
+                label: 'Share PDF',
+                icon: Icons.picture_as_pdf_outlined,
+                done: pdfDone,
+                onTap: () async {
+                  await share([pdf]);
+                  setSheet(() => pdfDone = true);
+                },
+              ),
+              const SizedBox(height: 10),
+              _StepButton(
+                step: 2,
+                label: 'Share $videoLabel',
+                icon: Icons.videocam_outlined,
+                done: videosDone,
+                onTap: () async {
+                  await share(videos);
+                  setSheet(() => videosDone = true);
+                },
+              ),
+              const SizedBox(height: 6),
+              TextButton(
+                onPressed: () async {
+                  await share([pdf, ...videos], message: text);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+                child: const Text('Share everything at once'),
+              ),
+            ]),
       ),
     ),
   );
@@ -106,7 +118,12 @@ class _StepButton extends StatelessWidget {
   final IconData icon;
   final bool done;
   final VoidCallback onTap;
-  const _StepButton({required this.step, required this.label, required this.icon, required this.done, required this.onTap});
+  const _StepButton(
+      {required this.step,
+      required this.label,
+      required this.icon,
+      required this.done,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) => SurfaceCard(
@@ -120,19 +137,32 @@ class _StepButton extends StatelessWidget {
             backgroundColor: done ? AppColors.green : AppColors.brandSoft,
             child: done
                 ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
-                : Text('$step', style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700, fontSize: 13)),
+                : Text('$step',
+                    style: const TextStyle(
+                        color: AppColors.brand,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13)),
           ),
           const SizedBox(width: 12),
           Icon(icon, color: AppColors.light, size: 20),
           const SizedBox(width: 8),
-          Expanded(child: Text(label, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 15))),
-          Text(done ? 'Shared' : 'Share', style: TextStyle(color: done ? AppColors.greenDark : AppColors.brand, fontWeight: FontWeight.w600)),
+          Expanded(
+              child: Text(label,
+                  style: const TextStyle(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15))),
+          Text(done ? 'Shared' : 'Share',
+              style: TextStyle(
+                  color: done ? AppColors.greenDark : AppColors.brand,
+                  fontWeight: FontWeight.w600)),
         ]),
       );
 }
 
 /// MIME type for a downloaded video file, so share targets treat it as video.
-String videoMimeFor(String path) => switch (path.split('.').last.toLowerCase()) {
+String videoMimeFor(String path) =>
+    switch (path.split('.').last.toLowerCase()) {
       'mov' => 'video/quicktime',
       'webm' => 'video/webm',
       '3gp' => 'video/3gpp',

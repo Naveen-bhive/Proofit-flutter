@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
@@ -14,7 +14,8 @@ class PaymentHistoryScreen extends ConsumerStatefulWidget {
   const PaymentHistoryScreen({super.key});
 
   @override
-  ConsumerState<PaymentHistoryScreen> createState() => _PaymentHistoryScreenState();
+  ConsumerState<PaymentHistoryScreen> createState() =>
+      _PaymentHistoryScreenState();
 }
 
 class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
@@ -40,7 +41,10 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
   Future<void> _loadInvoices() async {
     try {
       final res = await ref.read(apiServiceProvider).get('/billing/invoices');
-      if (mounted) setState(() => _invoices = List<Map<String, dynamic>>.from((res.data['data'] as List).map((e) => Map<String, dynamic>.from(e as Map))));
+      if (mounted)
+        setState(() => _invoices = List<Map<String, dynamic>>.from(
+            (res.data['data'] as List)
+                .map((e) => Map<String, dynamic>.from(e as Map))));
     } catch (_) {}
   }
 
@@ -50,24 +54,29 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
     setState(() => _downloadingInvoice = id);
     try {
       final dir = await getTemporaryDirectory();
-      final name = (inv['invoiceNumber']?.toString() ?? 'invoice').replaceAll(RegExp(r'[^\w-]+'), '');
+      final name = (inv['invoiceNumber']?.toString() ?? 'invoice')
+          .replaceAll(RegExp(r'[^\w-]+'), '');
       final path = '${dir.path}/Proofit-$name.pdf';
-      await ref.read(apiServiceProvider).downloadToFile('/billing/invoices/$id/pdf', path);
+      await ref
+          .read(apiServiceProvider)
+          .downloadToFile('/billing/invoices/$id/pdf', path);
       await OpenFile.open(path);
     } catch (e) {
-      if (mounted) showErrorSnackBar(context, e, fallback: 'Could not download the invoice.');
+      if (mounted)
+        showErrorSnackBar(context, e,
+            fallback: 'Could not download the invoice.');
     } finally {
       if (mounted) setState(() => _downloadingInvoice = null);
     }
   }
 
   Color _invoiceColor(String? status) => switch (status) {
-    'paid' => AppColors.greenDark,
-    'sent' => AppColors.amberDark,
-    'overdue' => AppColors.red,
-    'refunded' => AppColors.purple,
-    _ => AppColors.silver,
-  };
+        'paid' => AppColors.greenDark,
+        'sent' => AppColors.amberDark,
+        'overdue' => AppColors.red,
+        'refunded' => AppColors.purple,
+        _ => AppColors.silver,
+      };
 
   Widget _invoiceRow(Map<String, dynamic> inv) {
     final date = _parseDate(inv['invoiceDate']);
@@ -82,19 +91,39 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
         const Icon(Icons.description_outlined, color: AppColors.brand),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(inv['invoiceNumber']?.toString() ?? 'Invoice', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14)),
-            Text('${inv['description'] ?? ''}${date != null ? ' · ${DateFormat('d MMM yyyy').format(date)}' : ''}',
-                maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.silver, fontSize: 12)),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(inv['invoiceNumber']?.toString() ?? 'Invoice',
+                style: const TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14)),
+            Text(
+                '${inv['description'] ?? ''}${date != null ? ' · ${DateFormat('d MMM yyyy').format(date)}' : ''}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.silver, fontSize: 12)),
           ]),
         ),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text('₹${NumberFormat('#,##,##0.00', 'en_IN').format(total)}', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
-          SoftBadge(label: status, color: _invoiceColor(status), uppercase: true, fontSize: 10),
+          Text('₹${NumberFormat('#,##,##0.00', 'en_IN').format(total)}',
+              style: const TextStyle(
+                  color: AppColors.text, fontWeight: FontWeight.w700)),
+          SoftBadge(
+              label: status,
+              color: _invoiceColor(status),
+              uppercase: true,
+              fontSize: 10),
         ]),
         const SizedBox(width: 4),
         _downloadingInvoice == id
-            ? const Padding(padding: EdgeInsets.all(10), child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand)))
+            ? const Padding(
+                padding: EdgeInsets.all(10),
+                child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.brand)))
             : const Icon(Icons.download_rounded, color: AppColors.silver),
       ]),
     );
@@ -106,12 +135,12 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
   }
 
   Color _statusColor(String? status) => switch (status) {
-    'active' => AppColors.green,
-    'failed' => AppColors.red,
-    'expired' => AppColors.yellow,
-    'pending' => AppColors.yellow,
-    _ => AppColors.silver,
-  };
+        'active' => AppColors.green,
+        'failed' => AppColors.red,
+        'expired' => AppColors.yellow,
+        'pending' => AppColors.yellow,
+        _ => AppColors.silver,
+      };
 
   DateTime? _parseDate(dynamic value) {
     if (value == null) return null;
@@ -129,9 +158,15 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
   }
 
   String _invoiceId(Map<String, dynamic> item) {
-    final id = (item['razorpaySubscriptionId'] ?? item['razorpayOrderId'] ?? item['_id'] ?? '').toString();
+    final id = (item['razorpaySubscriptionId'] ??
+            item['razorpayOrderId'] ??
+            item['_id'] ??
+            '')
+        .toString();
     if (id.isEmpty) return '-';
-    return id.length > 16 ? id.substring(id.length - 12).toUpperCase() : id.toUpperCase();
+    return id.length > 16
+        ? id.substring(id.length - 12).toUpperCase()
+        : id.toUpperCase();
   }
 
   @override
@@ -145,7 +180,8 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
           const PageHeader(title: 'Payment History'),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.brand))
                 : RefreshIndicator(
                     color: AppColors.brand,
                     onRefresh: _load,
@@ -157,7 +193,8 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
                               SoftEmptyState(
                                 icon: Icons.receipt_long_outlined,
                                 title: 'No payments yet',
-                                subtitle: 'Your subscription payments will appear here.',
+                                subtitle:
+                                    'Your subscription payments will appear here.',
                               ),
                             ],
                           )
@@ -201,24 +238,40 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Container(height: 4, decoration: const BoxDecoration(gradient: AppColors.brandGradient)),
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Container(
+              height: 4,
+              decoration:
+                  const BoxDecoration(gradient: AppColors.brandGradient)),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(current ? 'CURRENT PLAN' : 'SUBSCRIPTION',
-                        style: const TextStyle(color: AppColors.brand, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.8)),
-                    const SizedBox(height: 4),
-                    Text(_planLabel(plan), style: AppTextStyles.h2.copyWith(fontSize: 22)),
-                    if (createdAt != null)
-                      Text('Started ${DateFormat('d MMM yyyy').format(createdAt)}',
-                          style: const TextStyle(color: AppColors.silver, fontSize: 12.5)),
-                  ]),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(current ? 'CURRENT PLAN' : 'SUBSCRIPTION',
+                            style: const TextStyle(
+                                color: AppColors.brand,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.8)),
+                        const SizedBox(height: 4),
+                        Text(_planLabel(plan),
+                            style: AppTextStyles.h2.copyWith(fontSize: 22)),
+                        if (createdAt != null)
+                          Text(
+                              'Started ${DateFormat('d MMM yyyy').format(createdAt)}',
+                              style: const TextStyle(
+                                  color: AppColors.silver, fontSize: 12.5)),
+                      ]),
                 ),
-                Text('₹$amount', style: AppTextStyles.h2.copyWith(color: AppColors.brand, fontSize: 24)),
+                Text('₹$amount',
+                    style: AppTextStyles.h2
+                        .copyWith(color: AppColors.brand, fontSize: 24)),
               ]),
               const SizedBox(height: 16),
               Container(
@@ -229,36 +282,69 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
                   border: Border.all(color: AppColors.borderSoft),
                 ),
                 child: Row(children: [
-                  SoftBadge(label: status, color: color == AppColors.green ? AppColors.greenDark : color, dot: true, uppercase: true, fontSize: 12),
+                  SoftBadge(
+                      label: status,
+                      color: color == AppColors.green
+                          ? AppColors.greenDark
+                          : color,
+                      dot: true,
+                      uppercase: true,
+                      fontSize: 12),
                   const Spacer(),
                   if (periodEnd != null) ...[
-                    const Icon(Icons.event_outlined, size: 15, color: AppColors.muted),
+                    const Icon(Icons.event_outlined,
+                        size: 15, color: AppColors.muted),
                     const SizedBox(width: 6),
-                    Text.rich(TextSpan(children: [
-                      TextSpan(text: status == 'active' ? 'Renews: ' : 'Valid until: '),
-                      TextSpan(text: DateFormat('d MMM yyyy').format(periodEnd),
-                          style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
-                    ]), style: const TextStyle(color: AppColors.silver, fontSize: 13)),
+                    Text.rich(
+                        TextSpan(children: [
+                          TextSpan(
+                              text: status == 'active'
+                                  ? 'Renews: '
+                                  : 'Valid until: '),
+                          TextSpan(
+                              text: DateFormat('d MMM yyyy').format(periodEnd),
+                              style: const TextStyle(
+                                  color: AppColors.text,
+                                  fontWeight: FontWeight.w700)),
+                        ]),
+                        style: const TextStyle(
+                            color: AppColors.silver, fontSize: 13)),
                   ],
                 ]),
               ),
-              const Padding(padding: EdgeInsets.symmetric(vertical: 14), child: Divider(height: 1, color: AppColors.borderSoft)),
-              _kv('Billing Method', Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.account_balance_wallet_outlined, size: 14, color: AppColors.brand),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(_billingMethod(item),
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w500)),
-                ),
-              ])),
+              const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Divider(height: 1, color: AppColors.borderSoft)),
+              _kv(
+                  'Billing Method',
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.account_balance_wallet_outlined,
+                        size: 14, color: AppColors.brand),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(_billingMethod(item),
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500)),
+                    ),
+                  ])),
               const SizedBox(height: 10),
-              _kv('Invoice ID', Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: AppColors.dark4, borderRadius: BorderRadius.circular(6)),
-                child: Text(_invoiceId(item),
-                    style: const TextStyle(color: AppColors.light, fontSize: 12, fontWeight: FontWeight.w600)),
-              )),
+              _kv(
+                  'Invoice ID',
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                        color: AppColors.dark4,
+                        borderRadius: BorderRadius.circular(6)),
+                    child: Text(_invoiceId(item),
+                        style: const TextStyle(
+                            color: AppColors.light,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600)),
+                  )),
             ]),
           ),
         ]),

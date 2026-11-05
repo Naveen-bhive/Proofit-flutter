@@ -11,7 +11,6 @@ import '../../../shared/models/user_model.dart';
 import '../../../shared/models/org_model.dart';
 import '../../../shared/services/auth_storage.dart';
 import '../../../shared/services/apple_auth_service.dart';
-import '../../../shared/services/drive_service.dart';
 import '../../../shared/services/google_auth_service.dart';
 import '../../../shared/services/notification_service.dart';
 import '../../../shared/services/location_service.dart';
@@ -31,7 +30,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       return await NotificationService.getToken()
           .timeout(const Duration(seconds: 5));
     } catch (e) {
-      state = AsyncError(friendlyErrorMessage(e, fallback: 'Could not verify OTP. Please try again.'), StackTrace.current);
+      state = AsyncError(
+          friendlyErrorMessage(e,
+              fallback: 'Could not verify OTP. Please try again.'),
+          StackTrace.current);
       return null;
     }
   }
@@ -82,7 +84,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         ...device,
       });
       if (res.data['success'] != true) {
-        state = AsyncError(res.data['message'] ?? 'Could not verify OTP.', StackTrace.current);
+        state = AsyncError(
+            res.data['message'] ?? 'Could not verify OTP.', StackTrace.current);
         return null;
       }
       final data = res.data['data'] as Map<String, dynamic>?;
@@ -91,7 +94,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       _afterLogin(data);
       return data['user']['role'] ?? 'owner';
     } catch (e) {
-      state = AsyncError(friendlyErrorMessage(e, fallback: 'Could not verify OTP. Please try again.'), StackTrace.current);
+      state = AsyncError(
+          friendlyErrorMessage(e,
+              fallback: 'Could not verify OTP. Please try again.'),
+          StackTrace.current);
       return null;
     }
   }
@@ -536,10 +542,6 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         await _api.post('/notifications/fcm-clear', data: {'token': fcm});
       }
     } catch (_) {}
-    try {
-      await GoogleAuthService.signOut().timeout(const Duration(seconds: 4));
-    } catch (_) {}
-    DriveService.clearCache();
     await AuthStorage.clear();
     await _api.clearToken();
     await RevenueCatService.logOut();

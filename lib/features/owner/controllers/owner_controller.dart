@@ -91,12 +91,18 @@ class OwnerState {
   /// entries visible so owners reach the upgrade prompt; custom Enterprise
   /// plans hide everything that wasn't enabled for them.
   bool showsFeature(String feature) =>
-      isEnabled(feature) || (plan != 'enterprise' && _upgradeable.contains(feature));
+      isEnabled(feature) ||
+      (plan != 'enterprise' && _upgradeable.contains(feature));
 
-  static const _upgradeable = {AppFeature.liveMap, AppFeature.export, AppFeature.shareReport};
+  static const _upgradeable = {
+    AppFeature.liveMap,
+    AppFeature.export,
+    AppFeature.shareReport
+  };
 
   /// Mobile number and address are both required for an owner profile.
-  bool get isProfileComplete => ownerPhone.trim().isNotEmpty && address.trim().isNotEmpty;
+  bool get isProfileComplete =>
+      ownerPhone.trim().isNotEmpty && address.trim().isNotEmpty;
 
   OwnerState copyWith({
     bool? isLoading,
@@ -444,40 +450,76 @@ class OwnerController extends StateNotifier<OwnerState> {
     }
   }
 
-  Future<String?> saveAttendanceGeofence({required bool enabled, double? latitude, double? longitude, required double radiusMeters, String address = ''}) async {
+  Future<String?> saveAttendanceGeofence(
+      {required bool enabled,
+      double? latitude,
+      double? longitude,
+      required double radiusMeters,
+      String address = ''}) async {
     try {
       final res = await _api.put('/owner/attendance-geofence', data: {
-        'enabled': enabled, 'latitude': latitude, 'longitude': longitude,
-        'radiusMeters': radiusMeters.round(), 'address': address,
+        'enabled': enabled,
+        'latitude': latitude,
+        'longitude': longitude,
+        'radiusMeters': radiusMeters.round(),
+        'address': address,
       });
-      return res.data['success'] == true ? null : (res.data['message']?.toString() ?? 'Could not save location restriction');
-    } catch (e) { return friendlyErrorMessage(e, fallback: 'Could not save location restriction'); }
+      return res.data['success'] == true
+          ? null
+          : (res.data['message']?.toString() ??
+              'Could not save location restriction');
+    } catch (e) {
+      return friendlyErrorMessage(e,
+          fallback: 'Could not save location restriction');
+    }
   }
 
   Future<Map<String, dynamic>> loadAttendanceGeofence() async {
     try {
       final res = await _api.get('/owner/attendance-geofence');
-      return Map<String, dynamic>.from(res.data['data']?['geofence'] ?? const {});
-    } catch (_) { return const {}; }
+      return Map<String, dynamic>.from(
+          res.data['data']?['geofence'] ?? const {});
+    } catch (_) {
+      return const {};
+    }
   }
 
   Future<String?> resetStaffDevice(String staffId) async {
     try {
       final res = await _api.delete('/staff/$staffId/trusted-device');
-      if (res.data['success'] == true) { await loadStaff(); return null; }
+      if (res.data['success'] == true) {
+        await loadStaff();
+        return null;
+      }
       return res.data['message']?.toString() ?? 'Could not remove saved device';
-    } catch (e) { return friendlyErrorMessage(e, fallback: 'Could not remove saved device'); }
+    } catch (e) {
+      return friendlyErrorMessage(e, fallback: 'Could not remove saved device');
+    }
   }
 
-  Future<String?> setStaffWorkLocation(String staffId, String workLocation) async {
+  Future<String?> setStaffWorkLocation(
+      String staffId, String workLocation) async {
     try {
-      final res = await _api.put('/staff/$staffId/work-location', data: {'workLocation': workLocation});
-      if (res.data['success'] == true) { await loadStaff(); return null; }
-      return res.data['message']?.toString() ?? 'Could not update staff work location';
-    } catch (e) { return friendlyErrorMessage(e, fallback: 'Could not update staff work location'); }
+      final res = await _api.put('/staff/$staffId/work-location',
+          data: {'workLocation': workLocation});
+      if (res.data['success'] == true) {
+        await loadStaff();
+        return null;
+      }
+      return res.data['message']?.toString() ??
+          'Could not update staff work location';
+    } catch (e) {
+      return friendlyErrorMessage(e,
+          fallback: 'Could not update staff work location');
+    }
   }
 
-  Future<String?> editStaffDetails({required String staffId, required String name, required String phone, required String email, required String workLocation}) async {
+  Future<String?> editStaffDetails(
+      {required String staffId,
+      required String name,
+      required String phone,
+      required String email,
+      required String workLocation}) async {
     try {
       final res = await _api.put('/staff/$staffId', data: {
         'name': name,
@@ -485,9 +527,16 @@ class OwnerController extends StateNotifier<OwnerState> {
         if (email.isNotEmpty) 'email': email,
         'workLocation': workLocation,
       });
-      if (res.data['success'] == true) { await loadStaff(); return null; }
-      return res.data['message']?.toString() ?? 'Could not update staff details';
-    } catch (e) { return friendlyErrorMessage(e, fallback: 'Could not update staff details'); }
+      if (res.data['success'] == true) {
+        await loadStaff();
+        return null;
+      }
+      return res.data['message']?.toString() ??
+          'Could not update staff details';
+    } catch (e) {
+      return friendlyErrorMessage(e,
+          fallback: 'Could not update staff details');
+    }
   }
 
   Future<Map<String, dynamic>?> fetchAccountDeletionStatus() async {
@@ -515,19 +564,33 @@ class OwnerController extends StateNotifier<OwnerState> {
         if (phone != null) 'phone': phone,
       });
       final msg = res.data['message']?.toString();
-      return (ok: res.data['success'] == true, message: msg ?? 'Request submitted');
+      return (
+        ok: res.data['success'] == true,
+        message: msg ?? 'Request submitted'
+      );
     } catch (e) {
-      return (ok: false, message: friendlyErrorMessage(e, fallback: 'Could not submit request'));
+      return (
+        ok: false,
+        message: friendlyErrorMessage(e, fallback: 'Could not submit request')
+      );
     }
   }
 
-  Future<({bool ok, String message})> cancelAccountDeletionRequest(String requestId) async {
+  Future<({bool ok, String message})> cancelAccountDeletionRequest(
+      String requestId) async {
     try {
-      final res = await _api.post('/owner/account-deletion-request/$requestId/cancel');
+      final res =
+          await _api.post('/owner/account-deletion-request/$requestId/cancel');
       final msg = res.data['message']?.toString();
-      return (ok: res.data['success'] == true, message: msg ?? 'Request cancelled');
+      return (
+        ok: res.data['success'] == true,
+        message: msg ?? 'Request cancelled'
+      );
     } catch (e) {
-      return (ok: false, message: friendlyErrorMessage(e, fallback: 'Could not cancel request'));
+      return (
+        ok: false,
+        message: friendlyErrorMessage(e, fallback: 'Could not cancel request')
+      );
     }
   }
 
@@ -538,14 +601,23 @@ class OwnerController extends StateNotifier<OwnerState> {
     } catch (_) {}
   }
 
-  Future<({bool ok, String message})> setStaffTarget(String staffId, int target) async {
+  Future<({bool ok, String message})> setStaffTarget(
+      String staffId, int target) async {
     try {
-      final res = await _api.put('/staff/$staffId/target', data: {'target': target});
+      final res =
+          await _api.put('/staff/$staffId/target', data: {'target': target});
       await loadStaffProfile(staffId);
       await loadStaff();
-      return (ok: true, message: res.data['message']?.toString() ?? 'Daily target updated');
+      return (
+        ok: true,
+        message: res.data['message']?.toString() ?? 'Daily target updated'
+      );
     } catch (e) {
-      return (ok: false, message: friendlyErrorMessage(e, fallback: 'Could not update daily target'));
+      return (
+        ok: false,
+        message:
+            friendlyErrorMessage(e, fallback: 'Could not update daily target')
+      );
     }
   }
 
@@ -553,7 +625,8 @@ class OwnerController extends StateNotifier<OwnerState> {
     try {
       final res = await _api.get('/staff/$staffId/profile');
       if (res.data['success'] == true) {
-        state = state.copyWith(selectedStaffProfile: res.data['data'], staffReports: []);
+        state = state
+            .copyWith(selectedStaffProfile: res.data['data'], staffReports: []);
         // Reports need reports.view; a staff manager without it still sees the profile.
         if (!PermissionSession.instance.can(AppPermissions.reportsView)) return;
         final rRes = await _api
@@ -576,19 +649,27 @@ class OwnerController extends StateNotifier<OwnerState> {
     try {
       final res = await _api.get('/staff/permissions/catalog');
       if (res.data['success'] == true) {
-        return {for (final id in (res.data['data']?['grantable'] as List? ?? const [])) id.toString()};
+        return {
+          for (final id
+              in (res.data['data']?['grantable'] as List? ?? const []))
+            id.toString()
+        };
       }
     } catch (_) {}
     return {};
   }
 
   /// Saves a staff member's delegated permissions. Returns an error message, or null.
-  Future<String?> setStaffPermissions(String staffId, Set<String> permissions) async {
+  Future<String?> setStaffPermissions(
+      String staffId, Set<String> permissions) async {
     try {
-      final res = await _api.put('/staff/$staffId/permissions', data: {'permissions': permissions.toList()});
-      if (res.data['success'] != true) return res.data['message']?.toString() ?? 'Could not save permissions';
+      final res = await _api.put('/staff/$staffId/permissions',
+          data: {'permissions': permissions.toList()});
+      if (res.data['success'] != true)
+        return res.data['message']?.toString() ?? 'Could not save permissions';
       await loadStaff();
-      if (state.selectedStaffProfile?['_id']?.toString() == staffId) await loadStaffProfile(staffId);
+      if (state.selectedStaffProfile?['_id']?.toString() == staffId)
+        await loadStaffProfile(staffId);
       return null;
     } catch (e) {
       return friendlyErrorMessage(e, fallback: 'Could not save permissions');
@@ -697,7 +778,8 @@ class OwnerController extends StateNotifier<OwnerState> {
         'longitude': longitude,
       });
       if (res.data['success'] != true) {
-        return (res.data['message'] as String?) ?? 'Could not save your profile.';
+        return (res.data['message'] as String?) ??
+            'Could not save your profile.';
       }
       final orgJson = res.data['data']?['org'];
       if (orgJson is Map) {
@@ -713,7 +795,8 @@ class OwnerController extends StateNotifier<OwnerState> {
       }
       return null;
     } catch (e) {
-      return friendlyErrorMessage(e, fallback: 'Could not save your profile. Please try again.');
+      return friendlyErrorMessage(e,
+          fallback: 'Could not save your profile. Please try again.');
     }
   }
 
@@ -812,7 +895,8 @@ class OwnerController extends StateNotifier<OwnerState> {
   // ── Customer management ───────────────────────────
   Future<void> loadCustomers({String? search}) async {
     try {
-      final params = search != null && search.isNotEmpty ? {'search': search} : null;
+      final params =
+          search != null && search.isNotEmpty ? {'search': search} : null;
       final res = await _api.get('/customers', params: params);
       if (res.data['success'] == true) {
         final d = res.data['data'];
@@ -829,8 +913,9 @@ class OwnerController extends StateNotifier<OwnerState> {
     } catch (_) {}
   }
 
-  Future<String?> addCustomer(String name, String phone, String address,
-      String city, String notes, {String? email}) async {
+  Future<String?> addCustomer(
+      String name, String phone, String address, String city, String notes,
+      {String? email}) async {
     try {
       final res = await _api.post('/customers', data: {
         'name': name,

@@ -11,7 +11,6 @@ import '../../../core/network/api_service.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../shared/services/socket_service.dart';
 import '../../../shared/services/live_location_tracker.dart';
-import '../../../shared/services/google_auth_service.dart';
 import '../../../shared/services/review_service.dart';
 import '../controllers/staff_controller.dart';
 import '../utils/attendance_gates.dart';
@@ -24,9 +23,6 @@ class StaffProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
-  bool _driveLinked = false;
-  bool _checkingDrive = true;
-  bool _connectingDrive = false;
   String _appVersion = '';
 
   @override
@@ -34,7 +30,6 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
     super.initState();
     ref.read(staffControllerProvider.notifier).loadProfileStats();
     ref.read(staffControllerProvider.notifier).syncOrgFromServer();
-    _checkDriveStatus();
     _loadAppVersion();
   }
 
@@ -43,47 +38,10 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
     if (mounted) setState(() => _appVersion = info.version);
   }
 
-  Future<void> _checkDriveStatus() async {
-    // Silent-only check — never prompts. Just reflects whether a session
-    // from a previous interactive connect can still be resumed.
-    final result = await GoogleAuthService.ensureDriveAccess();
-    if (!mounted) return;
-    setState(() {
-      _driveLinked = result.ok;
-      _checkingDrive = false;
-    });
-  }
-
-  Future<void> _connectDrive() async {
-    setState(() => _connectingDrive = true);
-    final result = await GoogleAuthService.ensureDriveAccess(interactive: true);
-    if (!mounted) return;
-    setState(() {
-      _connectingDrive = false;
-      _driveLinked = result.ok;
-    });
-
-    if (result.ok) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text(
-            'Google Drive connected. Report photos will now upload to your Drive.'),
-        backgroundColor: AppColors.green,
-      ));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(result.error ??
-            'Could not connect Google Drive. Please try again.'),
-        backgroundColor: AppColors.red,
-        duration: const Duration(seconds: 6),
-      ));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(staffControllerProvider);
     final unread = state.notifications.where((n) => n['isRead'] != true).length;
-    final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
       backgroundColor: AppColors.page,
@@ -93,7 +51,7 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
             children: [
               PageHeader(
                 title: 'Profile',
-                showBack: canPop,
+                showBack: false,
                 titleSize: 24,
                 padding: const EdgeInsets.fromLTRB(4, 8, 0, 16),
                 actions: [
@@ -226,28 +184,6 @@ class _StaffProfileScreenState extends ConsumerState<StaffProfileScreen> {
                       ]),
                 ),
               ],
-
-              const SectionLabel('Storage'),
-              MenuGroup(children: [
-                MenuRow(
-                  icon: _driveLinked
-                      ? Icons.cloud_done_outlined
-                      : Icons.cloud_outlined,
-                  color: _driveLinked ? AppColors.greenDark : AppColors.brand,
-                  label: _checkingDrive
-                      ? 'Checking Google Drive...'
-                      : _connectingDrive
-                          ? 'Connecting...'
-                          : _driveLinked
-                              ? 'Google Drive Connected'
-                              : 'Connect Google Drive',
-                  onTap: (_checkingDrive || _connectingDrive)
-                      ? null
-                      : _driveLinked
-                          ? _checkDriveStatus // re-verify — catches silent token expiry
-                          : _connectDrive,
-                ),
-              ]),
 
               if (state.isEnabled(AppFeature.attendance) ||
                   state.isEnabled(AppFeature.leaves)) ...[

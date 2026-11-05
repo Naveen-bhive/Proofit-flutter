@@ -195,15 +195,14 @@ class _DraftDetailScreenState extends ConsumerState<DraftDetailScreen> {
   }
 
   Widget _mediaBox(String label, MediaData? media, String reportId, String slot, int index) {
-    final hasPhoto = media?.driveFileId != null || media?.url != null;
+    final hasPhoto = media?.url != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         if (hasPhoto)
-          DrivePhotoWidget(
-            driveFileId: media?.driveFileId,
+          ReportPhotoWidget(
             reportId: reportId,
             photoSlot: slot,
             photoIndex: index,

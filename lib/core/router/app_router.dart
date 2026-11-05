@@ -11,6 +11,7 @@ import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/reset_password_screen.dart';
 import '../../features/auth/screens/change_password_screen.dart';
 import '../../features/owner/screens/staff_attendance_screen.dart';
+import '../../features/owner/screens/staff_month_attendance_screen.dart';
 import '../../features/leave/leave_management_screen.dart';
 import '../../features/auth/screens/invite_screen.dart';
 import '../../features/auth/screens/owner_setup_screen.dart';
@@ -67,7 +68,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (token != null && state.uri.path != '/invite/$token') {
         return '/invite/$token';
       }
-      return AppPermissions.redirectFor(path: state.uri.path, role: session.role, can: session.can);
+      return AppPermissions.redirectFor(
+          path: state.uri.path, role: session.role, can: session.can);
     },
     errorBuilder: (_, __) => const Scaffold(
         body: Center(
@@ -206,7 +208,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/owner/subscription',
           builder: (_, __) => const SubscriptionScreen()),
-      GoRoute(path: '/owner/enterprise-request', builder: (_, __) => const EnterpriseRequestScreen()),
+      GoRoute(
+          path: '/owner/enterprise-request',
+          builder: (_, __) => const EnterpriseRequestScreen()),
       GoRoute(
           path: '/owner/payment-history',
           builder: (_, __) => const PaymentHistoryScreen()),
@@ -221,8 +225,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           path: '/owner/leaves',
           builder: (_, __) => const LeaveManagementScreen(isOwner: true)),
       GoRoute(
-          path: '/owner/holidays',
-          builder: (_, __) => const HolidayScreen()),
+          path: '/owner/holidays', builder: (_, __) => const HolidayScreen()),
       GoRoute(
           path: '/owner/working-hours',
           builder: (_, __) => const WorkingHoursScreen()),
@@ -232,10 +235,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/owner/staff-attendance',
           builder: (_, s) => StaffAttendanceScreen(
-              staffId: s.pathParameters['staffId'],
-              staffName: s.uri.queryParameters['name'] != null
-                  ? Uri.decodeComponent(s.uri.queryParameters['name']!)
-                  : null)),
+              staffId: s.uri.queryParameters['staffId'],
+              initialMonth: s.uri.queryParameters['month'],
+              openAnalytics: s.uri.queryParameters['analytics'] == 'true',
+              staffName: s.uri.queryParameters['name'])),
       GoRoute(
           path: '/owner/staff-attendance/:staffId',
           builder: (_, s) => StaffAttendanceScreen(
@@ -243,6 +246,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               staffName: s.uri.queryParameters['name'] != null
                   ? Uri.decodeComponent(s.uri.queryParameters['name']!)
                   : null)),
+      GoRoute(
+          path: '/owner/staff-attendance/:staffId/month',
+          builder: (_, s) => StaffMonthAttendanceScreen(
+              staffId: s.pathParameters['staffId'] ?? '',
+              month: s.uri.queryParameters['month'],
+              staffName: s.uri.queryParameters['name'])),
       GoRoute(
           path: '/owner/export-pdf/:id',
           builder: (_, s) =>

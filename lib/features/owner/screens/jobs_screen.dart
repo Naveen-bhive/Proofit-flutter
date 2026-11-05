@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -127,9 +127,12 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
             title: 'Jobs',
             showBack: canPop,
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-            titleTrailing: SoftBadge(label: pillLabel, color: pillColor, fontSize: 12),
+            titleTrailing:
+                SoftBadge(label: pillLabel, color: pillColor, fontSize: 12),
             actions: [
-              if (ref.watch(permissionSessionProvider).can(AppPermissions.jobsCreate))
+              if (ref
+                  .watch(permissionSessionProvider)
+                  .can(AppPermissions.jobsCreate))
                 RoundAddButton(onTap: _showAssignJob, size: 42),
             ],
           ),
@@ -160,14 +163,16 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
           ),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.brand))
                 : RefreshIndicator(
                     color: AppColors.brand,
                     onRefresh: _reloadAll,
                     child: _jobs.isEmpty
                         ? ListView(children: [
                             const SizedBox(height: 90),
-                            _JobsEmptyState(status: _statusFilter.replaceAll('_', ' ')),
+                            _JobsEmptyState(
+                                status: _statusFilter.replaceAll('_', ' ')),
                           ])
                         : ListView.builder(
                             padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
@@ -188,10 +193,15 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
     final customer = j['customerId'] is Map ? j['customerId'] as Map : null;
     final assignee = j['assignedTo'] is Map ? j['assignedTo'] as Map : null;
     final id = (j['_id'] ?? '').toString();
-    final code = id.length >= 6 ? '#JOB-${id.substring(id.length - 6).toUpperCase()}' : '#JOB';
-    final address = j['location'] is Map ? j['location']['address']?.toString() : null;
+    final code = id.length >= 6
+        ? '#JOB-${id.substring(id.length - 6).toUpperCase()}'
+        : '#JOB';
+    final address =
+        j['location'] is Map ? j['location']['address']?.toString() : null;
     final createdAt = DateTime.tryParse(j['createdAt']?.toString() ?? '');
-    final reportId = j['reportId'] is Map ? j['reportId']['_id']?.toString() : j['reportId']?.toString();
+    final reportId = j['reportId'] is Map
+        ? j['reportId']['_id']?.toString()
+        : j['reportId']?.toString();
     final title = (j['title'] ?? '').toString();
 
     return Container(
@@ -199,7 +209,10 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: priority == 'urgent' ? AppColors.red.withValues(alpha: 0.35) : AppColors.border),
+        border: Border.all(
+            color: priority == 'urgent'
+                ? AppColors.red.withValues(alpha: 0.35)
+                : AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
       child: ClipRRect(
@@ -210,99 +223,163 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  if (completed)
-                    Row(children: [
-                      Flexible(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.h3.copyWith(fontSize: 18, fontWeight: FontWeight.w700))),
-                      const SizedBox(width: 10),
-                      _priorityBadge(priority),
-                      const Spacer(),
-                      const SoftBadge(label: 'Completed', color: AppColors.greenDark, icon: Icons.check_rounded, fontSize: 12),
-                    ])
-                  else ...[
-                    Row(children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppColors.dark4,
-                          borderRadius: BorderRadius.circular(100),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Text(code, style: const TextStyle(color: AppColors.light, fontSize: 11.5, fontWeight: FontWeight.w600)),
-                      ),
-                      const Spacer(),
-                      _priorityBadge(priority),
-                    ]),
-                    const SizedBox(height: 6),
-                    Text(title, maxLines: 2, overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.h3.copyWith(fontSize: 18, fontWeight: FontWeight.w700)),
-                  ],
-                  const SizedBox(height: 10),
-                  if (customer != null)
-                    _infoRow(
-                      Icons.person_outline_rounded,
-                      AppColors.brand,
-                      Row(children: [
-                        Flexible(child: Text(customer['name']?.toString() ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: AppColors.brand, fontSize: 14, fontWeight: FontWeight.w600))),
-                        if ((customer['phone'] ?? '').toString().isNotEmpty) ...[
-                          const Padding(padding: EdgeInsets.symmetric(horizontal: 6),
-                            child: Text('•', style: TextStyle(color: AppColors.muted))),
-                          Text(customer['phone'].toString(), style: const TextStyle(color: AppColors.light, fontSize: 14)),
-                        ],
-                      ]),
-                      trailing: (customer['phone'] ?? '').toString().isEmpty
-                          ? null
-                          : GestureDetector(
-                              onTap: () => _call(customer['phone'].toString()),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.brandSoft,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: AppColors.brandBorder),
-                                ),
-                                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                                  Icon(Icons.call_outlined, size: 13, color: AppColors.brand),
-                                  SizedBox(width: 4),
-                                  Text('Call', style: TextStyle(color: AppColors.brand, fontSize: 12, fontWeight: FontWeight.w600)),
-                                ]),
-                              ),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (completed)
+                        Row(children: [
+                          Flexible(
+                              child: Text(title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.h3.copyWith(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700))),
+                          const SizedBox(width: 10),
+                          _priorityBadge(priority),
+                          const Spacer(),
+                          const SoftBadge(
+                              label: 'Completed',
+                              color: AppColors.greenDark,
+                              icon: Icons.check_rounded,
+                              fontSize: 12),
+                        ])
+                      else ...[
+                        Row(children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.dark4,
+                              borderRadius: BorderRadius.circular(100),
+                              border: Border.all(color: AppColors.border),
                             ),
-                    ),
-                  if (assignee != null)
-                    _infoRow(
-                      Icons.engineering_outlined,
-                      AppColors.silver,
-                      Row(children: [
-                        Flexible(child: Text(assignee['name']?.toString() ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: AppColors.light, fontSize: 14))),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(color: AppColors.dark4, borderRadius: BorderRadius.circular(4)),
-                          child: const Text('Assignee', style: TextStyle(color: AppColors.silver, fontSize: 11, fontWeight: FontWeight.w500)),
+                            child: Text(code,
+                                style: const TextStyle(
+                                    color: AppColors.light,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                          const Spacer(),
+                          _priorityBadge(priority),
+                        ]),
+                        const SizedBox(height: 6),
+                        Text(title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.h3.copyWith(
+                                fontSize: 18, fontWeight: FontWeight.w700)),
+                      ],
+                      const SizedBox(height: 10),
+                      if (customer != null)
+                        _infoRow(
+                          Icons.person_outline_rounded,
+                          AppColors.brand,
+                          Row(children: [
+                            Flexible(
+                                child: Text(customer['name']?.toString() ?? '',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        color: AppColors.brand,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600))),
+                            if ((customer['phone'] ?? '')
+                                .toString()
+                                .isNotEmpty) ...[
+                              const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 6),
+                                  child: Text('•',
+                                      style:
+                                          TextStyle(color: AppColors.muted))),
+                              Text(customer['phone'].toString(),
+                                  style: const TextStyle(
+                                      color: AppColors.light, fontSize: 14)),
+                            ],
+                          ]),
+                          trailing: (customer['phone'] ?? '').toString().isEmpty
+                              ? null
+                              : GestureDetector(
+                                  onTap: () =>
+                                      _call(customer['phone'].toString()),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.brandSoft,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                          color: AppColors.brandBorder),
+                                    ),
+                                    child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.call_outlined,
+                                              size: 13, color: AppColors.brand),
+                                          SizedBox(width: 4),
+                                          Text('Call',
+                                              style: TextStyle(
+                                                  color: AppColors.brand,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600)),
+                                        ]),
+                                  ),
+                                ),
                         ),
-                      ]),
-                    ),
-                  if (address != null && address.isNotEmpty)
-                    _infoRow(Icons.location_on_outlined, AppColors.red,
-                      Text(address, maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: AppColors.light, fontSize: 14))),
-                  if (createdAt != null)
-                    _infoRow(Icons.schedule_rounded, AppColors.muted,
-                      Text(DateFormat('d MMM, h:mm a').format(createdAt.toLocal()),
-                        style: const TextStyle(color: AppColors.muted, fontSize: 13.5))),
-                  if (status == 'in_progress') ...[
-                    const SizedBox(height: 8),
-                    _progressPanel(reportId != null),
-                  ],
-                  if (completed) ...[
-                    const SizedBox(height: 8),
-                    _completedPanel(reportId, assignee?['name']?.toString()),
-                  ],
-                ]),
+                      if (assignee != null)
+                        _infoRow(
+                          Icons.engineering_outlined,
+                          AppColors.silver,
+                          Row(children: [
+                            Flexible(
+                                child: Text(assignee['name']?.toString() ?? '',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        color: AppColors.light, fontSize: 14))),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(
+                                  color: AppColors.dark4,
+                                  borderRadius: BorderRadius.circular(4)),
+                              child: const Text('Assignee',
+                                  style: TextStyle(
+                                      color: AppColors.silver,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500)),
+                            ),
+                          ]),
+                        ),
+                      if (address != null && address.isNotEmpty)
+                        _infoRow(
+                            Icons.location_on_outlined,
+                            AppColors.red,
+                            Text(address,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: AppColors.light, fontSize: 14))),
+                      if (createdAt != null)
+                        _infoRow(
+                            Icons.schedule_rounded,
+                            AppColors.muted,
+                            Text(
+                                DateFormat('d MMM, h:mm a')
+                                    .format(createdAt.toLocal()),
+                                style: const TextStyle(
+                                    color: AppColors.muted, fontSize: 13.5))),
+                      if (status == 'in_progress') ...[
+                        const SizedBox(height: 8),
+                        _progressPanel(reportId != null),
+                      ],
+                      if (completed) ...[
+                        const SizedBox(height: 8),
+                        _completedPanel(
+                            reportId, assignee?['name']?.toString()),
+                      ],
+                    ]),
               ),
             ),
           ]),
@@ -322,15 +399,17 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
     );
   }
 
-  Widget _infoRow(IconData icon, Color color, Widget child, {Widget? trailing}) => Padding(
-    padding: const EdgeInsets.only(bottom: 9),
-    child: Row(children: [
-      Icon(icon, size: 18, color: color),
-      const SizedBox(width: 10),
-      Expanded(child: child),
-      if (trailing != null) trailing,
-    ]),
-  );
+  Widget _infoRow(IconData icon, Color color, Widget child,
+          {Widget? trailing}) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 9),
+        child: Row(children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 10),
+          Expanded(child: child),
+          if (trailing != null) trailing,
+        ]),
+      );
 
   /// Steps: assigned → started → proof draft → completed.
   Widget _progressPanel(bool hasDraft) {
@@ -344,15 +423,26 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
       ),
       child: Column(children: [
         Row(children: [
-          const Expanded(child: Text('Inspection & Proof Upload',
-            style: TextStyle(color: AppColors.light, fontSize: 13, fontWeight: FontWeight.w500))),
-          Text('$done of 4 Steps', style: const TextStyle(color: AppColors.brand, fontSize: 13, fontWeight: FontWeight.w700)),
+          const Expanded(
+              child: Text('Inspection & Proof Upload',
+                  style: TextStyle(
+                      color: AppColors.light,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500))),
+          Text('$done of 4 Steps',
+              style: const TextStyle(
+                  color: AppColors.brand,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700)),
         ]),
         const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(value: done / 4, minHeight: 7,
-            color: AppColors.brand, backgroundColor: AppColors.border),
+          child: LinearProgressIndicator(
+              value: done / 4,
+              minHeight: 7,
+              color: AppColors.brand,
+              backgroundColor: AppColors.border),
         ),
       ]),
     );
@@ -360,7 +450,9 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
 
   Widget _completedPanel(String? reportId, String? staffName) {
     return GestureDetector(
-      onTap: reportId == null ? null : () => context.push('/owner/report/$reportId'),
+      onTap: reportId == null
+          ? null
+          : () => context.push('/owner/report/$reportId'),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -369,14 +461,19 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
           border: Border.all(color: AppColors.green.withValues(alpha: 0.30)),
         ),
         child: Row(children: [
-          const Icon(Icons.photo_camera_outlined, size: 18, color: AppColors.greenDark),
+          const Icon(Icons.photo_camera_outlined,
+              size: 18, color: AppColors.greenDark),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               reportId == null
                   ? 'Job marked complete'
                   : 'Proof photos submitted${staffName == null ? '' : ' • by $staffName'}',
-              style: const TextStyle(color: AppColors.greenDark, fontSize: 13, fontWeight: FontWeight.w500, height: 1.35),
+              style: const TextStyle(
+                  color: AppColors.greenDark,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 1.35),
             ),
           ),
           if (reportId != null)
@@ -385,9 +482,14 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
               decoration: BoxDecoration(
                 color: AppColors.white,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppColors.green.withValues(alpha: 0.45)),
+                border:
+                    Border.all(color: AppColors.green.withValues(alpha: 0.45)),
               ),
-              child: const Text('Verified', style: TextStyle(color: AppColors.greenDark, fontSize: 12, fontWeight: FontWeight.w600)),
+              child: const Text('Verified',
+                  style: TextStyle(
+                      color: AppColors.greenDark,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600)),
             ),
         ]),
       ),
@@ -413,7 +515,9 @@ class _JobsEmptyState extends StatelessWidget {
               child: Container(
                 width: 170,
                 height: 120,
-                decoration: BoxDecoration(color: AppColors.brandSoft, borderRadius: BorderRadius.circular(80)),
+                decoration: BoxDecoration(
+                    color: AppColors.brandSoft,
+                    borderRadius: BorderRadius.circular(80)),
               ),
             ),
             Positioned(
@@ -427,17 +531,24 @@ class _JobsEmptyState extends StatelessWidget {
                   boxShadow: AppColors.cardShadow,
                 ),
                 padding: const EdgeInsets.fromLTRB(14, 16, 14, 10),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Center(child: Icon(Icons.business_center_rounded, size: 34, color: AppColors.muted.withValues(alpha: 0.8))),
-                  const SizedBox(height: 10),
-                  for (final w in [56.0, 46.0, 38.0])
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      width: w,
-                      height: 5,
-                      decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(3)),
-                    ),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                          child: Icon(Icons.business_center_rounded,
+                              size: 34,
+                              color: AppColors.muted.withValues(alpha: 0.8))),
+                      const SizedBox(height: 10),
+                      for (final w in [56.0, 46.0, 38.0])
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          width: w,
+                          height: 5,
+                          decoration: BoxDecoration(
+                              color: AppColors.border,
+                              borderRadius: BorderRadius.circular(3)),
+                        ),
+                    ]),
               ),
             ),
             Positioned(
@@ -451,7 +562,8 @@ class _JobsEmptyState extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: AppColors.silver, width: 4),
                 ),
-                child: const Icon(Icons.close_rounded, color: AppColors.silver, size: 24),
+                child: const Icon(Icons.close_rounded,
+                    color: AppColors.silver, size: 24),
               ),
             ),
             const Positioned(
@@ -462,13 +574,18 @@ class _JobsEmptyState extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 20),
-        Text('No $status jobs', textAlign: TextAlign.center,
-          style: AppTextStyles.h3.copyWith(fontSize: 18, fontWeight: FontWeight.w700)),
+        Text('No $status jobs',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.h3
+                .copyWith(fontSize: 18, fontWeight: FontWeight.w700)),
         const SizedBox(height: 14),
         const Text.rich(
           TextSpan(children: [
             TextSpan(text: 'Assign jobs to staff from the '),
-            TextSpan(text: '+', style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700)),
+            TextSpan(
+                text: '+',
+                style: TextStyle(
+                    color: AppColors.brand, fontWeight: FontWeight.w700)),
             TextSpan(text: ' button to dispatch now.'),
           ]),
           textAlign: TextAlign.center,
@@ -609,8 +726,10 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                             return;
                           }
                           if (email.isNotEmpty &&
-                              !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
-                            setSheet(() => formError = 'Enter a valid email address');
+                              !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                                  .hasMatch(email)) {
+                            setSheet(() =>
+                                formError = 'Enter a valid email address');
                             return;
                           }
                           setSheet(() {
@@ -619,7 +738,8 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                           });
                           final id = await ref
                               .read(ownerControllerProvider.notifier)
-                              .addCustomer(name, phone, '', '', '', email: email);
+                              .addCustomer(name, phone, '', '', '',
+                                  email: email);
                           if (!ctx.mounted) return;
                           if (id == null) {
                             setSheet(() {
@@ -712,13 +832,18 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
   }
 
   Widget _section(String label, {Widget? trailing}) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Row(children: [
-      Text(label, style: const TextStyle(color: AppColors.silver, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
-      const Spacer(),
-      if (trailing != null) trailing,
-    ]),
-  );
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(children: [
+          Text(label,
+              style: const TextStyle(
+                  color: AppColors.silver,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8)),
+          const Spacer(),
+          if (trailing != null) trailing,
+        ]),
+      );
 
   Widget _priorityOption(String p) {
     final selected = _priority == p;
@@ -739,18 +864,28 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
             color: selected ? color.withValues(alpha: 0.08) : AppColors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected ? color : (p == 'low' ? AppColors.border : color.withValues(alpha: 0.30)),
+              color: selected
+                  ? color
+                  : (p == 'low'
+                      ? AppColors.border
+                      : color.withValues(alpha: 0.30)),
               width: selected ? 1.6 : 1,
             ),
             boxShadow: AppColors.softShadow,
           ),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             if (selected) ...[
-              Container(width: 5, height: 5, decoration: BoxDecoration(color: fg, shape: BoxShape.circle)),
+              Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(color: fg, shape: BoxShape.circle)),
               const SizedBox(width: 5),
             ],
             Text(p[0].toUpperCase() + p.substring(1),
-                style: TextStyle(color: fg, fontSize: 13.5, fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+                style: TextStyle(
+                    color: fg,
+                    fontSize: 13.5,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
           ]),
         ),
       ),
@@ -777,7 +912,8 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                   tooltip: 'Back',
                 ),
                 const SizedBox(width: 4),
-                Text('Assign New Job', style: AppTextStyles.pageTitle.copyWith(fontSize: 21)),
+                Text('Assign New Job',
+                    style: AppTextStyles.pageTitle.copyWith(fontSize: 21)),
               ]),
             ),
             const Divider(height: 1, color: AppColors.border),
@@ -792,34 +928,47 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                       controller: _titleCtrl,
                       enabled: !_assigning,
                       textCapitalization: TextCapitalization.sentences,
-                      style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                          color: AppColors.text, fontWeight: FontWeight.w500),
                       decoration: const InputDecoration(
                         hintText: 'Job title',
                         fillColor: AppColors.white,
-                        prefixIcon: Icon(Icons.business_center_outlined, size: 20),
+                        prefixIcon:
+                            Icon(Icons.business_center_outlined, size: 20),
                         suffixText: 'Required',
-                        suffixStyle: TextStyle(color: AppColors.muted, fontSize: 12.5),
+                        suffixStyle:
+                            TextStyle(color: AppColors.muted, fontSize: 12.5),
                       ),
                     ),
                     const SizedBox(height: 22),
                     SearchableSelectionField(
                       sectionLabel: 'CUSTOMER',
-                      labelTrailing: const Text('Search or create', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                      labelTrailing: const Text('Search or create',
+                          style:
+                              TextStyle(color: AppColors.muted, fontSize: 12)),
                       helperTrailing: GestureDetector(
                         onTap: _assigning ? null : _showQuickAddCustomer,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 7),
                           decoration: BoxDecoration(
                             color: AppColors.brandSoft,
                             borderRadius: BorderRadius.circular(100),
                             border: Border.all(color: AppColors.brandBorder),
                             boxShadow: AppColors.softShadow,
                           ),
-                          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.person_add_alt_outlined, size: 16, color: AppColors.brand),
-                            SizedBox(width: 6),
-                            Text('Add Customer', style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w600, fontSize: 13)),
-                          ]),
+                          child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.person_add_alt_outlined,
+                                    size: 16, color: AppColors.brand),
+                                SizedBox(width: 6),
+                                Text('Add Customer',
+                                    style: TextStyle(
+                                        color: AppColors.brand,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13)),
+                              ]),
                         ),
                       ),
                       searchHint: 'Search customers by name or phone',
@@ -836,7 +985,8 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                         }
                         return phone.isNotEmpty ? phone : email;
                       },
-                      onSelected: (id) => setState(() => _selectedCustomerId = id),
+                      onSelected: (id) =>
+                          setState(() => _selectedCustomerId = id),
                     ),
                     const SizedBox(height: 22),
                     SearchableSelectionField(
@@ -867,9 +1017,16 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                     ),
                     const SizedBox(height: 22),
                     const Row(children: [
-                      Text('DESCRIPTION', style: TextStyle(color: AppColors.silver, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+                      Text('DESCRIPTION',
+                          style: TextStyle(
+                              color: AppColors.silver,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8)),
                       SizedBox(width: 4),
-                      Text('(optional)', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                      Text('(optional)',
+                          style:
+                              TextStyle(color: AppColors.muted, fontSize: 12)),
                     ]),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -881,16 +1038,23 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                       style: const TextStyle(color: AppColors.text),
                       decoration: const InputDecoration(
                         fillColor: AppColors.white,
-                        hintText: 'Provide specific notes, gate codes, or requirements for the assignee...',
+                        hintText:
+                            'Provide specific notes, gate codes, or requirements for the assignee...',
                       ),
                     ),
                     const SizedBox(height: 14),
-                    _section('PRIORITY', trailing: const Text('Response time indicator', style: TextStyle(color: AppColors.muted, fontSize: 12))),
+                    _section('PRIORITY',
+                        trailing: const Text('Response time indicator',
+                            style: TextStyle(
+                                color: AppColors.muted, fontSize: 12))),
                     Transform.translate(
                       offset: const Offset(-4, 0),
                       child: SizedBox(
                         width: MediaQuery.sizeOf(context).width - 32,
-                        child: Row(children: [for (final p in ['low', 'normal', 'high', 'urgent']) _priorityOption(p)]),
+                        child: Row(children: [
+                          for (final p in ['low', 'normal', 'high', 'urgent'])
+                            _priorityOption(p)
+                        ]),
                       ),
                     ),
                     if (_assignError != null) ...[
@@ -901,11 +1065,13 @@ class _AssignJobSheetState extends ConsumerState<_AssignJobSheet> {
                         decoration: BoxDecoration(
                           color: AppColors.redSoft,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.red.withValues(alpha: 0.35)),
+                          border: Border.all(
+                              color: AppColors.red.withValues(alpha: 0.35)),
                         ),
                         child: Text(
                           _assignError!,
-                          style: const TextStyle(color: AppColors.red, fontSize: 13),
+                          style: const TextStyle(
+                              color: AppColors.red, fontSize: 13),
                         ),
                       ),
                     ],

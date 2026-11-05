@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -49,12 +49,21 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
 
   Future<void> _getLocation() async {
     setState(() => _locLoading = true);
-    final pos = await LocationService.getCurrentPosition();
-    if (pos != null) {
-      final addr = await LocationService.getAddressFromCoords(pos.latitude, pos.longitude);
-      setState(() { _lat = pos.latitude; _lng = pos.longitude; _address = addr; });
+    try {
+      final pos = await LocationService.getCurrentPosition();
+      if (pos != null) {
+        final addr = await LocationService.getAddressFromCoords(
+            pos.latitude, pos.longitude);
+        if (mounted)
+          setState(() {
+            _lat = pos.latitude;
+            _lng = pos.longitude;
+            _address = addr;
+          });
+      }
+    } finally {
+      if (mounted) setState(() => _locLoading = false);
     }
-    setState(() => _locLoading = false);
   }
 
   String _formatDuration(DateTime? checkInTime) {
@@ -67,15 +76,20 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
   }
 
   Future<void> _checkOut() async {
-    if (_lat == null) { _getLocation(); return; }
+    if (_lat == null) {
+      _getLocation();
+      return;
+    }
     setState(() => _submitting = true);
-    final result = await ref.read(staffControllerProvider.notifier)
+    final result = await ref
+        .read(staffControllerProvider.notifier)
         .checkOut(latitude: _lat!, longitude: _lng!, address: _address);
     if (!mounted) return;
     setState(() => _submitting = false);
     if (result.ok) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Checked out! Good work today.'), backgroundColor: AppColors.brand));
+          content: Text('Checked out! Good work today.'),
+          backgroundColor: AppColors.brand));
       ReviewService.maybePromptAfterSuccess();
       context.pop();
       return;
@@ -85,11 +99,13 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
         'Complete the job first by submitting a report before checking out.';
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(message), backgroundColor: AppColors.brand));
+      ..showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: AppColors.brand));
 
     if (result.jobId != null && result.jobId!.isNotEmpty) {
       final title = Uri.encodeComponent(result.jobTitle ?? 'Assigned job');
-      context.pushReplacement('/staff/submit?jobId=${result.jobId}&jobTitle=$title');
+      context.pushReplacement(
+          '/staff/submit?jobId=${result.jobId}&jobTitle=$title');
     }
   }
 
@@ -107,65 +123,109 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
       appBar: AppBar(title: const Text('Check Out')),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final minBodyHeight = MediaQuery.sizeOf(context).height
-              - MediaQuery.paddingOf(context).vertical
-              - kToolbarHeight
-              - 48;
+          final minBodyHeight = MediaQuery.sizeOf(context).height -
+              MediaQuery.paddingOf(context).vertical -
+              kToolbarHeight -
+              48;
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: minBodyHeight > 0 ? minBodyHeight : constraints.maxHeight),
+              constraints: BoxConstraints(
+                  minHeight: minBodyHeight > 0
+                      ? minBodyHeight
+                      : constraints.maxHeight),
               child: IntrinsicHeight(
                 child: Column(children: [
                   const Spacer(),
                   Container(
-                    width: 180, height: 180,
+                    width: 180,
+                    height: 180,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: AppColors.brand.withValues(alpha: 0.08),
-                      border: Border.all(color: AppColors.brand.withValues(alpha: 0.3), width: 2),
+                      border: Border.all(
+                          color: AppColors.brand.withValues(alpha: 0.3),
+                          width: 2),
                     ),
-                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      const Icon(Icons.logout_rounded, color: AppColors.brand, size: 40),
-                      const SizedBox(height: 10),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(DateFormat('hh:mm a').format(_now),
-                            style: const TextStyle(color: AppColors.text, fontSize: 28, fontWeight: FontWeight.w800)),
-                      ),
-                      Text(DateFormat('d MMM yyyy').format(_now),
-                          style: const TextStyle(color: AppColors.silver, fontSize: 13)),
-                    ]),
+                    child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.logout_rounded,
+                              color: AppColors.brand, size: 40),
+                          const SizedBox(height: 10),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(DateFormat('hh:mm a').format(_now),
+                                style: const TextStyle(
+                                    color: AppColors.text,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800)),
+                          ),
+                          Text(DateFormat('d MMM yyyy').format(_now),
+                              style: const TextStyle(
+                                  color: AppColors.silver, fontSize: 13)),
+                        ]),
                   ),
                   const SizedBox(height: 32),
                   Row(children: [
-                    Expanded(child: _summaryCard('Duration', _formatDuration(state.checkInTime), Icons.timer_outlined, AppColors.blue)),
+                    Expanded(
+                        child: _summaryCard(
+                            'Duration',
+                            _formatDuration(state.checkInTime),
+                            Icons.timer_outlined,
+                            AppColors.blue)),
                     const SizedBox(width: 12),
-                    Expanded(child: _summaryCard('Reports Done', '${state.submittedToday}', Icons.assignment_turned_in_outlined, AppColors.green)),
+                    Expanded(
+                        child: _summaryCard(
+                            'Reports Done',
+                            '${state.submittedToday}',
+                            Icons.assignment_turned_in_outlined,
+                            AppColors.green)),
                   ]),
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                    decoration: BoxDecoration(
+                        color: AppColors.dark2,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.border)),
                     child: Row(children: [
-                      Icon(_locLoading ? Icons.hourglass_empty : Icons.location_on_outlined,
-                          color: _lat != null ? AppColors.green : AppColors.muted, size: 22),
+                      Icon(
+                          _locLoading
+                              ? Icons.hourglass_empty
+                              : Icons.location_on_outlined,
+                          color:
+                              _lat != null ? AppColors.green : AppColors.muted,
+                          size: 22),
                       const SizedBox(width: 12),
-                      Expanded(child: Text(
-                        _locLoading ? 'Fetching location...' : _address ?? 'Location unavailable',
-                        style: const TextStyle(color: AppColors.light, fontSize: 14),
+                      Expanded(
+                          child: Text(
+                        _locLoading
+                            ? 'Fetching location...'
+                            : _address ?? 'Location unavailable',
+                        style: const TextStyle(
+                            color: AppColors.light, fontSize: 14),
                       )),
+                      if (!_locLoading && _lat == null)
+                        TextButton.icon(
+                          onPressed: _getLocation,
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('Retry'),
+                        ),
                     ]),
                   ),
                   const Spacer(),
                   AppButton(
                     label: 'Check Out Now',
                     isLoading: _submitting,
-                    onPressed: _locLoading ? null : _checkOut,
+                    onPressed: _locLoading || _lat == null ? null : _checkOut,
                     icon: Icons.logout_rounded,
                   ),
                   const SizedBox(height: 12),
-                  AppButton(label: 'Cancel', isOutlined: true, onPressed: () => context.pop()),
+                  AppButton(
+                      label: 'Cancel',
+                      isOutlined: true,
+                      onPressed: () => context.pop()),
                   const SizedBox(height: 20),
                 ]),
               ),
@@ -187,8 +247,11 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Icon(icon, color: color, size: 20),
         const SizedBox(height: 8),
-        Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.w800)),
-        Text(label, style: const TextStyle(color: AppColors.silver, fontSize: 12)),
+        Text(value,
+            style: TextStyle(
+                color: color, fontSize: 22, fontWeight: FontWeight.w800)),
+        Text(label,
+            style: const TextStyle(color: AppColors.silver, fontSize: 12)),
       ]),
     );
   }

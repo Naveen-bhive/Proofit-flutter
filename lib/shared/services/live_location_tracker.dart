@@ -4,7 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'location_service.dart';
 
-typedef LocationCallback = Future<void> Function(double latitude, double longitude);
+/// [accuracy] is the fix's horizontal accuracy in metres and [recordedAt] when
+/// it was taken, so the server can ignore stale or out-of-order readings.
+typedef LocationCallback = Future<void> Function(
+    double latitude, double longitude,
+    {double? accuracy, DateTime? recordedAt});
 
 /// Keeps sending GPS updates while staff is checked in.
 /// Android: continues in the background (foreground service + "Allow all the time").
@@ -17,8 +21,13 @@ class LiveLocationTracker {
   static DateTime? _lastSent;
   static double? _lastLat;
   static double? _lastLng;
+  static double? _lastAccuracy;
+  static DateTime? _lastFixAt;
   static const _minSendInterval = Duration(seconds: 20);
   static const _heartbeatInterval = Duration(seconds: 20);
+
+  /// Older fixes are refreshed before a heartbeat instead of being resent.
+  static const _maxFixAge = Duration(minutes: 2);
 
   static bool get isRunning => _subscription != null;
 
@@ -47,20 +56,24 @@ class LiveLocationTracker {
     if (!always) {
       final granted = await LocationService.requestBackgroundPermission();
       if (!granted) {
-        debugPrint('LiveLocationTracker: background location not granted — stream may pause in background');
+        debugPrint(
+            'LiveLocationTracker: background location not granted — stream may pause in background');
       }
     }
 
-    _subscription = Geolocator.getPositionStream(locationSettings: _settings).listen(
+    _subscription =
+        Geolocator.getPositionStream(locationSettings: _settings).listen(
       _handlePosition,
       onError: (err) => debugPrint('LiveLocationTracker error: $err'),
     );
 
     _heartbeatTimer?.cancel();
-    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) => unawaited(_heartbeatTick()));
+    _heartbeatTimer =
+        Timer.periodic(_heartbeatInterval, (_) => unawaited(_heartbeatTick()));
     unawaited(_heartbeatTick());
 
-    debugPrint('LiveLocationTracker: started (always=${await LocationService.hasAlwaysPermission()})');
+    debugPrint(
+        'LiveLocationTracker: started (always=${await LocationService.hasAlwaysPermission()})');
     return true;
   }
 
@@ -73,6 +86,8 @@ class LiveLocationTracker {
     _lastSent = null;
     _lastLat = null;
     _lastLng = null;
+    _lastAccuracy = null;
+    _lastFixAt = null;
     debugPrint('LiveLocationTracker: stopped');
   }
 
@@ -85,7 +100,8 @@ class LiveLocationTracker {
         intervalDuration: const Duration(seconds: 20),
         foregroundNotificationConfig: const ForegroundNotificationConfig(
           notificationTitle: 'ProofIt is sharing your live location',
-          notificationText: 'Your owner can see you on the live map while you are checked in',
+          notificationText:
+              'Your owner can see you on the live map while you are checked in',
           enableWakeLock: true,
           setOngoing: true,
         ),
@@ -112,8 +128,12 @@ class LiveLocationTracker {
   static Future<void> _heartbeatTick() async {
     if (_onLocation == null) return;
     try {
-      if (_lastLat != null && _lastLng != null) {
-        await _sendPosition(_lastLat!, _lastLng!);
+      final fresh = _lastFixAt != null &&
+          DateTime.now().difference(_lastFixAt!) < _maxFixAge;
+      if (_lastLat != null && _lastLng != null && fresh) {
+        // Same fix and timestamp — keeps the live map fresh without
+        // pretending it is a new reading.
+        await _sendPosition(_lastLat!, _lastLng!, _lastAccuracy, _lastFixAt);
         return;
       }
       final pos = await Geolocator.getCurrentPosition(
@@ -129,18 +149,24 @@ class LiveLocationTracker {
   static Future<void> _handlePosition(Position position) async {
     _lastLat = position.latitude;
     _lastLng = position.longitude;
-    await _sendPosition(position.latitude, position.longitude);
+    _lastAccuracy = position.accuracy;
+    _lastFixAt = position.timestamp.toUtc();
+    await _sendPosition(
+        position.latitude, position.longitude, _lastAccuracy, _lastFixAt);
   }
 
-  static Future<void> _sendPosition(double latitude, double longitude) async {
+  static Future<void> _sendPosition(double latitude, double longitude,
+      double? accuracy, DateTime? recordedAt) async {
     final now = DateTime.now();
-    if (_lastSent != null && now.difference(_lastSent!) < _minSendInterval) return;
+    if (_lastSent != null && now.difference(_lastSent!) < _minSendInterval)
+      return;
     _lastSent = now;
 
     final callback = _onLocation;
     if (callback == null) return;
     try {
-      await callback(latitude, longitude);
+      await callback(latitude, longitude,
+          accuracy: accuracy, recordedAt: recordedAt);
     } catch (e) {
       debugPrint('LiveLocationTracker send failed: $e');
     }

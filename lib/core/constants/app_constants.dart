@@ -29,16 +29,6 @@ class AppConstants {
   );
   static const String revenueCatEntitlementId = 'Proofit_plans';
 
-  // Google Drive folder name — created in staff's Drive
-  static const String driveFolderName = 'ProofIt';
-
-  // Google OAuth scopes
-  static const List<String> googleScopes = [
-    'email',
-    'profile',
-    'https://www.googleapis.com/auth/drive.file',
-  ];
-
   static const String tokenKey    = 'auth_token';
   static const String userKey     = 'user_data';
   static const String orgKey      = 'org_data';

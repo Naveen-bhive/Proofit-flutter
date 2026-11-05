@@ -11,8 +11,6 @@ import '../../../shared/services/auth_storage.dart';
 import '../../../shared/models/org_model.dart';
 import '../../../shared/services/live_location_tracker.dart';
 import '../../../shared/services/location_service.dart';
-import '../../../shared/services/drive_service.dart';
-import '../../../shared/services/google_auth_service.dart';
 import '../../../shared/services/battery_optimization_service.dart';
 
 /// Staff-facing live tracking health shown on home while checked in.
@@ -35,9 +33,14 @@ class StaffState {
   final String userName;
   final String orgName;
   final String workLocation;
+  final String attendanceWorkLocation;
   final bool attendanceLocationRestricted;
   final bool attendancePolicyLoaded;
   final int? attendanceRadiusMeters;
+
+  /// Office geofence state of the open WFO session: inside, outside (time
+  /// paused), unknown, or '' when not tracked.
+  final String geofenceStatus;
   final int dailyTarget;
   final int submittedToday;
   final int streak;
@@ -63,9 +66,11 @@ class StaffState {
     this.userName = '',
     this.orgName = '',
     this.workLocation = 'wfo',
+    this.attendanceWorkLocation = '',
     this.attendanceLocationRestricted = false,
     this.attendancePolicyLoaded = false,
     this.attendanceRadiusMeters,
+    this.geofenceStatus = '',
     this.dailyTarget = 0,
     this.submittedToday = 0,
     this.streak = 0,
@@ -96,9 +101,11 @@ class StaffState {
     String? userName,
     String? orgName,
     String? workLocation,
+    String? attendanceWorkLocation,
     bool? attendanceLocationRestricted,
     bool? attendancePolicyLoaded,
     int? attendanceRadiusMeters,
+    String? geofenceStatus,
     int? dailyTarget,
     int? submittedToday,
     int? streak,
@@ -126,12 +133,15 @@ class StaffState {
         userName: userName ?? this.userName,
         orgName: orgName ?? this.orgName,
         workLocation: workLocation ?? this.workLocation,
+        attendanceWorkLocation:
+            attendanceWorkLocation ?? this.attendanceWorkLocation,
         attendanceLocationRestricted:
             attendanceLocationRestricted ?? this.attendanceLocationRestricted,
         attendancePolicyLoaded:
             attendancePolicyLoaded ?? this.attendancePolicyLoaded,
         attendanceRadiusMeters:
             attendanceRadiusMeters ?? this.attendanceRadiusMeters,
+        geofenceStatus: geofenceStatus ?? this.geofenceStatus,
         dailyTarget: dailyTarget ?? this.dailyTarget,
         submittedToday: submittedToday ?? this.submittedToday,
         streak: streak ?? this.streak,
@@ -407,10 +417,7 @@ class StaffController extends StateNotifier<StaffState> {
     }
   }
 
-  /// Proofit storage (via our API) is the primary store; Google Drive is an
-  /// optional archive for photos. Returns as soon as the server copy is
-  /// saved — the Drive copy continues in the background and reports back
-  /// through [onDriveSaved], so the upload spinner never waits on Drive.
+  /// Uploads report photos to Proofit storage through the existing API.
   Future<
       ({
         String? serverUrl,
@@ -419,11 +426,7 @@ class StaffController extends StateNotifier<StaffState> {
         String? error
       })> uploadPhotoWithFallback({
     required File file,
-    required String orgName,
-    required String jobTitle,
-    required String label,
     void Function(String status)? onStatus,
-    void Function(String driveId)? onDriveSaved,
     void Function(double progress)? onProgress,
   }) async {
     onStatus?.call('Uploading...');
@@ -439,51 +442,12 @@ class StaffController extends StateNotifier<StaffState> {
       );
     }
 
-    unawaited(_archiveToDrive(
-      file: file,
-      orgName: orgName,
-      jobTitle: jobTitle,
-      label: label,
-      onDriveSaved: onDriveSaved,
-    ));
-
     return (
       serverUrl: asset['url'] as String?,
       publicId: null,
       assetId: asset['_id']?.toString(),
       error: null,
     );
-  }
-
-  Future<void> _archiveToDrive({
-    required File file,
-    required String orgName,
-    required String jobTitle,
-    required String label,
-    void Function(String driveId)? onDriveSaved,
-  }) async {
-    try {
-      if (GoogleAuthService.driveApi == null) {
-        await GoogleAuthService.ensureDriveAccess().timeout(
-          const Duration(seconds: 8),
-          onTimeout: () => const DriveAccessResult(
-            ok: false,
-            error: 'Google Drive authorization timed out',
-          ),
-        );
-      }
-      if (GoogleAuthService.driveApi == null) return;
-      final driveResult = await DriveService.uploadPhoto(
-        file: file,
-        orgName: orgName,
-        jobTitle: jobTitle,
-        label: label,
-      );
-      final id = driveResult.fileId;
-      if (driveResult.ok && id != null) onDriveSaved?.call(id);
-    } catch (_) {
-      // Drive is only an archive — the server copy is already saved.
-    }
   }
 
   /// Creates or updates a report with every before/after photo. Photos must
@@ -586,11 +550,14 @@ class StaffController extends StateNotifier<StaffState> {
           submittedToday:
               (d['submittedToday'] as num?)?.toInt() ?? state.submittedToday,
           workLocation: (d['workLocation'] ?? state.workLocation).toString(),
+          attendanceWorkLocation:
+              (d['attendanceWorkLocation'] ?? '').toString(),
           attendanceLocationRestricted:
               d['attendanceLocationRestricted'] == true,
           attendancePolicyLoaded: true,
           attendanceRadiusMeters:
               (d['attendanceRadiusMeters'] as num?)?.toInt(),
+          geofenceStatus: (d['geofenceStatus'] ?? '').toString(),
         );
       }
     } catch (_) {
@@ -603,14 +570,21 @@ class StaffController extends StateNotifier<StaffState> {
   Future<({bool ok, String? message})> checkIn(
       {required double latitude,
       required double longitude,
-      String? address}) async {
+      String? address,
+      String? attendanceWorkLocation}) async {
     try {
       await _api.post('/location/check-in', data: {
         'latitude': latitude,
         'longitude': longitude,
-        'address': address
+        'address': address,
+        if (attendanceWorkLocation != null)
+          'attendanceWorkLocation': attendanceWorkLocation,
       });
-      state = state.copyWith(isCheckedIn: true, checkInTime: DateTime.now());
+      state = state.copyWith(
+        isCheckedIn: true,
+        checkInTime: DateTime.now(),
+        attendanceWorkLocation: attendanceWorkLocation ?? state.workLocation,
+      );
       await evaluateTrackingHealth();
       return (ok: true, message: null);
     } on DioException catch (e) {
@@ -648,6 +622,7 @@ class StaffController extends StateNotifier<StaffState> {
           submittedToday:
               (d?['todayCount'] as num?)?.toInt() ?? state.submittedToday,
           trackingHealth: TrackingHealthStatus.unknown,
+          geofenceStatus: '',
         );
         LiveLocationTracker.stop();
         return (ok: true, message: null, jobId: null, jobTitle: null);
@@ -688,9 +663,10 @@ class StaffController extends StateNotifier<StaffState> {
       LiveLocationTracker.stop();
       return false;
     }
-    final started =
-        await LiveLocationTracker.start(onLocation: (lat, lng) async {
-      await updateLiveLocation(lat, lng);
+    final started = await LiveLocationTracker.start(
+        onLocation: (lat, lng, {accuracy, recordedAt}) async {
+      await updateLiveLocation(lat, lng,
+          accuracy: accuracy, recordedAt: recordedAt);
     });
     return started && LiveLocationTracker.isRunning;
   }
@@ -756,14 +732,24 @@ class StaffController extends StateNotifier<StaffState> {
     await reportTrackingStatus(status: 'ok');
   }
 
-  Future<void> updateLiveLocation(double lat, double lng) async {
+  Future<void> updateLiveLocation(double lat, double lng,
+      {double? accuracy, DateTime? recordedAt}) async {
     for (var attempt = 0; attempt < 2; attempt++) {
       try {
         final res = await _api.post('/location/update', data: {
           'latitude': lat,
           'longitude': lng,
+          if (accuracy != null) 'accuracy': accuracy,
+          if (recordedAt != null) 'recordedAt': recordedAt.toIso8601String(),
         });
-        if (res.data['success'] == true) return;
+        if (res.data['success'] == true) {
+          final d = res.data['data'];
+          if (d is Map && d['geofenceStatus'] != null) {
+            state =
+                state.copyWith(geofenceStatus: d['geofenceStatus'].toString());
+          }
+          return;
+        }
       } catch (_) {
         if (attempt == 0) {
           await Future<void>.delayed(const Duration(milliseconds: 800));
@@ -858,17 +844,12 @@ class StaffController extends StateNotifier<StaffState> {
     String? jobId,
   }) async {
     try {
-      final org = await AuthStorage.getOrg();
-      final orgName = org?.name ?? state.orgName;
       Future<List<Map<String, dynamic>>> uploadAll(
           List<File> files, String prefix) async {
         final results = await Future.wait([
           for (int i = 0; i < files.length; i++)
             uploadPhotoWithFallback(
               file: files[i],
-              orgName: orgName,
-              jobTitle: jobTitle,
-              label: '${prefix}_${i + 1}',
             ),
         ]);
         return [

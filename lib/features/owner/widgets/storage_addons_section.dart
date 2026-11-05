@@ -20,13 +20,16 @@ import '../../../shared/widgets/ui_kit.dart';
 class StorageAddOnsSection extends ConsumerStatefulWidget {
   /// Shows a compact "X used of Y · Manage" line (Subscription screen).
   final bool showUsage;
+
   /// Called after a purchase so the parent can refresh its own figures.
   final VoidCallback? onPurchased;
 
-  const StorageAddOnsSection({super.key, this.showUsage = false, this.onPurchased});
+  const StorageAddOnsSection(
+      {super.key, this.showUsage = false, this.onPurchased});
 
   @override
-  ConsumerState<StorageAddOnsSection> createState() => _StorageAddOnsSectionState();
+  ConsumerState<StorageAddOnsSection> createState() =>
+      _StorageAddOnsSectionState();
 }
 
 class _StorageAddOnsSectionState extends ConsumerState<StorageAddOnsSection> {
@@ -56,13 +59,16 @@ class _StorageAddOnsSectionState extends ConsumerState<StorageAddOnsSection> {
 
   Future<void> _load() async {
     try {
-      final results = await Future.wait([_api.get('/storage/summary'), _api.get('/storage/addons')]);
+      final results = await Future.wait(
+          [_api.get('/storage/summary'), _api.get('/storage/addons')]);
       final addOns = results[1].data['data'] as Map;
       if (!mounted) return;
       setState(() {
-        _summary = StorageSummary.fromJson(Map<String, dynamic>.from(results[0].data['data'] as Map));
+        _summary = StorageSummary.fromJson(
+            Map<String, dynamic>.from(results[0].data['data'] as Map));
         _products = [
-          for (final p in (addOns['products'] as List? ?? const [])) AddOnProduct.fromJson(Map<String, dynamic>.from(p as Map)),
+          for (final p in (addOns['products'] as List? ?? const []))
+            AddOnProduct.fromJson(Map<String, dynamic>.from(p as Map)),
         ];
       });
     } catch (_) {
@@ -94,7 +100,8 @@ class _StorageAddOnsSectionState extends ConsumerState<StorageAddOnsSection> {
     } catch (e) {
       if (mounted) {
         setState(() => _buyingProductId = null);
-        showErrorSnackBar(context, e, fallback: 'Could not start payment. Please try again.');
+        showErrorSnackBar(context, e,
+            fallback: 'Could not start payment. Please try again.');
       }
     }
   }
@@ -115,7 +122,8 @@ class _StorageAddOnsSectionState extends ConsumerState<StorageAddOnsSection> {
       // e.g. the payment is captured a moment later — the webhook activates it.
       if (mounted) {
         showErrorSnackBar(context, e,
-            fallback: 'Payment received. Storage will be added as soon as the payment is confirmed.');
+            fallback:
+                'Payment received. Storage will be added as soon as the payment is confirmed.');
       }
     } finally {
       if (mounted) setState(() => _buyingProductId = null);
@@ -128,17 +136,21 @@ class _StorageAddOnsSectionState extends ConsumerState<StorageAddOnsSection> {
     if (!mounted) return;
     setState(() => _buyingProductId = null);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(friendlyErrorMessage(r.message ?? 'Payment cancelled', fallback: 'Payment was not completed.')),
+      content: Text(friendlyErrorMessage(r.message ?? 'Payment cancelled',
+          fallback: 'Payment was not completed.')),
       backgroundColor: AppColors.red,
     ));
   }
 
   /// Renewing buys the same pack size; the new period starts when the current one ends.
   void _renew(ActiveAddOn a) {
-    final match = _products.where((p) => p.sizeGb * 1024 * 1024 * 1024 == a.sizeBytes).toList();
+    final match = _products
+        .where((p) => p.sizeGb * 1024 * 1024 * 1024 == a.sizeBytes)
+        .toList();
     if (match.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('This pack is not offered on your current plan. Choose another size.'),
+        content: Text(
+            'This pack is not offered on your current plan. Choose another size.'),
       ));
       return;
     }
@@ -150,7 +162,8 @@ class _StorageAddOnsSectionState extends ConsumerState<StorageAddOnsSection> {
     if (_loading) return const SizedBox.shrink();
     final s = _summary;
     final active = s?.activeAddOns ?? const <ActiveAddOn>[];
-    if (!widget.showUsage && _products.isEmpty && active.isEmpty) return const SizedBox.shrink();
+    if (!widget.showUsage && _products.isEmpty && active.isEmpty)
+      return const SizedBox.shrink();
     final fmt = DateFormat('d MMM yyyy');
     final iosNoIap = Platform.isIOS;
     // Staff with storage access can see the packs; only the owner pays.
@@ -164,17 +177,27 @@ class _StorageAddOnsSectionState extends ConsumerState<StorageAddOnsSection> {
           padding: const EdgeInsets.all(14),
           onTap: () => context.push('/owner/storage'),
           child: Row(children: [
-            const IconTile(icon: Icons.sd_storage_outlined, color: AppColors.purple),
+            const IconTile(
+                icon: Icons.sd_storage_outlined, color: AppColors.purple),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${formatBytes(s.usedBytes)} used of ${formatBytes(s.capacityBytes)}',
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text)),
-                Text('Included with your plan: ${formatBytes(s.includedBytes)}${s.addOnBytes > 0 ? ' · add-ons ${formatBytes(s.addOnBytes)}' : ''}',
-                    style: const TextStyle(color: AppColors.silver, fontSize: 12.5)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        '${formatBytes(s.usedBytes)} used of ${formatBytes(s.capacityBytes)}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text)),
+                    Text(
+                        'Included with your plan: ${formatBytes(s.includedBytes)}${s.addOnBytes > 0 ? ' · add-ons ${formatBytes(s.addOnBytes)}' : ''}',
+                        style: const TextStyle(
+                            color: AppColors.silver, fontSize: 12.5)),
+                  ]),
             ),
-            const Text('Manage', style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w600)),
+            const Text('Manage',
+                style: TextStyle(
+                    color: AppColors.brand, fontWeight: FontWeight.w600)),
           ]),
         ),
       for (final a in active)
@@ -182,21 +205,30 @@ class _StorageAddOnsSectionState extends ConsumerState<StorageAddOnsSection> {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
           child: Row(children: [
-            const IconTile(icon: Icons.cloud_done_outlined, color: AppColors.greenDark),
+            const IconTile(
+                icon: Icons.cloud_done_outlined, color: AppColors.greenDark),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(a.name, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text)),
-                Text(
-                  a.isCurrent
-                      ? 'Active until ${a.expiresAt != null ? fmt.format(a.expiresAt!.toLocal()) : '-'}'
-                      : 'Starts ${a.startsAt != null ? fmt.format(a.startsAt!.toLocal()) : '-'} (renewal)',
-                  style: const TextStyle(color: AppColors.silver, fontSize: 12.5),
-                ),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(a.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text)),
+                    Text(
+                      a.isCurrent
+                          ? 'Active until ${a.expiresAt != null ? fmt.format(a.expiresAt!.toLocal()) : '-'}'
+                          : 'Starts ${a.startsAt != null ? fmt.format(a.startsAt!.toLocal()) : '-'} (renewal)',
+                      style: const TextStyle(
+                          color: AppColors.silver, fontSize: 12.5),
+                    ),
+                  ]),
             ),
             if (a.isCurrent && canBuy && !iosNoIap && _products.isNotEmpty)
-              TextButton(onPressed: _buyingProductId != null ? null : () => _renew(a), child: const Text('Renew')),
+              TextButton(
+                  onPressed: _buyingProductId != null ? null : () => _renew(a),
+                  child: const Text('Renew')),
           ]),
         ),
       for (final p in _products)
@@ -204,30 +236,46 @@ class _StorageAddOnsSectionState extends ConsumerState<StorageAddOnsSection> {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
           child: Row(children: [
-            const IconTile(icon: Icons.add_to_drive_outlined, color: AppColors.brand),
+            const IconTile(icon: Icons.storage_rounded, color: AppColors.brand),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('+${p.sizeGb} GB storage', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text)),
-                Text('₹${NumberFormat('#,##,##0.##', 'en_IN').format(p.price)} for ${p.durationDays} days',
-                    style: const TextStyle(color: AppColors.silver, fontSize: 12.5)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('+${p.sizeGb} GB storage',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text)),
+                    Text(
+                        '₹${NumberFormat('#,##,##0.##', 'en_IN').format(p.price)} for ${p.durationDays} days',
+                        style: const TextStyle(
+                            color: AppColors.silver, fontSize: 12.5)),
+                  ]),
             ),
             if (canBuy && !iosNoIap)
               _buyingProductId == p.id
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand))
-                  : TextButton(onPressed: _buyingProductId != null ? null : () => _buy(p), child: const Text('Buy')),
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.brand))
+                  : TextButton(
+                      onPressed:
+                          _buyingProductId != null ? null : () => _buy(p),
+                      child: const Text('Buy')),
           ]),
         ),
       if (!canBuy && _products.isNotEmpty)
         const Padding(
           padding: EdgeInsets.fromLTRB(4, 0, 4, 8),
-          child: Text('Only the owner can buy more storage.', style: TextStyle(color: AppColors.silver, fontSize: 12)),
+          child: Text('Only the owner can buy more storage.',
+              style: TextStyle(color: AppColors.silver, fontSize: 12)),
         ),
       if (canBuy && iosNoIap && _products.isNotEmpty)
         const Padding(
           padding: EdgeInsets.fromLTRB(4, 0, 4, 8),
-          child: Text('Storage add-ons can be purchased from the ProofIt Android app. Storage bought there applies to your whole organisation.',
+          child: Text(
+              'Storage add-ons can be purchased from the ProofIt Android app. Storage bought there applies to your whole organisation.',
               style: TextStyle(color: AppColors.silver, fontSize: 12)),
         ),
     ]);

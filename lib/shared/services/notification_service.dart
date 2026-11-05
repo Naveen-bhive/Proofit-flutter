@@ -198,8 +198,27 @@ class NotificationService {
           ? '/owner/map'
           : '/owner/map?staffId=${Uri.encodeComponent(staffId)}';
     }
+    const attendanceTypes = {
+      'late_checkin',
+      'overtime',
+      'geofence_exit',
+      'geofence_enter',
+      'auto_checkout',
+      'checkout_edited',
+    };
+    if (attendanceTypes.contains(type)) {
+      if (isStaff) return '/staff/checkin-history';
+      final staffId = data['staffId']?.toString() ?? '';
+      final date = data['date']?.toString() ?? '';
+      final params = <String, String>{'analytics': 'true'};
+      if (staffId.isNotEmpty) params['staffId'] = staffId;
+      if (date.length >= 7) params['month'] = date.substring(0, 7);
+      return Uri(path: '/owner/staff-attendance', queryParameters: params)
+          .toString();
+    }
     if (!isStaff && type == 'storage') return '/owner/storage';
-    if (!isStaff && (type == 'invoice' || type == 'payment')) return '/owner/payment-history';
+    if (!isStaff && (type == 'invoice' || type == 'payment'))
+      return '/owner/payment-history';
     if (reportId != null && reportId.isNotEmpty) {
       if (type == 'draft_reminder' && isStaff) return '/staff/draft/$reportId';
       return isStaff ? '/staff/report/$reportId' : '/owner/report/$reportId';

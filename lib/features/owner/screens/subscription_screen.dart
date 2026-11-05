@@ -295,103 +295,153 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           const PageHeader(title: 'Subscription'),
           Expanded(
             child: _plansLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.brand))
                 : SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                      if (slug == 'free') ...[
-                        _freeBanner(),
-                      ] else if (currentPlan != null) ...[
-                        _sectionLabel('Current plan', active: true),
-                        _planCard(
-                          plan: currentPlan,
-                          color: AppColors.brand,
-                          isCurrent: true,
-                          expiresAt: state.subscriptionExpiresAt,
-                        ),
-                      ] else ...[
-                        _sectionLabel('Current plan', active: true),
-                        _legacyCurrentBanner(slug, state.subscriptionExpiresAt),
-                      ],
-                      if (upgrades.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        _sectionLabel('Available upgrades'),
-                        ...upgrades.asMap().entries.map((entry) {
-                          final i = entry.key;
-                          final p = entry.value;
-                          return _planCard(
-                            plan: p,
-                            color: _cardColors[i % _cardColors.length],
-                            isCurrent: false,
-                            onUpgrade: _loading ? null : () => _startPayment(p),
-                          );
-                        }),
-                      ] else if (slug != 'free' && currentPlan != null) ...[
-                        SurfaceCard(
-                          radius: 18,
-                          gradient: const LinearGradient(colors: [Color(0xFFF1F5FF), AppColors.white]),
-                          borderColor: AppColors.brandBorder.withValues(alpha: 0.6),
-                          padding: const EdgeInsets.all(16),
-                          child: const Row(children: [
-                            IconTile(icon: Icons.shield_outlined, color: AppColors.brand, background: AppColors.white, size: 40, iconSize: 20),
-                            SizedBox(width: 14),
-                            Expanded(
-                              child: Text("You're on the highest plan. No further upgrades available.",
-                                  style: TextStyle(color: AppColors.light, fontSize: 13.5, height: 1.45)),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (slug == 'free') ...[
+                            _freeBanner(),
+                          ] else if (currentPlan != null) ...[
+                            _sectionLabel('Current plan', active: true),
+                            _planCard(
+                              plan: currentPlan,
+                              color: AppColors.brand,
+                              isCurrent: true,
+                              expiresAt: state.subscriptionExpiresAt,
                             ),
-                          ]),
-                        ),
-                      ] else if (plans.isEmpty) ...[
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40),
-                          child: Text(
-                            'No plans available right now. Please check back later.',
-                            style: TextStyle(color: AppColors.silver, fontSize: 13),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      SurfaceCard(
-                        radius: 18,
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Row(children: [
-                            const Expanded(
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text('Need Plan Adjustments?',
-                                    style: TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w700)),
-                                SizedBox(height: 2),
-                                Text('Contact your ProofIt account manager',
-                                    style: TextStyle(color: AppColors.silver, fontSize: 12.5)),
+                          ] else ...[
+                            _sectionLabel('Current plan', active: true),
+                            _legacyCurrentBanner(
+                                slug, state.subscriptionExpiresAt),
+                          ],
+                          if (upgrades.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _sectionLabel('Available upgrades'),
+                            ...upgrades.asMap().entries.map((entry) {
+                              final i = entry.key;
+                              final p = entry.value;
+                              return _planCard(
+                                plan: p,
+                                color: _cardColors[i % _cardColors.length],
+                                isCurrent: false,
+                                onUpgrade:
+                                    _loading ? null : () => _startPayment(p),
+                              );
+                            }),
+                          ] else if (slug != 'free' && currentPlan != null) ...[
+                            SurfaceCard(
+                              radius: 18,
+                              gradient: const LinearGradient(
+                                  colors: [Color(0xFFF1F5FF), AppColors.white]),
+                              borderColor:
+                                  AppColors.brandBorder.withValues(alpha: 0.6),
+                              padding: const EdgeInsets.all(16),
+                              child: const Row(children: [
+                                IconTile(
+                                    icon: Icons.shield_outlined,
+                                    color: AppColors.brand,
+                                    background: AppColors.white,
+                                    size: 40,
+                                    iconSize: 20),
+                                SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                      "You're on the highest plan. No further upgrades available.",
+                                      style: TextStyle(
+                                          color: AppColors.light,
+                                          fontSize: 13.5,
+                                          height: 1.45)),
+                                ),
                               ]),
                             ),
-                            GestureDetector(
-                              onTap: () => context.push('/owner/enterprise-request'),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                decoration: BoxDecoration(color: AppColors.text, borderRadius: BorderRadius.circular(10)),
-                                child: const Text('Get in touch',
-                                    style: TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                          ] else if (plans.isEmpty) ...[
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 40),
+                              child: Text(
+                                'No plans available right now. Please check back later.',
+                                style: TextStyle(
+                                    color: AppColors.silver, fontSize: 13),
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                          ]),
-                          const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: AppColors.borderSoft)),
-                          GestureDetector(
-                            onTap: () => context.push('/owner/payment-history'),
-                            child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                              Text('View billing history & invoices',
-                                  style: TextStyle(color: AppColors.brand, fontSize: 13, fontWeight: FontWeight.w600)),
-                              SizedBox(width: 4),
-                              Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.brand),
-                            ]),
+                          ],
+                          const SizedBox(height: 16),
+                          SurfaceCard(
+                            radius: 18,
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(children: [
+                                    const Expanded(
+                                      child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text('Need Plan Adjustments?',
+                                                style: TextStyle(
+                                                    color: AppColors.text,
+                                                    fontSize: 15,
+                                                    fontWeight:
+                                                        FontWeight.w700)),
+                                            SizedBox(height: 2),
+                                            Text(
+                                                'Contact your ProofIt account manager',
+                                                style: TextStyle(
+                                                    color: AppColors.silver,
+                                                    fontSize: 12.5)),
+                                          ]),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => context
+                                          .push('/owner/enterprise-request'),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 14, vertical: 8),
+                                        decoration: BoxDecoration(
+                                            color: AppColors.text,
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                        child: const Text('Get in touch',
+                                            style: TextStyle(
+                                                color: AppColors.white,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600)),
+                                      ),
+                                    ),
+                                  ]),
+                                  const Padding(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      child: Divider(
+                                          height: 1,
+                                          color: AppColors.borderSoft)),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        context.push('/owner/payment-history'),
+                                    child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                              'View billing history & invoices',
+                                              style: TextStyle(
+                                                  color: AppColors.brand,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600)),
+                                          SizedBox(width: 4),
+                                          Icon(Icons.chevron_right_rounded,
+                                              size: 18, color: AppColors.brand),
+                                        ]),
+                                  ),
+                                ]),
                           ),
+                          const SizedBox(height: 8),
+                          // Storage used + the current plan's add-ons, same as Media and Storage.
+                          const StorageAddOnsSection(showUsage: true),
                         ]),
-                      ),
-                      const SizedBox(height: 8),
-                      // Storage used + the current plan's add-ons, same as Media and Storage.
-                      const StorageAddOnsSection(showUsage: true),
-                    ]),
                   ),
           ),
         ]),
@@ -404,9 +454,17 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         child: Row(children: [
           Text(text.toUpperCase(),
               style: const TextStyle(
-                  color: AppColors.silver, fontSize: 12.5, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                  color: AppColors.silver,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1)),
           const Spacer(),
-          if (active) const SoftBadge(label: 'Active', color: AppColors.greenDark, dot: true, fontSize: 12),
+          if (active)
+            const SoftBadge(
+                label: 'Active',
+                color: AppColors.greenDark,
+                dot: true,
+                fontSize: 12),
         ]),
       );
 
@@ -419,12 +477,14 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           border: Border.all(color: AppColors.yellow.withValues(alpha: 0.35)),
         ),
         child: const Row(children: [
-          Icon(Icons.info_outline_rounded, color: AppColors.amberDark, size: 18),
+          Icon(Icons.info_outline_rounded,
+              color: AppColors.amberDark, size: 18),
           SizedBox(width: 10),
           Expanded(
               child: Text(
             'You are on the Free plan (1 staff). Upgrade to unlock more seats, export, live map and more.',
-            style: TextStyle(color: AppColors.amberDark, fontSize: 13, height: 1.4),
+            style: TextStyle(
+                color: AppColors.amberDark, fontSize: 13, height: 1.4),
           )),
         ]),
       );
@@ -435,14 +495,21 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         padding: const EdgeInsets.all(20),
         child: Row(children: [
           Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${slug[0].toUpperCase()}${slug.substring(1)}',
-                style: AppTextStyles.h2.copyWith(fontSize: 24)),
-            if (expiresAt != null)
-              Text('Renews ${DateFormat('d MMM yyyy').format(expiresAt)}',
-                  style: const TextStyle(color: AppColors.silver, fontSize: 12.5)),
-          ])),
-          const IconTile(icon: Icons.workspace_premium_outlined, color: AppColors.brand, size: 48, iconSize: 26),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text('${slug[0].toUpperCase()}${slug.substring(1)}',
+                    style: AppTextStyles.h2.copyWith(fontSize: 24)),
+                if (expiresAt != null)
+                  Text('Renews ${DateFormat('d MMM yyyy').format(expiresAt)}',
+                      style: const TextStyle(
+                          color: AppColors.silver, fontSize: 12.5)),
+              ])),
+          const IconTile(
+              icon: Icons.workspace_premium_outlined,
+              color: AppColors.brand,
+              size: 48,
+              iconSize: 26),
         ]),
       );
 
@@ -451,7 +518,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   List<String> _storageLines(Map<String, dynamic> plan) {
     final flags = plan['flags'];
     final storage = plan['storage'];
-    if (flags is! Map || flags['storage'] != true || storage is! Map) return const [];
+    if (flags is! Map || flags['storage'] != true || storage is! Map)
+      return const [];
     final included = storage['includedGb'];
     return [if (included != null) '$included GB storage included'];
   }
@@ -463,7 +531,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     DateTime? expiresAt,
     VoidCallback? onUpgrade,
   }) {
-    final features = [..._storageLines(plan), ...List<String>.from(plan['features'] ?? const [])];
+    final features = [
+      ..._storageLines(plan),
+      ...List<String>.from(plan['features'] ?? const [])
+    ];
     final maxStaff = plan['maxStaff']?.toString() ?? '-';
     final name = plan['name'] as String? ?? 'Plan';
     final description = (plan['description'] ?? '').toString();
@@ -475,7 +546,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: isCurrent ? color : AppColors.border, width: isCurrent ? 1.6 : 1),
+        border: Border.all(
+            color: isCurrent ? color : AppColors.border,
+            width: isCurrent ? 1.6 : 1),
         boxShadow: AppColors.cardShadow,
       ),
       child: ClipRRect(
@@ -489,37 +562,51 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
               height: 140,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [color.withValues(alpha: 0.12), color.withValues(alpha: 0)]),
+                gradient: RadialGradient(colors: [
+                  color.withValues(alpha: 0.12),
+                  color.withValues(alpha: 0)
+                ]),
               ),
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(name, style: AppTextStyles.h2.copyWith(fontSize: 24)),
-                    if (description.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(description, style: const TextStyle(color: AppColors.silver, fontSize: 12.5, height: 1.35)),
-                      ),
-                    if (isCurrent && expiresAt != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text('Renews ${DateFormat('d MMM yyyy').format(expiresAt)}',
-                            style: const TextStyle(color: AppColors.silver, fontSize: 12.5)),
-                      ),
-                    if (!isEnterprise) ...[
-                      const SizedBox(height: 6),
-                      _limit(Icons.people_outline, '$maxStaff staff'),
-                    ],
-                  ]),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name,
+                            style: AppTextStyles.h2.copyWith(fontSize: 24)),
+                        if (description.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(description,
+                                style: const TextStyle(
+                                    color: AppColors.silver,
+                                    fontSize: 12.5,
+                                    height: 1.35)),
+                          ),
+                        if (isCurrent && expiresAt != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                                'Renews ${DateFormat('d MMM yyyy').format(expiresAt)}',
+                                style: const TextStyle(
+                                    color: AppColors.silver, fontSize: 12.5)),
+                          ),
+                        if (!isEnterprise) ...[
+                          const SizedBox(height: 6),
+                          _limit(Icons.people_outline, '$maxStaff staff'),
+                        ],
+                      ]),
                 ),
                 const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
@@ -527,22 +614,33 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                     boxShadow: AppColors.softShadow,
                   ),
                   child: Text(priceLabel,
-                      style: AppTextStyles.h3.copyWith(color: color, fontSize: 18, fontWeight: FontWeight.w700)),
+                      style: AppTextStyles.h3.copyWith(
+                          color: color,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700)),
                 ),
               ]),
               if (features.isNotEmpty) ...[
-                const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1, color: AppColors.borderSoft)),
+                const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Divider(height: 1, color: AppColors.borderSoft)),
                 ...features.map((f) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Row(children: [
                         Container(
                           width: 22,
                           height: 22,
-                          decoration: BoxDecoration(color: color.withValues(alpha: 0.10), shape: BoxShape.circle),
-                          child: Icon(Icons.check_rounded, color: color, size: 14),
+                          decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.10),
+                              shape: BoxShape.circle),
+                          child:
+                              Icon(Icons.check_rounded, color: color, size: 14),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(child: Text(f, style: const TextStyle(color: AppColors.light, fontSize: 14.5))),
+                        Expanded(
+                            child: Text(f,
+                                style: const TextStyle(
+                                    color: AppColors.light, fontSize: 14.5))),
                       ]),
                     )),
               ] else
@@ -558,11 +656,17 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                     border: Border.all(color: color.withValues(alpha: 0.25)),
                     boxShadow: AppColors.softShadow,
                   ),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.verified_outlined, color: color, size: 18),
-                    const SizedBox(width: 8),
-                    Text('Current Plan', style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 15)),
-                  ]),
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.verified_outlined, color: color, size: 18),
+                        const SizedBox(width: 8),
+                        Text('Current Plan',
+                            style: TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15)),
+                      ]),
                 )
               else
                 PrimaryButton(
@@ -578,6 +682,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       ),
     );
   }
+
   Widget _limit(IconData icon, String text) =>
       Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, color: AppColors.silver, size: 14),

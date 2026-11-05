@@ -17,12 +17,13 @@ import 'force_update_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
-  @override ConsumerState<SplashScreen> createState() => _SplashScreenState();
+  @override
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   static const _minDisplay = Duration(milliseconds: 450);
-  static const _maxWait   = Duration(seconds: 2);
+  static const _maxWait = Duration(seconds: 2);
 
   AppUpdateConfig? _forceUpdate;
 
@@ -52,9 +53,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Future<void> _navigate() async {
     final started = DateTime.now();
     try {
-      final config = await AppUpdateService.fetchConfig(ref.read(apiServiceProvider))
-          .timeout(const Duration(seconds: 3), onTimeout: () => null);
-      if (config != null && await AppUpdateService.isForceUpdateRequired(config)) {
+      final config =
+          await AppUpdateService.fetchConfig(ref.read(apiServiceProvider))
+              .timeout(const Duration(seconds: 3), onTimeout: () => null);
+      if (config != null &&
+          await AppUpdateService.isForceUpdateRequired(config)) {
         final elapsed = DateTime.now().difference(started);
         if (elapsed < _minDisplay) await Future.delayed(_minDisplay - elapsed);
         if (!mounted) {
@@ -71,8 +74,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
       String? role;
       if (inviteToken == null || inviteToken.isEmpty) {
-        role = await ref.read(authControllerProvider.notifier).restoreSession()
-            .timeout(_maxWait, onTimeout: () => null);
+        // If this is a returning install and refresh is offline/slow, use the
+        // locally persisted role so startup can still enter the app shell.
+        final cachedUser = await AuthStorage.getUser()
+            .timeout(const Duration(seconds: 2), onTimeout: () => null);
+        role = cachedUser?.role;
+        role = await ref
+            .read(authControllerProvider.notifier)
+            .restoreSession()
+            .timeout(_maxWait, onTimeout: () => role);
       }
 
       final elapsed = DateTime.now().difference(started);
@@ -128,7 +138,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset('assets/images/splash_logo.png', width: 120, height: 120),
+            Image.asset('assets/images/splash_logo.png',
+                width: 120, height: 120),
             const SizedBox(height: 28),
             const SizedBox(
               width: 28,

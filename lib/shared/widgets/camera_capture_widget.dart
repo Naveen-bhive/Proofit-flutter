@@ -10,22 +10,23 @@ import 'ui_kit.dart' show DashedBorderPainter;
 enum _CaptureChoice { camera, gallery, remove }
 
 class CameraCaptureWidget extends StatelessWidget {
-  final String  label;
-  final File?   image;
-  final bool    isRequired;
+  final String label;
+  final File? image;
+  final bool isRequired;
   final String? staffName;
   final String? jobTitle;
-  final bool    isUploading;
-  final bool    uploadSucceeded;
-  final bool    uploadFailed;
+  final bool isUploading;
+  final bool uploadSucceeded;
+  final bool uploadFailed;
   final String? uploadStatus;
   final VoidCallback? onRetry;
   final Function(CapturedPhoto?) onCaptured;
+
   /// Remote draft preview when local [image] is unavailable.
   final String? networkImageUrl;
-  final String? driveFileId;
   final String? reportId;
   final String? photoSlot;
+
   /// Called when a remote draft photo finishes loading from the server.
   final VoidCallback? onRemoteLoaded;
 
@@ -34,24 +35,22 @@ class CameraCaptureWidget extends StatelessWidget {
     required this.label,
     required this.image,
     required this.onCaptured,
-    this.isRequired   = true,
+    this.isRequired = true,
     this.staffName,
     this.jobTitle,
-    this.isUploading  = false,
+    this.isUploading = false,
     this.uploadSucceeded = false,
     this.uploadFailed = false,
     this.uploadStatus,
     this.onRetry,
     this.networkImageUrl,
-    this.driveFileId,
     this.reportId,
     this.photoSlot,
     this.onRemoteLoaded,
   });
 
   bool get _hasRemoteIds =>
-      (networkImageUrl != null && networkImageUrl!.isNotEmpty) ||
-      (driveFileId != null && driveFileId!.isNotEmpty);
+      networkImageUrl != null && networkImageUrl!.isNotEmpty;
 
   bool get _hasRemotePreview =>
       _hasRemoteIds ||
@@ -101,7 +100,7 @@ class CameraCaptureWidget extends StatelessWidget {
               Icons.camera_alt_rounded,
               AppColors.brand,
               'Open Camera',
-              'Stamped + saved to Google Drive',
+              'Photo stamped and saved',
               () => Navigator.pop(sheetContext, _CaptureChoice.camera),
             ),
             const SizedBox(height: 10),
@@ -156,62 +155,99 @@ class CameraCaptureWidget extends StatelessWidget {
     if (captured != null) onCaptured(captured);
   }
 
-  Widget _opt(IconData icon, Color color, String title, String sub, VoidCallback onTap) =>
-    GestureDetector(onTap: onTap, child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withValues(alpha: 0.2))),
-      child: Row(children: [
-        Container(width: 44, height: 44, decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
-          child: Icon(icon, color: color, size: 22)),
-        const SizedBox(width: 14),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 15)),
-          Text(sub,   style: const TextStyle(color: AppColors.silver, fontSize: 12)),
-        ])),
-        Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: 0.5), size: 20),
-      ])));
+  Widget _opt(IconData icon, Color color, String title, String sub,
+          VoidCallback onTap) =>
+      GestureDetector(
+          onTap: onTap,
+          child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: color.withValues(alpha: 0.2))),
+              child: Row(children: [
+                Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.15),
+                        shape: BoxShape.circle),
+                    child: Icon(icon, color: color, size: 22)),
+                const SizedBox(width: 14),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text(title,
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15)),
+                      Text(sub,
+                          style: const TextStyle(
+                              color: AppColors.silver, fontSize: 12)),
+                    ])),
+                Icon(Icons.chevron_right_rounded,
+                    color: color.withValues(alpha: 0.5), size: 20),
+              ])));
 
   Widget _previewStack({required Widget child}) {
     return Stack(fit: StackFit.expand, children: [
       ClipRRect(borderRadius: BorderRadius.circular(17), child: child),
-      Positioned(bottom: 0, left: 0, right: 0,
-        child: Container(padding: const EdgeInsets.symmetric(vertical: 9),
-          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(17))),
-          child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.camera_alt_outlined, color: Colors.white70, size: 14),
-            SizedBox(width: 6),
-            Text('Tap to retake', style: TextStyle(color: Colors.white70, fontSize: 12)),
-          ]))),
-      Positioned(top: 10, right: 10,
-        child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: uploadFailed
-                ? AppColors.red.withValues(alpha: 0.9)
-                : _showSaved
-                    ? AppColors.green.withValues(alpha: 0.9)
-                    : AppColors.yellow.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(100)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(
-              uploadFailed
-                  ? Icons.cloud_off_rounded
-                  : _showSaved
-                      ? Icons.cloud_done_rounded
-                      : Icons.hourglass_empty_rounded,
-              color: Colors.white,
-              size: 12,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              uploadFailed
-                  ? 'Failed'
-                  : _showSaved
-                      ? 'Saved'
-                      : 'Pending',
-              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
-            ),
-          ]))),
+      Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 9),
+              decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius:
+                      const BorderRadius.vertical(bottom: Radius.circular(17))),
+              child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.camera_alt_outlined,
+                        color: Colors.white70, size: 14),
+                    SizedBox(width: 6),
+                    Text('Tap to retake',
+                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  ]))),
+      Positioned(
+          top: 10,
+          right: 10,
+          child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                  color: uploadFailed
+                      ? AppColors.red.withValues(alpha: 0.9)
+                      : _showSaved
+                          ? AppColors.green.withValues(alpha: 0.9)
+                          : AppColors.yellow.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(100)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(
+                  uploadFailed
+                      ? Icons.cloud_off_rounded
+                      : _showSaved
+                          ? Icons.cloud_done_rounded
+                          : Icons.hourglass_empty_rounded,
+                  color: Colors.white,
+                  size: 12,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  uploadFailed
+                      ? 'Failed'
+                      : _showSaved
+                          ? 'Saved'
+                          : 'Pending',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700),
+                ),
+              ]))),
     ]);
   }
 
@@ -219,27 +255,46 @@ class CameraCaptureWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Text(label, style: const TextStyle(fontFamily: 'Poppins', color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w600)),
-        if (isRequired) const Text(' *', style: TextStyle(color: AppColors.red, fontSize: 14, fontWeight: FontWeight.w700)),
+        Text(label,
+            style: const TextStyle(
+                fontFamily: 'Poppins',
+                color: AppColors.text,
+                fontSize: 15,
+                fontWeight: FontWeight.w600)),
+        if (isRequired)
+          const Text(' *',
+              style: TextStyle(
+                  color: AppColors.red,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700)),
         const SizedBox(width: 8),
-        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: AppColors.brandSoft,
-            borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: AppColors.brandBorder),
-          ),
-          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.schedule_rounded, color: AppColors.brand, size: 11),
-            SizedBox(width: 4),
-            Text('Auto-stamped', style: TextStyle(color: AppColors.brand, fontSize: 11, fontWeight: FontWeight.w600)),
-          ])),
+        Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.brandSoft,
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(color: AppColors.brandBorder),
+            ),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.schedule_rounded, color: AppColors.brand, size: 11),
+              SizedBox(width: 4),
+              Text('Auto-stamped',
+                  style: TextStyle(
+                      color: AppColors.brand,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600)),
+            ])),
         const Spacer(),
         if (_hasPreview && !isUploading)
           GestureDetector(
             onTap: uploadFailed ? onRetry : () => _showOptions(context),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(uploadFailed ? Icons.refresh_rounded : Icons.flip_camera_ios_outlined,
-                  size: 15, color: uploadFailed ? AppColors.red : AppColors.brand),
+              Icon(
+                  uploadFailed
+                      ? Icons.refresh_rounded
+                      : Icons.flip_camera_ios_outlined,
+                  size: 15,
+                  color: uploadFailed ? AppColors.red : AppColors.brand),
               const SizedBox(width: 4),
               Text(
                 uploadFailed ? 'Retry upload' : 'Retake',
@@ -260,61 +315,88 @@ class CameraCaptureWidget extends StatelessWidget {
                 ? onRetry
                 : () => _showOptions(context),
         child: CustomPaint(
-          foregroundPainter: _hasPreview ? null : const DashedBorderPainter(color: Color(0xFFCBD5E1), radius: 18),
+          foregroundPainter: _hasPreview
+              ? null
+              : const DashedBorderPainter(color: Color(0xFFCBD5E1), radius: 18),
           child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: 175, width: double.infinity,
-          decoration: BoxDecoration(
-            color:        _hasPreview ? AppColors.dark4 : AppColors.white,
-            borderRadius: BorderRadius.circular(18),
-            border:       _hasPreview ? Border.all(color: AppColors.border) : null),
-          child: isUploading
-            ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const CircularProgressIndicator(color: AppColors.brand, strokeWidth: 2),
-                const SizedBox(height: 12),
-                Text(
-                  uploadStatus ?? 'Uploading photo...',
-                  style: const TextStyle(color: AppColors.silver, fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-              ])
-            : // Prefer remote draft preview over a local file once we have remote ids,
-              // so we never show a local preview while stuck in "Pending".
-              (_hasRemoteIds || (image == null && _hasRemotePreview))
-                ? _previewStack(
-                    child: networkImageUrl != null && networkImageUrl!.isNotEmpty
-                        ? Image.network(
-                            networkImageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => DrivePhotoWidget(
-                              driveFileId: driveFileId,
-                              reportId: reportId,
-                              photoSlot: photoSlot,
-                              height: 185,
-                              showFullscreen: false,
-                              onLoaded: onRemoteLoaded,
-                            ),
-                          )
-                        : DrivePhotoWidget(
-                            driveFileId: driveFileId,
-                            reportId: reportId,
-                            photoSlot: photoSlot,
-                            height: 185,
-                            showFullscreen: false,
-                            onLoaded: onRemoteLoaded,
-                          ),
-                  )
-              : image != null
-              ? _previewStack(child: Image.file(image!, fit: BoxFit.cover))
-              : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(width: 56, height: 56, decoration: BoxDecoration(color: AppColors.brandSoft, borderRadius: BorderRadius.circular(16)),
-                    child: const Icon(Icons.photo_camera_outlined, color: AppColors.brand, size: 26)),
-                  const SizedBox(height: 14),
-                  Text('Tap to capture $label photo', style: const TextStyle(fontFamily: 'Poppins', color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 14.5)),
-                  const SizedBox(height: 4),
-                  const Text('Location: Timestamp + GPS • saved to Drive', style: TextStyle(color: AppColors.muted, fontSize: 11.5)),
-                ]),
-        ),
+            duration: const Duration(milliseconds: 200),
+            height: 175,
+            width: double.infinity,
+            decoration: BoxDecoration(
+                color: _hasPreview ? AppColors.dark4 : AppColors.white,
+                borderRadius: BorderRadius.circular(18),
+                border:
+                    _hasPreview ? Border.all(color: AppColors.border) : null),
+            child: isUploading
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                        const CircularProgressIndicator(
+                            color: AppColors.brand, strokeWidth: 2),
+                        const SizedBox(height: 12),
+                        Text(
+                          uploadStatus ?? 'Uploading photo...',
+                          style: const TextStyle(
+                              color: AppColors.silver, fontSize: 12),
+                          textAlign: TextAlign.center,
+                        ),
+                      ])
+                : // Prefer remote draft preview over a local file once we have remote ids,
+                // so we never show a local preview while stuck in "Pending".
+                (_hasRemoteIds || (image == null && _hasRemotePreview))
+                    ? _previewStack(
+                        child: networkImageUrl != null &&
+                                networkImageUrl!.isNotEmpty
+                            ? Image.network(
+                                networkImageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => ReportPhotoWidget(
+                                  reportId: reportId,
+                                  photoSlot: photoSlot,
+                                  height: 185,
+                                  showFullscreen: false,
+                                  onLoaded: onRemoteLoaded,
+                                ),
+                              )
+                            : ReportPhotoWidget(
+                                reportId: reportId,
+                                photoSlot: photoSlot,
+                                height: 185,
+                                showFullscreen: false,
+                                onLoaded: onRemoteLoaded,
+                              ),
+                      )
+                    : image != null
+                        ? _previewStack(
+                            child: Image.file(image!, fit: BoxFit.cover))
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                                Container(
+                                    width: 56,
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                        color: AppColors.brandSoft,
+                                        borderRadius:
+                                            BorderRadius.circular(16)),
+                                    child: const Icon(
+                                        Icons.photo_camera_outlined,
+                                        color: AppColors.brand,
+                                        size: 26)),
+                                const SizedBox(height: 14),
+                                Text('Tap to capture $label photo',
+                                    style: const TextStyle(
+                                        fontFamily: 'Poppins',
+                                        color: AppColors.text,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14.5)),
+                                const SizedBox(height: 4),
+                                const Text('Location: Timestamp + GPS',
+                                    style: TextStyle(
+                                        color: AppColors.muted,
+                                        fontSize: 11.5)),
+                              ]),
+          ),
         ),
       ),
     ]);

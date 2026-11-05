@@ -11,16 +11,21 @@ import '../controllers/owner_controller.dart';
 class SearchReportsScreen extends ConsumerStatefulWidget {
   const SearchReportsScreen({super.key});
   @override
-  ConsumerState<SearchReportsScreen> createState() => _SearchReportsScreenState();
+  ConsumerState<SearchReportsScreen> createState() =>
+      _SearchReportsScreenState();
 }
 
 class _SearchReportsScreenState extends ConsumerState<SearchReportsScreen> {
   final _ctrl = TextEditingController();
-  Timer? _debounce;       // FIX #21 — debounce timer
+  Timer? _debounce; // FIX #21 — debounce timer
   bool _isSearching = false;
 
   @override
-  void dispose() { _ctrl.dispose(); _debounce?.cancel(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
 
   // FIX #21 — Debounce 500ms — don't call API on every keystroke
   void _onSearchChanged(String query) {
@@ -32,7 +37,9 @@ class _SearchReportsScreenState extends ConsumerState<SearchReportsScreen> {
   Future<void> _search(String query) async {
     if (query.trim().length < 2) return;
     setState(() => _isSearching = true);
-    await ref.read(ownerControllerProvider.notifier).searchReports(query.trim());
+    await ref
+        .read(ownerControllerProvider.notifier)
+        .searchReports(query.trim());
     if (mounted) setState(() => _isSearching = false);
   }
 
@@ -50,14 +57,23 @@ class _SearchReportsScreenState extends ConsumerState<SearchReportsScreen> {
           decoration: InputDecoration(
             hintText: 'Search by job title, staff name...',
             hintStyle: const TextStyle(color: AppColors.muted),
-            border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
             filled: false,
             suffixIcon: _ctrl.text.isNotEmpty
-                ? IconButton(icon: const Icon(Icons.clear, color: AppColors.muted),
-                    onPressed: () { _ctrl.clear(); setState(() {}); })
+                ? IconButton(
+                    icon: const Icon(Icons.clear, color: AppColors.muted),
+                    onPressed: () {
+                      _ctrl.clear();
+                      setState(() {});
+                    })
                 : null,
           ),
-          onChanged: (v) { setState(() {}); _onSearchChanged(v); }, // FIX #21
+          onChanged: (v) {
+            setState(() {});
+            _onSearchChanged(v);
+          }, // FIX #21
           onSubmitted: _search,
         ),
       ),
@@ -71,30 +87,49 @@ class _SearchReportsScreenState extends ConsumerState<SearchReportsScreen> {
                       padding: const EdgeInsets.all(16),
                       itemCount: state.searchResults.length,
                       itemBuilder: (_, i) => ReportCard(
-                        report: state.searchResults[i], showStaffName: true,
-                        onTap: () => context.push('/owner/report/${state.searchResults[i].id}'),
+                        report: state.searchResults[i],
+                        showStaffName: true,
+                        onTap: () => context
+                            .push('/owner/report/${state.searchResults[i].id}'),
                       ),
                     ),
     );
   }
 
-  Widget _emptyState() => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-    const Icon(Icons.search, color: AppColors.muted, size: 64),
-    const SizedBox(height: 16),
-    const Text('Search reports', style: TextStyle(color: AppColors.silver, fontSize: 16)),
-    const SizedBox(height: 8),
-    const Text('Type job title, staff name or location', style: TextStyle(color: AppColors.muted, fontSize: 13)),
-    const SizedBox(height: 24),
-    Wrap(spacing: 8, children: [
-      for (final hint in ['AC Service', 'Electrical', 'Plumbing', 'Painting'])
-        GestureDetector(
-          onTap: () { _ctrl.text = hint; _search(hint); },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(color: AppColors.dark3, borderRadius: BorderRadius.circular(100), border: Border.all(color: AppColors.border)),
-            child: Text(hint, style: const TextStyle(color: AppColors.silver, fontSize: 13)),
-          ),
-        ),
-    ]),
-  ]));
+  Widget _emptyState() => Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.search, color: AppColors.muted, size: 64),
+        const SizedBox(height: 16),
+        const Text('Search reports',
+            style: TextStyle(color: AppColors.silver, fontSize: 16)),
+        const SizedBox(height: 8),
+        const Text('Type job title, staff name or location',
+            style: TextStyle(color: AppColors.muted, fontSize: 13)),
+        const SizedBox(height: 24),
+        Wrap(spacing: 8, children: [
+          for (final hint in [
+            'AC Service',
+            'Electrical',
+            'Plumbing',
+            'Painting'
+          ])
+            GestureDetector(
+              onTap: () {
+                _ctrl.text = hint;
+                _search(hint);
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                    color: AppColors.dark3,
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(color: AppColors.border)),
+                child: Text(hint,
+                    style:
+                        const TextStyle(color: AppColors.silver, fontSize: 13)),
+              ),
+            ),
+        ]),
+      ]));
 }

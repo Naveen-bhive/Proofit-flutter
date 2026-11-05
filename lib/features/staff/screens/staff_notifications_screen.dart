@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -9,14 +9,17 @@ import '../controllers/staff_controller.dart';
 class StaffNotificationsScreen extends ConsumerStatefulWidget {
   const StaffNotificationsScreen({super.key});
   @override
-  ConsumerState<StaffNotificationsScreen> createState() => _StaffNotificationsScreenState();
+  ConsumerState<StaffNotificationsScreen> createState() =>
+      _StaffNotificationsScreenState();
 }
 
-class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScreen> {
+class _StaffNotificationsScreenState
+    extends ConsumerState<StaffNotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(staffControllerProvider.notifier).loadNotifications());
+    Future.microtask(
+        () => ref.read(staffControllerProvider.notifier).loadNotifications());
   }
 
   String _filter = 'all';
@@ -28,17 +31,38 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
   };
 
   void _open(Map<String, dynamic> n) {
+    final type = n['type']?.toString() ?? '';
+    if ({
+      'checkin',
+      'checkout',
+      'late_checkin',
+      'auto_checkout',
+      'geofence_enter',
+      'geofence_exit'
+    }.contains(type)) {
+      context.push('/staff/checkin-history');
+      return;
+    }
+    final reportId = n['reportId']?.toString();
+    if (reportId != null && reportId.isNotEmpty && type != 'draft_reminder') {
+      context.push('/staff/report/$reportId');
+      return;
+    }
     if (n['type'] == 'draft_reminder' && n['reportId'] != null) {
       context.push('/staff/draft/${n['reportId']}');
     }
     if (n['type'] == 'leave_update') context.push('/staff/leaves');
+    if (n['type'] == 'job_assigned' || n['type'] == 'job_completed')
+      context.push('/staff/jobs');
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(staffControllerProvider);
     final all = state.notifications;
-    final visible = _filter == 'all' ? all : all.where((n) => _groups[_filter]!.contains(n['type'])).toList();
+    final visible = _filter == 'all'
+        ? all
+        : all.where((n) => _groups[_filter]!.contains(n['type'])).toList();
 
     return Scaffold(
       backgroundColor: AppColors.dark,
@@ -50,9 +74,13 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
             actions: [
               if (all.isNotEmpty)
                 GestureDetector(
-                  onTap: () => ref.read(staffControllerProvider.notifier).markAllRead(),
+                  onTap: () =>
+                      ref.read(staffControllerProvider.notifier).markAllRead(),
                   child: const Text('Mark all read',
-                      style: TextStyle(color: AppColors.brand, fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      style: TextStyle(
+                          color: AppColors.brand,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600)),
                 ),
             ],
           ),
@@ -67,10 +95,16 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
           Expanded(
             child: RefreshIndicator(
               color: AppColors.brand,
-              onRefresh: () => ref.read(staffControllerProvider.notifier).loadNotifications(),
+              onRefresh: () => ref
+                  .read(staffControllerProvider.notifier)
+                  .loadNotifications(),
               child: state.notificationsLoading && all.isEmpty
                   ? ListView(children: const [
-                      SizedBox(height: 200, child: Center(child: CircularProgressIndicator(color: AppColors.brand))),
+                      SizedBox(
+                          height: 200,
+                          child: Center(
+                              child: CircularProgressIndicator(
+                                  color: AppColors.brand))),
                     ])
                   : visible.isEmpty
                       ? ListView(children: const [
@@ -78,7 +112,8 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
                           SoftEmptyState(
                             icon: Icons.notifications_none_rounded,
                             title: 'No notifications yet',
-                            subtitle: 'Job assignments, targets and leave updates will appear here.',
+                            subtitle:
+                                'Job assignments, targets and leave updates will appear here.',
                           ),
                         ])
                       : ListView(
@@ -93,7 +128,9 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
                               clipBehavior: Clip.antiAlias,
                               child: Column(children: [
                                 for (var i = 0; i < visible.length; i++) ...[
-                                  if (i > 0) const Divider(height: 1, color: AppColors.border),
+                                  if (i > 0)
+                                    const Divider(
+                                        height: 1, color: AppColors.border),
                                   _row(visible[i]),
                                 ],
                               ]),
@@ -118,20 +155,30 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
           color: on ? AppColors.brand : AppColors.white,
           borderRadius: BorderRadius.circular(100),
           border: Border.all(color: on ? AppColors.brand : AppColors.border),
-          boxShadow: on ? AppColors.glow(AppColors.brand) : AppColors.softShadow,
+          boxShadow:
+              on ? AppColors.glow(AppColors.brand) : AppColors.softShadow,
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(label, style: TextStyle(color: on ? AppColors.white : AppColors.light, fontSize: 13.5, fontWeight: FontWeight.w600)),
+          Text(label,
+              style: TextStyle(
+                  color: on ? AppColors.white : AppColors.light,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600)),
           if (count != null && count > 0) ...[
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
               decoration: BoxDecoration(
-                color: on ? AppColors.white.withValues(alpha: 0.25) : AppColors.dark4,
+                color: on
+                    ? AppColors.white.withValues(alpha: 0.25)
+                    : AppColors.dark4,
                 borderRadius: BorderRadius.circular(100),
               ),
               child: Text('$count',
-                  style: TextStyle(color: on ? AppColors.white : AppColors.silver, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                      color: on ? AppColors.white : AppColors.silver,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700)),
             ),
           ],
         ]),
@@ -141,7 +188,8 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
 
   Widget _row(Map<String, dynamic> n) {
     final isRead = n['isRead'] == true;
-    final (icon, color) = _notifIcon((n['type'] ?? '').toString(), n['title']?.toString() ?? '');
+    final (icon, color) =
+        _notifIcon((n['type'] ?? '').toString(), n['title']?.toString() ?? '');
     return Material(
       color: isRead ? AppColors.white : AppColors.dark3,
       child: InkWell(
@@ -149,25 +197,36 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            IconTile(icon: icon, color: color, size: 42, iconSize: 21, radius: 14),
+            IconTile(
+                icon: icon, color: color, size: 42, iconSize: 21, radius: 14),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(n['title'] ?? '',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      color: AppColors.text,
-                      fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
-                      fontSize: 15,
-                    )),
-                const SizedBox(height: 2),
-                Text(n['body'] ?? '', style: const TextStyle(color: AppColors.light, fontSize: 13.5, height: 1.4)),
-                const SizedBox(height: 4),
-                Text(
-                  n['createdAt'] != null ? timeago.format(DateTime.parse(n['createdAt'])) : '',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
-                ),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(n['title'] ?? '',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          color: AppColors.text,
+                          fontWeight:
+                              isRead ? FontWeight.w500 : FontWeight.w600,
+                          fontSize: 15,
+                        )),
+                    const SizedBox(height: 2),
+                    Text(n['body'] ?? '',
+                        style: const TextStyle(
+                            color: AppColors.light,
+                            fontSize: 13.5,
+                            height: 1.4)),
+                    const SizedBox(height: 4),
+                    Text(
+                      n['createdAt'] != null
+                          ? timeago.format(DateTime.parse(n['createdAt']))
+                          : '',
+                      style:
+                          const TextStyle(color: AppColors.muted, fontSize: 12),
+                    ),
+                  ]),
             ),
             if (!isRead)
               Container(
@@ -189,15 +248,24 @@ class _StaffNotificationsScreenState extends ConsumerState<StaffNotificationsScr
   (IconData, Color) _notifIcon(String type, String title) {
     final t = title.toLowerCase();
     return switch (type) {
-      'job_assigned' || 'job_completed' => (Icons.assignment_turned_in_outlined, AppColors.brand),
-      'draft_reminder' => (Icons.warning_amber_rounded, const Color(0xFFF59E0B)),
+      'job_assigned' || 'job_completed' => (
+          Icons.assignment_turned_in_outlined,
+          AppColors.brand
+        ),
+      'draft_reminder' => (
+          Icons.warning_amber_rounded,
+          const Color(0xFFF59E0B)
+        ),
       'target_update' => (Icons.flag_outlined, AppColors.indigo),
       'broadcast' => (Icons.campaign_outlined, AppColors.brand),
       'streak' => (Icons.trending_up_rounded, AppColors.indigo),
       'leave_update' => t.contains('reject')
           ? (Icons.event_busy_outlined, AppColors.red)
           : (Icons.event_available_outlined, AppColors.greenDark),
-      'holiday' => (Icons.notifications_active_outlined, const Color(0xFFF59E0B)),
+      'holiday' => (
+          Icons.notifications_active_outlined,
+          const Color(0xFFF59E0B)
+        ),
       _ => (Icons.notifications_outlined, AppColors.silver),
     };
   }

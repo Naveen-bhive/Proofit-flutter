@@ -28,6 +28,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
     with WidgetsBindingObserver {
   Timer? _refreshTimer;
   int _unreadCount = 0;
+
   /// Today's org holiday ({date, occasion}) when the owner has marked one.
   Map<String, dynamic>? _holiday;
   bool _backgroundLocationPrompted = false;
@@ -90,7 +91,9 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
     try {
       final res = await ref.read(apiServiceProvider).get('/holidays/today');
       final data = res.data['success'] == true ? res.data['data'] : null;
-      if (mounted) setState(() => _holiday = data is Map ? Map<String, dynamic>.from(data) : null);
+      if (mounted)
+        setState(() =>
+            _holiday = data is Map ? Map<String, dynamic>.from(data) : null);
     } catch (_) {
       // Holiday banner is informational only — never block the home screen.
     }
@@ -139,14 +142,18 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                 // Header
                 Row(children: [
                   Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Hi, ${state.userName}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.h1.copyWith(fontSize: 24)),
-                      const SizedBox(height: 2),
-                      Text(today, style: const TextStyle(color: AppColors.silver, fontSize: 13)),
-                    ]),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Hi, ${state.userName}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.h1.copyWith(fontSize: 24)),
+                          const SizedBox(height: 2),
+                          Text(today,
+                              style: const TextStyle(
+                                  color: AppColors.silver, fontSize: 13)),
+                        ]),
                   ),
                   HeaderIconButton(
                     icon: Icons.notifications_none_rounded,
@@ -157,7 +164,9 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                   GestureDetector(
                     onTap: () => context.push('/staff/profile'),
                     child: InitialAvatar(
-                      name: state.userName.isNotEmpty ? state.userName.substring(0, 1) : '?',
+                      name: state.userName.isNotEmpty
+                          ? state.userName.substring(0, 1)
+                          : '?',
                       size: 42,
                       color: AppColors.brand,
                     ),
@@ -178,6 +187,11 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                     const SizedBox(height: 10),
                     _trackingHealthBanner(state),
                   ],
+                  if (state.isCheckedIn &&
+                      state.geofenceStatus == 'outside') ...[
+                    const SizedBox(height: 10),
+                    _pausedBanner(),
+                  ],
                   const SizedBox(height: 16),
                 ],
 
@@ -194,7 +208,12 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                                 color:
                                     AppColors.yellow.withValues(alpha: 0.4))),
                         child: Row(children: [
-                          const IconTile(icon: Icons.drafts_outlined, color: AppColors.yellow, size: 34, iconSize: 18, radius: 10),
+                          const IconTile(
+                              icon: Icons.drafts_outlined,
+                              color: AppColors.yellow,
+                              size: 34,
+                              iconSize: 18,
+                              radius: 10),
                           const SizedBox(width: 12),
                           Expanded(
                               child: Text(
@@ -202,7 +221,9 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                                       ? '${state.draftCount} draft reports - tap to view & complete'
                                       : 'You have an unsent draft - tap to view & complete',
                                   style: const TextStyle(
-                                      color: AppColors.amberDark, fontSize: 13, fontWeight: FontWeight.w500))),
+                                      color: AppColors.amberDark,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500))),
                           const Icon(Icons.chevron_right_rounded,
                               color: AppColors.amberDark, size: 20),
                         ])),
@@ -255,12 +276,16 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                 Row(children: [
                   Expanded(
                     child: Text("Today's Reports",
-                        style: AppTextStyles.h3.copyWith(fontSize: 18, fontWeight: FontWeight.w700)),
+                        style: AppTextStyles.h3.copyWith(
+                            fontSize: 18, fontWeight: FontWeight.w700)),
                   ),
                   GestureDetector(
                       onTap: () => context.push('/staff/history'),
                       child: const Text('View All',
-                          style: TextStyle(color: AppColors.brand, fontSize: 14, fontWeight: FontWeight.w600))),
+                          style: TextStyle(
+                              color: AppColors.brand,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600))),
                 ]),
                 const SizedBox(height: 14),
 
@@ -278,14 +303,20 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: AppColors.brandSoft,
-                            border: Border.all(color: AppColors.brandBorder.withValues(alpha: 0.6)),
+                            border: Border.all(
+                                color: AppColors.brandBorder
+                                    .withValues(alpha: 0.6)),
                           ),
                           child: Center(
                             child: Container(
                               width: 64,
                               height: 64,
-                              decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.brand.withValues(alpha: 0.08)),
-                              child: const Icon(Icons.assignment_outlined, color: AppColors.brand, size: 30),
+                              decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color:
+                                      AppColors.brand.withValues(alpha: 0.08)),
+                              child: const Icon(Icons.assignment_outlined,
+                                  color: AppColors.brand, size: 30),
                             ),
                           ),
                         ),
@@ -298,16 +329,21 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                             decoration: BoxDecoration(
                               color: AppColors.blue,
                               shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.white, width: 2),
+                              border:
+                                  Border.all(color: AppColors.white, width: 2),
                             ),
                           ),
                         ),
                       ]),
                       const SizedBox(height: 18),
-                      Text('No reports yet', style: AppTextStyles.h3.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
+                      Text('No reports yet',
+                          style: AppTextStyles.h3.copyWith(
+                              fontSize: 17, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 6),
                       const Text('Submit your first report to get started.',
-                          textAlign: TextAlign.center, style: TextStyle(color: AppColors.silver, fontSize: 13.5)),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: AppColors.silver, fontSize: 13.5)),
                       const SizedBox(height: 22),
                       SizedBox(
                         width: 250,
@@ -362,7 +398,8 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
         ),
         const SizedBox(width: 14),
         Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(checkedIn ? 'Checked In' : 'Not Checked In',
               style: TextStyle(
                   color: checkedIn ? AppColors.greenDark : AppColors.text,
@@ -386,13 +423,18 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
               context.push('/staff/checkout');
             },
             child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                     color: checkedIn ? AppColors.brand : AppColors.green,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: AppColors.glow(checkedIn ? AppColors.brand : AppColors.green)),
+                    boxShadow: AppColors.glow(
+                        checkedIn ? AppColors.brand : AppColors.green)),
                 child: Text(checkedIn ? 'Check Out' : 'Check In',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13.5)))),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5)))),
       ]),
     );
   }
@@ -426,10 +468,36 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                         fontSize: 15,
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
-                Text('${holiday['occasion'] ?? 'Holiday'} — enjoy your day off!',
-                    style: const TextStyle(
-                        color: AppColors.light, fontSize: 13)),
+                Text(
+                    '${holiday['occasion'] ?? 'Holiday'} — enjoy your day off!',
+                    style:
+                        const TextStyle(color: AppColors.light, fontSize: 13)),
               ])),
+        ]),
+      );
+
+  /// WFO staff outside the office geofence: counted time is paused server-side.
+  Widget _pausedBanner() => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.yellow.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.yellow.withValues(alpha: 0.4)),
+        ),
+        child: const Row(children: [
+          Icon(Icons.pause_circle_outline_rounded,
+              color: AppColors.yellow, size: 18),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+                'You are outside the office area. Working time is paused '
+                'and resumes when you return.',
+                style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+          ),
         ]),
       );
 

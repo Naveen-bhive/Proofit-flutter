@@ -21,10 +21,12 @@ class ProfileCompletionDialog extends ConsumerStatefulWidget {
       );
 
   @override
-  ConsumerState<ProfileCompletionDialog> createState() => _ProfileCompletionDialogState();
+  ConsumerState<ProfileCompletionDialog> createState() =>
+      _ProfileCompletionDialogState();
 }
 
-class _ProfileCompletionDialogState extends ConsumerState<ProfileCompletionDialog> {
+class _ProfileCompletionDialogState
+    extends ConsumerState<ProfileCompletionDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _mobileCtrl;
   SelectedPlace? _place;
@@ -35,9 +37,15 @@ class _ProfileCompletionDialogState extends ConsumerState<ProfileCompletionDialo
   void initState() {
     super.initState();
     final s = ref.read(ownerControllerProvider);
-    _mobileCtrl = TextEditingController(text: ProfileValidators.normalizeMobile(s.ownerPhone));
-    if (s.address.trim().isNotEmpty && s.addressLatitude != null && s.addressLongitude != null) {
-      _place = SelectedPlace(address: s.address, latitude: s.addressLatitude!, longitude: s.addressLongitude!);
+    _mobileCtrl = TextEditingController(
+        text: ProfileValidators.normalizeMobile(s.ownerPhone));
+    if (s.address.trim().isNotEmpty &&
+        s.addressLatitude != null &&
+        s.addressLongitude != null) {
+      _place = SelectedPlace(
+          address: s.address,
+          latitude: s.addressLatitude!,
+          longitude: s.addressLongitude!);
     }
   }
 
@@ -79,43 +87,53 @@ class _ProfileCompletionDialogState extends ConsumerState<ProfileCompletionDialo
       child: AlertDialog(
         backgroundColor: AppColors.dark2,
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        title: const Text('Complete your profile', style: TextStyle(color: AppColors.text)),
+        title: const Text('Complete your profile',
+            style: TextStyle(color: AppColors.text)),
         content: SingleChildScrollView(
           child: Form(
             key: _formKey,
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text(
-                'Please add your mobile number and choose your address on the map to continue using ProofIt.',
-                style: TextStyle(color: AppColors.silver, fontSize: 13),
-              ),
-              const SizedBox(height: 18),
-              TextFormField(
-                controller: _mobileCtrl,
-                style: const TextStyle(color: AppColors.text),
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
-                inputFormatters: [MobileInputFormatter()],
-                validator: ProfileValidators.mobile,
-                decoration: const InputDecoration(labelText: 'Mobile Number', prefixText: '+91  ', hintText: '10-digit number'),
-              ),
-              const SizedBox(height: 14),
-              AddressLocationField(
-                initialValue: _place,
-                existingAddress: ref.read(ownerControllerProvider).address,
-                enabled: !_saving,
-                onChanged: (p) => _place = p,
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 4),
-                Text(_error!, style: const TextStyle(color: AppColors.red, fontSize: 13)),
-              ],
-            ]),
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Please add your mobile number and choose your address on the map to continue using ProofIt.',
+                    style: TextStyle(color: AppColors.silver, fontSize: 13),
+                  ),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    controller: _mobileCtrl,
+                    style: const TextStyle(color: AppColors.text),
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.next,
+                    inputFormatters: [MobileInputFormatter()],
+                    validator: ProfileValidators.mobile,
+                    decoration: const InputDecoration(
+                        labelText: 'Mobile Number',
+                        prefixText: '+91  ',
+                        hintText: '10-digit number'),
+                  ),
+                  const SizedBox(height: 14),
+                  AddressLocationField(
+                    initialValue: _place,
+                    existingAddress: ref.read(ownerControllerProvider).address,
+                    enabled: !_saving,
+                    onChanged: (p) => _place = p,
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 4),
+                    Text(_error!,
+                        style: const TextStyle(
+                            color: AppColors.red, fontSize: 13)),
+                  ],
+                ]),
           ),
         ),
         actions: [
           SizedBox(
             width: double.infinity,
-            child: AppButton(label: 'Save & Continue', isLoading: _saving, onPressed: _save),
+            child: AppButton(
+                label: 'Save & Continue', isLoading: _saving, onPressed: _save),
           ),
         ],
       ),

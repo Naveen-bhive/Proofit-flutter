@@ -69,35 +69,42 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
     final parentContext = context;
     AppSheet.show(
       context,
-      builder: (sheetCtx) => _AddStaffSheet(
-        parentContext: parentContext,
-        grantable: _grantable,
-        featureEnabled: ref.read(ownerControllerProvider).isEnabled,
-        onSubmit: (
-            {required String name,
-            required String phone,
-            required String email,
-            required int target,
-            required Set<String> permissions,
-            required String workLocation}) async {
-          final notifier = ref.read(ownerControllerProvider.notifier);
-          final result = await notifier.addStaff(
-              name: name,
-              phone: phone,
-              email: email,
-              permissions: permissions.toList(),
-              workLocation: workLocation);
-          if (result.ok && target > 0) {
-            final added = ref.read(ownerControllerProvider).staffList.where(
-                (s) =>
-                    (s['email'] ?? '').toString().toLowerCase() ==
-                    email.toLowerCase());
-            if (added.isNotEmpty)
-              await notifier.setStaffTarget(
-                  added.first['_id'].toString(), target);
-          }
-          return result;
-        },
+      builder: (sheetCtx) => ConstrainedBox(
+        constraints: BoxConstraints(
+          // Keep this as a drawer on tall iOS devices too; the AppSheet body
+          // scrolls when the keyboard or a shorter screen reduces the space.
+          maxHeight: MediaQuery.sizeOf(sheetCtx).height * 0.9,
+        ),
+        child: _AddStaffSheet(
+          parentContext: parentContext,
+          grantable: _grantable,
+          featureEnabled: ref.read(ownerControllerProvider).isEnabled,
+          onSubmit: (
+              {required String name,
+              required String phone,
+              required String email,
+              required int target,
+              required Set<String> permissions,
+              required String workLocation}) async {
+            final notifier = ref.read(ownerControllerProvider.notifier);
+            final result = await notifier.addStaff(
+                name: name,
+                phone: phone,
+                email: email,
+                permissions: permissions.toList(),
+                workLocation: workLocation);
+            if (result.ok && target > 0) {
+              final added = ref.read(ownerControllerProvider).staffList.where(
+                  (s) =>
+                      (s['email'] ?? '').toString().toLowerCase() ==
+                      email.toLowerCase());
+              if (added.isNotEmpty)
+                await notifier.setStaffTarget(
+                    added.first['_id'].toString(), target);
+            }
+            return result;
+          },
+        ),
       ),
     );
   }
@@ -154,7 +161,8 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
     String? phoneValidation;
     String? emailValidation;
     final isPending = staff['inviteAccepted'] == false ||
-        staff['kind'] == 'invite' || staff['invitePending'] == true;
+        staff['kind'] == 'invite' ||
+        staff['invitePending'] == true;
     final result = await showDialog<Map<String, String>>(
         context: context,
         builder: (ctx) => StatefulBuilder(
@@ -170,7 +178,8 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                             autofocus: true,
                             textCapitalization: TextCapitalization.words,
                             decoration: InputDecoration(
-                                labelText: 'Full name', errorText: nameValidation)),
+                                labelText: 'Full name',
+                                errorText: nameValidation)),
                         const SizedBox(height: 14),
                         TextField(
                           controller: phoneController,
@@ -186,17 +195,17 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                           ),
                         ),
                         const SizedBox(height: 14),
-                        TextField(
-                          controller: emailController,
-                          enabled: isPending,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(
-                            labelText: 'Email address',
-                            errorText: emailValidation,
-                            prefixIcon: const Icon(Icons.mail_outline_rounded),
-                            helperText: isPending ? null : 'Email cannot be changed after the invite is accepted.',
+                        if (isPending)
+                          TextField(
+                            controller: emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              labelText: 'Email address',
+                              errorText: emailValidation,
+                              prefixIcon:
+                                  const Icon(Icons.mail_outline_rounded),
+                            ),
                           ),
-                        ),
                         const SizedBox(height: 18),
                         const Text('Work location',
                             style: TextStyle(fontWeight: FontWeight.w600)),
@@ -218,9 +227,13 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                           final name = nameController.text.trim();
                           final phone = phoneController.text.trim();
                           final email = emailController.text.trim();
-                          final normalizedPhone = phone.replaceAll(RegExp(r'\D'), '');
-                          final validPhone = RegExp(r'^[6-9]\d{9}$').hasMatch(normalizedPhone);
-                          final validEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+                          final normalizedPhone =
+                              phone.replaceAll(RegExp(r'\D'), '');
+                          final validPhone =
+                              RegExp(r'^[6-9]\d{9}$').hasMatch(normalizedPhone);
+                          final validEmail =
+                              RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                                  .hasMatch(email);
                           setDialogState(() {
                             nameValidation = null;
                             phoneValidation = null;
@@ -237,13 +250,14 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                             return;
                           }
                           if (isPending && !validEmail) {
-                            setDialogState(() => emailValidation = 'Enter a valid email address');
+                            setDialogState(() => emailValidation =
+                                'Enter a valid email address');
                             return;
                           }
                           Navigator.pop(ctx, {
                             'name': name,
                             'phone': normalizedPhone,
-                            'email': email,
+                            'email': isPending ? email : '',
                             'workLocation': selected,
                           });
                         },
@@ -559,28 +573,24 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                  Row(children: [
-                    Flexible(
-                        child: Text(name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.h3.copyWith(
-                                fontSize: 16.5, fontWeight: FontWeight.w600))),
-                    if (!pending) ...[
-                      const SizedBox(width: 8),
+                  Text(name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.h3.copyWith(
+                          fontSize: 16.5, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 5),
+                  Wrap(spacing: 6, runSpacing: 5, children: [
+                    if (!pending)
                       const SoftBadge(
                           label: 'Active',
                           color: AppColors.greenDark,
                           fontSize: 11),
-                    ],
-                    if (grantedCount > 0) ...[
-                      const SizedBox(width: 6),
+                    if (grantedCount > 0)
                       const SoftBadge(
                           label: 'Team access',
                           color: AppColors.brand,
                           icon: Icons.verified_user_outlined,
                           fontSize: 11),
-                    ],
                   ]),
                   const SizedBox(height: 4),
                   if (phone.isNotEmpty) _line(Icons.phone_outlined, phone),
@@ -623,48 +633,54 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
                         background: AppColors.amberSoft,
                         fontSize: 12),
                   ])
-                : Row(children: [
-                    GestureDetector(
-                      onTap: canTarget ? () => _showSetTarget(s) : null,
-                      child: SoftBadge(
-                          label: 'Target: ${s['dailyTarget'] ?? 0} jobs/day',
-                          color: AppColors.amberDark,
-                          icon: Icons.track_changes_rounded,
-                          background: AppColors.amberSoft,
-                          fontSize: 12),
-                    ),
-                    const Spacer(),
-                    if (session.can(AppPermissions.jobsCreate))
-                      GestureDetector(
-                        onTap: () => context.push('/owner/jobs'),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                              color: AppColors.dark4,
-                              borderRadius: BorderRadius.circular(8)),
-                          child: const Text('Assign Job',
-                              style: TextStyle(
-                                  color: AppColors.light,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                      ),
-                    if (phone.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _call(phone),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                              color: AppColors.brandSoft,
-                              borderRadius: BorderRadius.circular(8)),
-                          child: const Icon(Icons.call_outlined,
-                              color: AppColors.brand, size: 16),
-                        ),
-                      ),
-                    ],
-                  ]),
+                : LayoutBuilder(builder: (context, constraints) {
+                    return Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        runSpacing: 8,
+                        spacing: 8,
+                        children: [
+                          GestureDetector(
+                            onTap: canTarget ? () => _showSetTarget(s) : null,
+                            child: SoftBadge(
+                                label:
+                                    'Target: ${s['dailyTarget'] ?? 0} jobs/day',
+                                color: AppColors.amberDark,
+                                icon: Icons.track_changes_rounded,
+                                background: AppColors.amberSoft,
+                                fontSize: 12),
+                          ),
+                          if (session.can(AppPermissions.jobsCreate))
+                            GestureDetector(
+                              onTap: () => context.push('/owner/jobs'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                    color: AppColors.dark4,
+                                    borderRadius: BorderRadius.circular(8)),
+                                child: const Text('Assign Job',
+                                    style: TextStyle(
+                                        color: AppColors.light,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600)),
+                              ),
+                            ),
+                          if (phone.isNotEmpty) ...[
+                            GestureDetector(
+                              onTap: () => _call(phone),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                    color: AppColors.brandSoft,
+                                    borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.call_outlined,
+                                    color: AppColors.brand, size: 16),
+                              ),
+                            ),
+                          ],
+                        ]);
+                  }),
           ),
         ]),
       ),
@@ -741,7 +757,13 @@ class _WorkLocationPicker extends StatelessWidget {
       );
 
   Widget _buildOption(
-    ({String id, String title, String description, IconData icon, Color color}) option,
+    ({
+      String id,
+      String title,
+      String description,
+      IconData icon,
+      Color color
+    }) option,
   ) {
     final selected = value == option.id;
     final color = option.color;
@@ -757,7 +779,8 @@ class _WorkLocationPicker extends StatelessWidget {
             color: selected ? color.withValues(alpha: 0.08) : AppColors.white,
             borderRadius: BorderRadius.circular(13),
             border: Border.all(
-              color: selected ? color.withValues(alpha: 0.55) : AppColors.border,
+              color:
+                  selected ? color.withValues(alpha: 0.55) : AppColors.border,
               width: selected ? 1.4 : 1,
             ),
           ),

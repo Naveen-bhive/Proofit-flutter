@@ -21,7 +21,9 @@ class ReportCard extends StatelessWidget {
     this.actionLabel = 'View PDF',
   });
 
-  List<MediaData> get _media => [...report.beforePhotos, ...report.afterPhotos].where((m) => !m.isDeleted).toList();
+  List<MediaData> get _media => [...report.beforePhotos, ...report.afterPhotos]
+      .where((m) => !m.isDeleted)
+      .toList();
   int get _videoCount => _media.where((m) => m.isVideo).length;
   int get _photoCount => _media.length - _videoCount;
   String get _mediaLabel => _videoCount == 0
@@ -40,7 +42,10 @@ class ReportCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: report.isFlagged ? AppColors.red.withValues(alpha: 0.45) : AppColors.border),
+        border: Border.all(
+            color: report.isFlagged
+                ? AppColors.red.withValues(alpha: 0.45)
+                : AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
       child: Material(
@@ -55,61 +60,79 @@ class ReportCard extends StatelessWidget {
               _thumb(),
               const SizedBox(width: 14),
               Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Expanded(
-                      child: Text(report.jobTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.h3.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
-                    ),
-                    const SizedBox(width: 8),
-                    _statusChip(),
-                  ]),
-                  if (showStaffName && report.staffName.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Row(children: [
-                        const Icon(Icons.person_outline_rounded, size: 14, color: AppColors.muted),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(report.jobTitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.h3.copyWith(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                            const SizedBox(width: 8),
+                            _statusChip(),
+                          ]),
+                      if (showStaffName && report.staffName.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Row(children: [
+                            const Icon(Icons.person_outline_rounded,
+                                size: 14, color: AppColors.muted),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(report.staffName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: AppColors.silver, fontSize: 12.5)),
+                            ),
+                          ]),
+                        ),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        const Icon(Icons.location_on_outlined,
+                            size: 14, color: AppColors.muted),
                         const SizedBox(width: 4),
                         Expanded(
-                          child: Text(report.staffName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: AppColors.silver, fontSize: 12.5)),
+                          child: Text(
+                            report.location?.address ??
+                                'Location not available',
+                            style: const TextStyle(
+                                color: AppColors.silver, fontSize: 12.5),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ]),
-                    ),
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    const Icon(Icons.location_on_outlined, size: 14, color: AppColors.muted),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        report.location?.address ?? 'Location not available',
-                        style: const TextStyle(color: AppColors.silver, fontSize: 12.5),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        child: Divider(height: 1, color: AppColors.borderSoft),
                       ),
-                    ),
-                  ]),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Divider(height: 1, color: AppColors.borderSoft),
-                  ),
-                  Row(children: [
-                    const Icon(Icons.schedule_rounded, size: 13, color: AppColors.muted),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(time, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
-                    ),
-                    if (onTap != null) ...[
-                      Text(actionLabel,
-                          style: const TextStyle(color: AppColors.brand, fontSize: 13, fontWeight: FontWeight.w600)),
-                      const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.brand),
-                    ],
-                  ]),
-                ]),
+                      Row(children: [
+                        const Icon(Icons.schedule_rounded,
+                            size: 13, color: AppColors.muted),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(time,
+                              style: const TextStyle(
+                                  color: AppColors.muted, fontSize: 12)),
+                        ),
+                        if (onTap != null) ...[
+                          Text(actionLabel,
+                              style: const TextStyle(
+                                  color: AppColors.brand,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
+                          const Icon(Icons.chevron_right_rounded,
+                              size: 18, color: AppColors.brand),
+                        ],
+                      ]),
+                    ]),
               ),
             ]),
           ),
@@ -119,7 +142,8 @@ class ReportCard extends StatelessWidget {
   }
 
   Widget _thumb() {
-    final hasPhoto = report.beforeMedia?.hasStoredPhoto == true && report.id != null;
+    final hasPhoto =
+        report.beforeMedia?.hasStoredPhoto == true && report.id != null;
     return SizedBox(
       width: 64,
       height: 64,
@@ -127,8 +151,7 @@ class ReportCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Stack(fit: StackFit.expand, children: [
           if (hasPhoto)
-            DrivePhotoWidget(
-              driveFileId: report.beforeMedia!.driveFileId,
+            ReportPhotoWidget(
               reportId: report.id,
               photoSlot: 'before',
               width: 64,
@@ -145,20 +168,26 @@ class ReportCard extends StatelessWidget {
                 ),
               ),
               padding: const EdgeInsets.only(bottom: 10),
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.blue.withValues(alpha: 0.6)),
-                    color: AppColors.blue.withValues(alpha: 0.15),
-                  ),
-                  child: const Icon(Icons.description_outlined, size: 14, color: Color(0xFF93C5FD)),
-                ),
-                const SizedBox(height: 3),
-                Text(_mediaLabel, style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 8.5)),
-              ]),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: AppColors.blue.withValues(alpha: 0.6)),
+                        color: AppColors.blue.withValues(alpha: 0.15),
+                      ),
+                      child: const Icon(Icons.description_outlined,
+                          size: 14, color: Color(0xFF93C5FD)),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(_mediaLabel,
+                        style: const TextStyle(
+                            color: Color(0xFFCBD5E1), fontSize: 8.5)),
+                  ]),
             ),
           if (report.location != null)
             Positioned(
@@ -171,7 +200,10 @@ class ReportCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text('GPS',
-                    style: TextStyle(color: AppColors.white, fontSize: 7.5, fontWeight: FontWeight.w800)),
+                    style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w800)),
               ),
             ),
         ]),
@@ -193,7 +225,10 @@ class ReportCard extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.30)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 5),
         Text(label,
             style: TextStyle(

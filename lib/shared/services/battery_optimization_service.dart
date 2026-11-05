@@ -235,14 +235,13 @@ class BatteryOptimizationService {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         backgroundColor: AppColors.dark2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Keep location running in background',
           style: TextStyle(
-              color: AppColors.text,
-              fontWeight: FontWeight.w700,
-              fontSize: 18),
+              color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 18),
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -333,14 +332,17 @@ class BatteryOptimizationService {
           ),
         ),
         actions: [
-          FilledButton(
-            onPressed: () async {
-              await skipGuideForToday();
-              if (forceMarkShown) await _markWarningShown();
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('I understand — Continue',
-                style: TextStyle(fontWeight: FontWeight.w700)),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () async {
+                await skipGuideForToday();
+                if (forceMarkShown) await _markWarningShown();
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('I understand — Continue',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
           ),
         ],
       ),

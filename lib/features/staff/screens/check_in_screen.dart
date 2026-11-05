@@ -31,6 +31,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
   bool _hasPrecise = false;
   bool _batteryWarningReady = false;
   bool _success = false;
+  String _hybridMode = 'wfo';
   DateTime? _checkedInAt;
   final _now = DateTime.now();
 
@@ -141,6 +142,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
   }
 
   Future<void> _checkIn() async {
+    final staffState = ref.read(staffControllerProvider);
     // 1) GPS on
     if (!await _ensureGpsOn()) return;
 
@@ -200,6 +202,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
           latitude: _lat!,
           longitude: _lng!,
           address: _address,
+          attendanceWorkLocation:
+              staffState.workLocation == 'hybrid' ? _hybridMode : null,
         );
     if (!mounted) return;
     setState(() => _submitting = false);
@@ -364,14 +368,11 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
             ),
           ]),
         ),
-        if (!_locLoading)
-          GestureDetector(
-            onTap: _getLocation,
-            child: const Padding(
-              padding: EdgeInsets.all(4),
-              child:
-                  Icon(Icons.refresh_rounded, color: AppColors.brand, size: 22),
-            ),
+        if (!_locLoading && !hasFix)
+          TextButton.icon(
+            onPressed: _getLocation,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Retry'),
           ),
       ]),
     );
@@ -413,16 +414,46 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         WorkModeBadge(
-                            mode: staffState.workLocation, compact: true),
+                            mode: staffState.isCheckedIn &&
+                                    staffState.attendanceWorkLocation.isNotEmpty
+                                ? staffState.attendanceWorkLocation
+                                : staffState.workLocation,
+                            compact: true),
+                        if (staffState.workLocation == 'hybrid') ...[
+                          const SizedBox(height: 12),
+                          const Text('Where are you working today?',
+                              style: TextStyle(
+                                  color: AppColors.light,
+                                  fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          SegmentedButton<String>(
+                            segments: const [
+                              ButtonSegment(
+                                  value: 'wfo',
+                                  label: Text('Office (WFO)'),
+                                  icon: Icon(Icons.business_outlined)),
+                              ButtonSegment(
+                                  value: 'wfh',
+                                  label: Text('Home (WFH)'),
+                                  icon: Icon(Icons.home_work_outlined)),
+                            ],
+                            selected: {_hybridMode},
+                            onSelectionChanged: (_submitting ||
+                                    staffState.isCheckedIn)
+                                ? null
+                                : (values) =>
+                                    setState(() => _hybridMode = values.first),
+                          ),
+                        ],
                         const SizedBox(height: 6),
                         Text(
                           !staffState.attendancePolicyLoaded
                               ? 'Loading your attendance location rule…'
                               : staffState.attendanceLocationRestricted
-                              ? staffState.attendanceRadiusMeters == null
-                                  ? 'Check in within your designated office attendance area.'
-                                  : 'Check in within ${staffState.attendanceRadiusMeters} m of your office.'
-                              : 'Your check-in is not limited to the office area.',
+                                  ? staffState.attendanceRadiusMeters == null
+                                      ? 'Check in within your designated office attendance area.'
+                                      : 'Check in within ${staffState.attendanceRadiusMeters} m of your office.'
+                                  : 'Your check-in is not limited to the office area.',
                           style: const TextStyle(
                               color: AppColors.silver,
                               fontSize: 12,
@@ -496,7 +527,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
                   gradient: const LinearGradient(
                       colors: [Color(0xFF10B981), Color(0xFF059669)]),
                   loading: _submitting,
-                  onPressed: _locLoading ? null : _checkIn,
+                  onPressed: _locLoading || _lat == null ? null : _checkIn,
                 ),
                 const SizedBox(height: 12),
                 Text(

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/material.dart';
@@ -42,7 +43,9 @@ void main() async {
   } catch (e, st) {
     debugPrint('Firebase.initializeApp failed: $e\n$st');
   }
-  await RevenueCatService.configure();
+  // RevenueCat is optional startup work; do not hold the first frame on the
+  // purchase SDK (especially on a clean install without store connectivity).
+  unawaited(RevenueCatService.configure());
   if (Platform.isAndroid) {
     final maps = GoogleMapsFlutterPlatform.instance;
     if (maps is GoogleMapsFlutterAndroid) {
@@ -51,7 +54,13 @@ void main() async {
     }
   }
   // Role + delegated permissions must be known before the router's first guard runs.
-  await PermissionSession.instance.loadFromStorage();
+  try {
+    await PermissionSession.instance.loadFromStorage().timeout(
+          const Duration(seconds: 3),
+        );
+  } catch (e) {
+    debugPrint('Could not restore permission session before startup: $e');
+  }
   runApp(const ProviderScope(child: ErrorBoundary(child: ProofItApp())));
 }
 

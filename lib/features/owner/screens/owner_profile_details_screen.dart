@@ -13,10 +13,12 @@ import '../controllers/owner_controller.dart';
 class OwnerProfileDetailsScreen extends ConsumerStatefulWidget {
   const OwnerProfileDetailsScreen({super.key});
   @override
-  ConsumerState<OwnerProfileDetailsScreen> createState() => _OwnerProfileDetailsScreenState();
+  ConsumerState<OwnerProfileDetailsScreen> createState() =>
+      _OwnerProfileDetailsScreenState();
 }
 
-class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsScreen> {
+class _OwnerProfileDetailsScreenState
+    extends ConsumerState<OwnerProfileDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _companyCtrl = TextEditingController();
   final _mobileCtrl = TextEditingController();
@@ -46,15 +48,21 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
     final s = ref.read(ownerControllerProvider);
     _companyCtrl.text = s.orgName;
     _mobileCtrl.text = ProfileValidators.normalizeMobile(s.ownerPhone);
-    _place = s.address.trim().isNotEmpty && s.addressLatitude != null && s.addressLongitude != null
-        ? SelectedPlace(address: s.address, latitude: s.addressLatitude!, longitude: s.addressLongitude!)
+    _place = s.address.trim().isNotEmpty &&
+            s.addressLatitude != null &&
+            s.addressLongitude != null
+        ? SelectedPlace(
+            address: s.address,
+            latitude: s.addressLatitude!,
+            longitude: s.addressLongitude!)
         : null;
   }
 
   bool get _dirty {
     final s = ref.read(ownerControllerProvider);
     return _companyCtrl.text.trim() != s.orgName ||
-        ProfileValidators.normalizeMobile(_mobileCtrl.text) != ProfileValidators.normalizeMobile(s.ownerPhone) ||
+        ProfileValidators.normalizeMobile(_mobileCtrl.text) !=
+            ProfileValidators.normalizeMobile(s.ownerPhone) ||
         _place?.address != (s.address.trim().isEmpty ? null : s.address) ||
         _place?.latitude != s.addressLatitude ||
         _place?.longitude != s.addressLongitude;
@@ -77,11 +85,19 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Discard changes?', style: TextStyle(color: AppColors.text)),
-        content: const Text('Your edits have not been saved.', style: TextStyle(color: AppColors.silver)),
+        title: const Text('Discard changes?',
+            style: TextStyle(color: AppColors.text)),
+        content: const Text('Your edits have not been saved.',
+            style: TextStyle(color: AppColors.silver)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep editing', style: TextStyle(color: AppColors.silver))),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Discard', style: TextStyle(color: AppColors.red))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Keep editing',
+                  style: TextStyle(color: AppColors.silver))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Discard',
+                  style: TextStyle(color: AppColors.red))),
         ],
       ),
     );
@@ -108,7 +124,8 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
         _editing = false;
         _fillFromState();
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Profile updated')));
     } else {
       setState(() {
         _saving = false;
@@ -139,7 +156,11 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
               onBack: () => Navigator.of(context).maybePop(),
               actions: [
                 if (!_editing)
-                  HeaderIconButton(icon: Icons.edit_outlined, tinted: true, round: false, onTap: _startEdit),
+                  HeaderIconButton(
+                      icon: Icons.edit_outlined,
+                      tinted: true,
+                      round: false,
+                      onTap: _startEdit),
               ],
             ),
             Expanded(
@@ -161,10 +182,15 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const SizedBox(height: 16),
       Row(children: [
-        SoftBadge(label: s.isProfileComplete ? 'Verified Organization' : 'Profile incomplete',
-            color: s.isProfileComplete ? AppColors.brand : AppColors.yellow, fontSize: 12),
+        SoftBadge(
+            label: s.isProfileComplete
+                ? 'Verified Organization'
+                : 'Profile incomplete',
+            color: s.isProfileComplete ? AppColors.brand : AppColors.yellow,
+            fontSize: 12),
         const Spacer(),
-        Text('Plan: ${s.plan.isEmpty ? '-' : s.plan[0].toUpperCase() + s.plan.substring(1)}',
+        Text(
+            'Plan: ${s.plan.isEmpty ? '-' : s.plan[0].toUpperCase() + s.plan.substring(1)}',
             style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
       ]),
       const SizedBox(height: 18),
@@ -172,11 +198,19 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
         radius: 22,
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
         child: Column(children: [
-          _row(Icons.apartment_rounded, AppColors.brand, 'Company Name', s.orgName),
+          _row(Icons.apartment_rounded, AppColors.brand, 'Company Name',
+              s.orgName),
           const Divider(height: 1, color: AppColors.borderSoft),
-          _row(Icons.phone_outlined, AppColors.light, 'Mobile Number', s.ownerPhone.isEmpty ? '' : '+91 ${ProfileValidators.normalizeMobile(s.ownerPhone)}'),
+          _row(
+              Icons.phone_outlined,
+              AppColors.light,
+              'Mobile Number',
+              s.ownerPhone.isEmpty
+                  ? ''
+                  : '+91 ${ProfileValidators.normalizeMobile(s.ownerPhone)}'),
           const Divider(height: 1, color: AppColors.borderSoft),
-          _row(Icons.location_on_outlined, AppColors.light, 'Address', s.address),
+          _row(Icons.location_on_outlined, AppColors.light, 'Address',
+              s.address),
           const Divider(height: 1, color: AppColors.borderSoft),
           _mapRow(pinned),
         ]),
@@ -189,15 +223,30 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(children: [
-        IconTile(icon: icon, color: color, background: AppColors.dark3, size: 40, iconSize: 20),
+        IconTile(
+            icon: icon,
+            color: color,
+            background: AppColors.dark3,
+            size: 40,
+            iconSize: 20),
         const SizedBox(width: 14),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label.toUpperCase(), style: AppTextStyles.label.copyWith(fontSize: 11)),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label.toUpperCase(),
+                style: AppTextStyles.label.copyWith(fontSize: 11)),
             const SizedBox(height: 4),
             missing
-                ? const SoftBadge(label: 'Not provided', color: AppColors.red, dot: true, fontSize: 12)
-                : Text(value, style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w600)),
+                ? const SoftBadge(
+                    label: 'Not provided',
+                    color: AppColors.red,
+                    dot: true,
+                    fontSize: 12)
+                : Text(value,
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600)),
           ]),
         ),
       ]),
@@ -208,21 +257,38 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(children: [
-        IconTile(icon: Icons.map_outlined, color: pinned ? AppColors.greenDark : AppColors.red, size: 40, iconSize: 20),
+        IconTile(
+            icon: Icons.map_outlined,
+            color: pinned ? AppColors.greenDark : AppColors.red,
+            size: 40,
+            iconSize: 20),
         const SizedBox(width: 14),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('MAP LOCATION', style: AppTextStyles.label.copyWith(fontSize: 11)),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('MAP LOCATION',
+                style: AppTextStyles.label.copyWith(fontSize: 11)),
             const SizedBox(height: 4),
             Row(children: [
               pinned
-                  ? const SoftBadge(label: 'Pinned on map', color: AppColors.greenDark, dot: true, fontSize: 12)
-                  : const SoftBadge(label: 'Not provided', color: AppColors.red, dot: true, fontSize: 12),
+                  ? const SoftBadge(
+                      label: 'Pinned on map',
+                      color: AppColors.greenDark,
+                      dot: true,
+                      fontSize: 12)
+                  : const SoftBadge(
+                      label: 'Not provided',
+                      color: AppColors.red,
+                      dot: true,
+                      fontSize: 12),
               if (!pinned) ...[
                 const SizedBox(width: 8),
                 const Flexible(
                   child: Text('(Tap edit to pin map)',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12, fontStyle: FontStyle.italic)),
+                      style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic)),
                 ),
               ],
             ]),
@@ -246,7 +312,9 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
           validator: ProfileValidators.companyName,
-          decoration: const InputDecoration(labelText: 'Company Name', prefixIcon: Icon(Icons.business_outlined)),
+          decoration: const InputDecoration(
+              labelText: 'Company Name',
+              prefixIcon: Icon(Icons.business_outlined)),
         ),
         const SizedBox(height: 16),
         TextFormField(
@@ -257,7 +325,11 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
           textInputAction: TextInputAction.next,
           inputFormatters: [MobileInputFormatter()],
           validator: ProfileValidators.mobile,
-          decoration: const InputDecoration(labelText: 'Mobile Number', prefixIcon: Icon(Icons.phone_outlined), prefixText: '+91  ', hintText: '10-digit number'),
+          decoration: const InputDecoration(
+              labelText: 'Mobile Number',
+              prefixIcon: Icon(Icons.phone_outlined),
+              prefixText: '+91  ',
+              hintText: '10-digit number'),
         ),
         const SizedBox(height: 16),
         AddressLocationField(
@@ -273,9 +345,14 @@ class _OwnerProfileDetailsScreenState extends ConsumerState<OwnerProfileDetailsS
           Text(_error!, style: const TextStyle(color: AppColors.red)),
         ],
         const SizedBox(height: 20),
-        PrimaryButton(label: 'Save Changes', icon: Icons.check_rounded, loading: _saving, onPressed: _save),
+        PrimaryButton(
+            label: 'Save Changes',
+            icon: Icons.check_rounded,
+            loading: _saving,
+            onPressed: _save),
         const SizedBox(height: 12),
-        SecondaryButton(label: 'Cancel', onPressed: _saving ? null : _cancelEdit),
+        SecondaryButton(
+            label: 'Cancel', onPressed: _saving ? null : _cancelEdit),
       ]),
     );
   }

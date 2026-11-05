@@ -208,7 +208,6 @@ class CameraService {
   }
 
   // ── Take photo → stamp → return file + capture metadata ─────────────
-  // Upload to Drive is handled by submit flow
   static Future<CapturedPhoto?> takePhoto(BuildContext context,
       {String? staffName, String? jobTitle}) async {
     final raw = await pickRaw(context, fromCamera: true);

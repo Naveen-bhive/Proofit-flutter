@@ -1,8 +1,8 @@
 name: proofit
 description: ProofIt — Work Done. Proved Instantly.
 publish_to: 'none'
-#version: 1.0.15+19  #play store
-version: 1.0.13+19 #app store
+#version: 1.0.17+21  #play store
+version: 1.0.15+21 #app store
 
 
 environment:
@@ -22,10 +22,8 @@ dependencies:
   dio: ^5.4.0
   http: ^1.6.0
 
-  # Google Sign-In + Drive
+  # Google Sign-In
   google_sign_in: ^6.2.1
-  googleapis: ^12.0.0
-  extension_google_sign_in_as_googleapis_auth: ^2.0.12
 
   # Apple Sign-In
   sign_in_with_apple: ^6.1.4

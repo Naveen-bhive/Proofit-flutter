@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -13,7 +13,8 @@ import '../controllers/owner_controller.dart';
 class OwnerSettingsScreen extends ConsumerStatefulWidget {
   const OwnerSettingsScreen({super.key});
   @override
-  ConsumerState<OwnerSettingsScreen> createState() => _OwnerSettingsScreenState();
+  ConsumerState<OwnerSettingsScreen> createState() =>
+      _OwnerSettingsScreenState();
 }
 
 class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
@@ -36,10 +37,17 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.dark2,
         title: const Text('Log Out?', style: TextStyle(color: AppColors.text)),
-        content: const Text('You will need to sign in again.', style: TextStyle(color: AppColors.silver)),
+        content: const Text('You will need to sign in again.',
+            style: TextStyle(color: AppColors.silver)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppColors.silver))),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Log Out', style: TextStyle(color: AppColors.red))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel',
+                  style: TextStyle(color: AppColors.silver))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Log Out',
+                  style: TextStyle(color: AppColors.red))),
         ],
       ),
     );
@@ -64,102 +72,155 @@ class _OwnerSettingsScreenState extends ConsumerState<OwnerSettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.dark,
       appBar: AppBar(title: const Text('Settings')),
-      body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-        // Profile card
-        Container(
+      body: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-          child: Row(children: [
-            CircleAvatar(radius: 28, backgroundColor: AppColors.brand.withValues(alpha: 0.2),
-              child: Text(state.orgName.isNotEmpty ? state.orgName[0].toUpperCase() : 'O',
-                  style: const TextStyle(color: AppColors.brand, fontSize: 22, fontWeight: FontWeight.w800))),
-            const SizedBox(width: 16),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(state.orgName, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 16)),
-              Text(state.plan.toUpperCase(), style: const TextStyle(color: AppColors.brand, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-            ])),
-          ]),
-        ),
-        const SizedBox(height: 28),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Profile card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                  color: AppColors.dark2,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border)),
+              child: Row(children: [
+                CircleAvatar(
+                    radius: 28,
+                    backgroundColor: AppColors.brand.withValues(alpha: 0.2),
+                    child: Text(
+                        state.orgName.isNotEmpty
+                            ? state.orgName[0].toUpperCase()
+                            : 'O',
+                        style: const TextStyle(
+                            color: AppColors.brand,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800))),
+                const SizedBox(width: 16),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text(state.orgName,
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16)),
+                      Text(state.plan.toUpperCase(),
+                          style: const TextStyle(
+                              color: AppColors.brand,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5)),
+                    ])),
+              ]),
+            ),
+            const SizedBox(height: 28),
 
-        _sectionTitle('ACCOUNT'),
-        _settingRow(Icons.person_outline, 'Profile', state.orgName,
-            onTap: () => context.push('/owner/profile')),
-        _settingRow(Icons.workspace_premium_outlined, 'Current Plan',
-            '${state.plan[0].toUpperCase()}${state.plan.substring(1)}',
-            onTap: () => context.push('/owner/subscription')),
-        _settingRow(Icons.sd_storage_outlined, 'Media and Storage', '',
-            onTap: () => context.push('/owner/storage')),
-        _settingRow(Icons.lock_outline, 'Change Password', '',
-            onTap: () => context.push('/change-password')),
-        const SizedBox(height: 24),
+            _sectionTitle('ACCOUNT'),
+            _settingRow(Icons.person_outline, 'Profile', state.orgName,
+                onTap: () => context.push('/owner/profile')),
+            _settingRow(Icons.workspace_premium_outlined, 'Current Plan',
+                '${state.plan[0].toUpperCase()}${state.plan.substring(1)}',
+                onTap: () => context.push('/owner/subscription')),
+            _settingRow(Icons.sd_storage_outlined, 'Media and Storage', '',
+                onTap: () => context.push('/owner/storage')),
+            _settingRow(Icons.lock_outline, 'Change Password', '',
+                onTap: () => context.push('/change-password')),
+            const SizedBox(height: 24),
 
-        _sectionTitle('NOTIFICATIONS'),
-        _settingToggle('End-of-day draft reminders', true, (v) {}),
-        _settingToggle('New report alerts', true, (v) {}),
-        _settingToggle('Flagged location alerts', true, (v) {}),
-        const SizedBox(height: 24),
+            _sectionTitle('NOTIFICATIONS'),
+            _settingToggle('End-of-day draft reminders', true, (v) {}),
+            _settingToggle('New report alerts', true, (v) {}),
+            _settingToggle('Flagged location alerts', true, (v) {}),
+            const SizedBox(height: 24),
 
-        _sectionTitle('SUPPORT'),
-        // _settingRow(Icons.help_outline, 'Help & FAQ', '', onTap: () {}),
-        _settingRow(Icons.star_outline_rounded, 'Rate ProofIt', '',
-            onTap: () => ReviewService.requestManualReview(ref.read(apiServiceProvider))),
-        _settingRow(Icons.privacy_tip_outlined, 'Privacy Policy', '', onTap: () => _openUrl('https://proofitapp.in/ProofIt_PrivacyPolicy.html')),
-        _settingRow(Icons.article_outlined, 'Terms & Conditions', '', onTap: () => _openUrl('https://proofitapp.in/ProofIt_TermsConditions.html')),
-        _settingRow(Icons.info_outline, 'App Version', _appVersion, onTap: null),
-        const SizedBox(height: 24),
+            _sectionTitle('SUPPORT'),
+            // _settingRow(Icons.help_outline, 'Help & FAQ', '', onTap: () {}),
+            _settingRow(Icons.star_outline_rounded, 'Rate ProofIt', '',
+                onTap: () => ReviewService.requestManualReview(
+                    ref.read(apiServiceProvider))),
+            _settingRow(Icons.privacy_tip_outlined, 'Privacy Policy', '',
+                onTap: () => _openUrl(
+                    'https://proofitapp.in/ProofIt_PrivacyPolicy.html')),
+            _settingRow(Icons.article_outlined, 'Terms & Conditions', '',
+                onTap: () => _openUrl(
+                    'https://proofitapp.in/ProofIt_TermsConditions.html')),
+            _settingRow(Icons.info_outline, 'App Version', _appVersion,
+                onTap: null),
+            const SizedBox(height: 24),
 
-        _sectionTitle('DANGER ZONE'),
-        _settingRow(Icons.delete_forever_outlined, 'Delete Account', '',
-            onTap: () => context.push('/owner/account-deletion')),
-        const SizedBox(height: 32),
+            _sectionTitle('DANGER ZONE'),
+            _settingRow(Icons.delete_forever_outlined, 'Delete Account', '',
+                onTap: () => context.push('/owner/account-deletion')),
+            const SizedBox(height: 32),
 
-        AppButton(label: 'Log Out', isOutlined: true, color: AppColors.red, icon: Icons.logout_rounded, onPressed: _logout),
-        const SizedBox(height: 40),
-      ])),
+            AppButton(
+                label: 'Log Out',
+                isOutlined: true,
+                color: AppColors.red,
+                icon: Icons.logout_rounded,
+                onPressed: _logout),
+            const SizedBox(height: 40),
+          ])),
     );
   }
 
   Widget _sectionTitle(String title) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Text(title, style: const TextStyle(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
-  );
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Text(title,
+            style: const TextStyle(
+                color: AppColors.muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2)),
+      );
 
-  Widget _settingRow(IconData icon, String label, String value, {VoidCallback? onTap}) {
+  Widget _settingRow(IconData icon, String label, String value,
+      {VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         margin: const EdgeInsets.only(bottom: 2),
-        decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+            color: AppColors.dark2, borderRadius: BorderRadius.circular(12)),
         child: Row(children: [
           Icon(icon, color: AppColors.silver, size: 20),
           const SizedBox(width: 14),
-          Expanded(child: Text(label, style: const TextStyle(color: AppColors.light, fontSize: 15))),
-          if (value.isNotEmpty) Text(value, style: const TextStyle(color: AppColors.silver, fontSize: 14)),
+          Expanded(
+              child: Text(label,
+                  style:
+                      const TextStyle(color: AppColors.light, fontSize: 15))),
+          if (value.isNotEmpty)
+            Text(value,
+                style: const TextStyle(color: AppColors.silver, fontSize: 14)),
           if (onTap != null) const SizedBox(width: 6),
-          if (onTap != null) const Icon(Icons.chevron_right, color: AppColors.muted, size: 18),
+          if (onTap != null)
+            const Icon(Icons.chevron_right, color: AppColors.muted, size: 18),
         ]),
       ),
     );
   }
 
-  Widget _settingToggle(String label, bool value, ValueChanged<bool> onChanged) {
+  Widget _settingToggle(
+      String label, bool value, ValueChanged<bool> onChanged) {
     return Container(
       margin: const EdgeInsets.only(bottom: 2),
-      decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+          color: AppColors.dark2, borderRadius: BorderRadius.circular(12)),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         clipBehavior: Clip.antiAlias,
         child: SwitchListTile(
-          title: Text(label, style: const TextStyle(color: AppColors.light, fontSize: 14)),
+          title: Text(label,
+              style: const TextStyle(color: AppColors.light, fontSize: 14)),
           value: value,
           onChanged: onChanged,
           activeThumbColor: AppColors.brand,
           activeTrackColor: AppColors.brand.withValues(alpha: 0.35),
-          contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
         ),
       ),
     );

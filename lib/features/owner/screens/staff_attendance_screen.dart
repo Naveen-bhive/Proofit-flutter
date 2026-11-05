@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -9,6 +10,12 @@ import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/ui_kit.dart' show PageHeader;
 import '../../../core/network/api_service.dart';
 import '../../../core/utils/ui_feedback.dart';
+import '../../../shared/permissions/permission_session.dart';
+import '../controllers/attendance_api.dart';
+import '../models/attendance_analytics.dart';
+import '../widgets/attendance_widgets.dart';
+import 'attendance_analytics_view.dart';
+import 'staff_month_attendance_screen.dart' show AttendanceDaySheet;
 
 /// A completed day shorter than this counts as a half day.
 const _halfDayThresholdMinutes = 240;
@@ -80,7 +87,14 @@ class _Staff {
 class StaffAttendanceScreen extends ConsumerStatefulWidget {
   final String? staffId;
   final String? staffName;
-  const StaffAttendanceScreen({super.key, this.staffId, this.staffName});
+  final String? initialMonth;
+  final bool openAnalytics;
+  const StaffAttendanceScreen(
+      {super.key,
+      this.staffId,
+      this.staffName,
+      this.initialMonth,
+      this.openAnalytics = false});
 
   @override
   ConsumerState<StaffAttendanceScreen> createState() =>
@@ -102,8 +116,16 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
   String? _selectedId;
   late int _month;
   late int _year;
+
+  /// Server-computed month for the selected employee. Powers the day sheet
+  /// (sessions, pauses, edit history and the owner's "Edit checkout").
+  StaffMonthAttendance? _staffMonth;
+  String? _staffMonthKey;
   bool _loading = true;
   bool _exporting = false;
+
+  /// Matrix (existing calendar views) or Analytics (hours, late, overtime).
+  bool _analytics = false;
 
   _Staff? get _selected => _staff.where((s) => s.id == _selectedId).firstOrNull;
 
@@ -119,8 +141,45 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     _month = now.month;
     _year = now.year;
     _selectedId = widget.staffId;
+    _analytics = widget.openAnalytics;
+    final requested = widget.initialMonth;
+    if (requested != null && RegExp(r'^\d{4}-\d{2}$').hasMatch(requested)) {
+      final parts = requested.split('-');
+      _year = int.tryParse(parts[0]) ?? _year;
+      _month = int.tryParse(parts[1]) ?? _month;
+    }
     _loadStaff();
     _loadRecords();
+    _loadStaffMonth();
+  }
+
+  String get _monthKey => '$_year-${_month.toString().padLeft(2, '0')}';
+
+  /// Loads the selected employee's month. Failures are silent: the calendar
+  /// still works and day taps fall back to the basic record sheet.
+  Future<void> _loadStaffMonth() async {
+    final id = _selectedId;
+    if (id == null) {
+      if (_staffMonth != null) setState(() => _staffMonth = null);
+      return;
+    }
+    final key = '$id|$_monthKey';
+    try {
+      final data =
+          await ref.read(attendanceApiProvider).staffMonth(id, _monthKey);
+      // Ignore stale responses if the employee or month changed meanwhile.
+      if (mounted && key == '$_selectedId|$_monthKey') {
+        setState(() {
+          _staffMonth = data;
+          _staffMonthKey = key;
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _selectStaff(String? id) {
+    setState(() => _selectedId = id);
+    _loadStaffMonth();
   }
 
   Future<void> _loadStaff() async {
@@ -360,8 +419,7 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
             selected: selected);
       },
     );
-    if (picked != null)
-      setState(() => _selectedId = picked.isEmpty ? null : picked);
+    if (picked != null) _selectStaff(picked.isEmpty ? null : picked);
   }
 
   Future<void> _pickMonth() async {
@@ -376,6 +434,7 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     if (picked != null && picked != _month) {
       setState(() => _month = picked);
       _loadRecords();
+      _loadStaffMonth();
     }
   }
 
@@ -390,6 +449,7 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     if (picked != null && picked != _year) {
       setState(() => _year = picked);
       _loadRecords();
+      _loadStaffMonth();
     }
   }
 
@@ -485,34 +545,68 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
           const PageHeader(title: 'Attendance', titleSize: 21),
           Expanded(
             child: RefreshIndicator(
-        color: AppColors.brand,
-        onRefresh: () async {
-          await Future.wait([_loadStaff(), _loadRecords()]);
-        },
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-          children: [
-            _filtersCard(),
-            const SizedBox(height: 16),
-            _legendCard(),
-            const SizedBox(height: 16),
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 60),
-                child: Center(
-                    child: CircularProgressIndicator(color: AppColors.brand)),
-              )
-            else if (selected == null)
-              _matrix()
-            else ...[
-              _summaryCard(selected),
-              const SizedBox(height: 16),
-              _calendarCard(selected),
-              const SizedBox(height: 16),
-              _exceptionsCard(selected),
-            ],
-          ],
-        ),
+              color: AppColors.brand,
+              onRefresh: () async {
+                await Future.wait(
+                    [_loadStaff(), _loadRecords(), _loadStaffMonth()]);
+              },
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                children: [
+                  SegmentedButton<bool>(
+                    showSelectedIcon: false,
+                    segments: const [
+                      ButtonSegment(
+                          value: false,
+                          icon: Icon(Icons.grid_view_rounded, size: 18),
+                          label: Text('Attendance')),
+                      ButtonSegment(
+                          value: true,
+                          icon: Icon(Icons.insights_rounded, size: 18),
+                          label: Text('Analytics')),
+                    ],
+                    selected: {_analytics},
+                    onSelectionChanged: (s) =>
+                        setState(() => _analytics = s.first),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_analytics)
+                    AttendanceAnalyticsView(
+                      staffId: widget.staffId,
+                      staffName: widget.staffName,
+                      initialMonth: widget.initialMonth,
+                    )
+                  else ...[
+                    _filtersCard(),
+                    const SizedBox(height: 16),
+                    _legendCard(),
+                    const SizedBox(height: 16),
+                    if (_loading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 60),
+                        child: Center(
+                            child: CircularProgressIndicator(
+                                color: AppColors.brand)),
+                      )
+                    else if (selected == null)
+                      _matrix()
+                    else ...[
+                      _summaryCard(selected),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => context.push(
+                            '/owner/staff-attendance/${selected.id}/month?month=$_year-${_month.toString().padLeft(2, '0')}&name=${Uri.encodeComponent(selected.name)}'),
+                        icon: const Icon(Icons.insights_rounded, size: 18),
+                        label: const Text('Hours, late & overtime this month'),
+                      ),
+                      const SizedBox(height: 16),
+                      _calendarCard(selected),
+                      const SizedBox(height: 16),
+                      _exceptionsCard(selected),
+                    ],
+                  ],
+                ],
+              ),
             ),
           ),
         ]),
@@ -709,17 +803,25 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
               const TextSpan(text: 'Monthly Attendance Matrix '),
               TextSpan(
                 text: '(${DateFormat('MMM yyyy').format(days.first)})',
-                style: const TextStyle(color: AppColors.silver, fontSize: 11.5, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                    color: AppColors.silver,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600),
               ),
             ]),
-            style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14),
+            style: const TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.w700,
+                fontSize: 14),
           ),
         ),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-              color: AppColors.dark4, borderRadius: BorderRadius.circular(6), border: Border.all(color: AppColors.border)),
+              color: AppColors.dark4,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppColors.border)),
           child: const Text('Scroll horizontally →',
               style: TextStyle(color: AppColors.muted, fontSize: 10.5)),
         ),
@@ -757,7 +859,7 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                   ),
                   for (final s in _staff)
                     InkWell(
-                      onTap: () => setState(() => _selectedId = s.id),
+                      onTap: () => _selectStaff(s.id),
                       child: Container(
                         height: _rowHeight,
                         padding: const EdgeInsets.only(left: 10, right: 6),
@@ -873,6 +975,14 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
         ? score.toInt().toString()
         : score.toStringAsFixed(1);
 
+    final tiles = [
+      _statTile('PRESENT', present, AppColors.green),
+      _statTile('HALF DAY', half, _orange),
+      _statTile('LEAVE', leave, _purple),
+      _statTile('ABSENT', absent, AppColors.red),
+      _statTile('PENDING', pending, AppColors.silver),
+    ];
+
     return _card(
       child: Column(children: [
         Row(children: [
@@ -893,12 +1003,15 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                   s.joined != null
                       ? 'Joined ${DateFormat('d MMM yyyy').format(s.joined!)}'
                       : s.phone,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                       color: AppColors.silver,
                       fontSize: 11,
                       fontWeight: FontWeight.w600)),
             ]),
           ),
+          const SizedBox(width: 8),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             const Text('TOTAL SCORE',
                 style: TextStyle(
@@ -924,46 +1037,51 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
         const SizedBox(height: 14),
         const Divider(height: 1, color: AppColors.border),
         const SizedBox(height: 14),
-        Row(children: [
-          _statTile('PRESENT', present, AppColors.green),
-          const SizedBox(width: 6),
-          _statTile('HALF DAY', half, _orange),
-          const SizedBox(width: 6),
-          _statTile('LEAVE', leave, _purple),
-          const SizedBox(width: 6),
-          _statTile('ABSENT', absent, AppColors.red),
-          const SizedBox(width: 6),
-          _statTile('PENDING', pending, AppColors.silver),
-        ]),
+        // Equal-width tiles: one row of 5 on wide screens, 3 + 2 on phones.
+        LayoutBuilder(builder: (context, constraints) {
+          final perRow = constraints.maxWidth >= 390 ? tiles.length : 3;
+          return Column(children: [
+            for (var start = 0; start < tiles.length; start += perRow) ...[
+              if (start > 0) const SizedBox(height: 6),
+              Row(children: [
+                for (var i = start;
+                    i < start + perRow && i < tiles.length;
+                    i++) ...[
+                  if (i > start) const SizedBox(width: 6),
+                  Expanded(child: tiles[i]),
+                ],
+              ]),
+            ],
+          ]);
+        }),
       ]),
     );
   }
 
-  Widget _statTile(String label, int value, Color color) => Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withValues(alpha: 0.35)),
-          ),
-          child: Column(children: [
-            FittedBox(
-              child: Text(label,
-                  style: TextStyle(
-                      color: color,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5)),
-            ),
-            const SizedBox(height: 4),
-            Text('$value',
-                style: const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800)),
-          ]),
+  Widget _statTile(String label, int value, Color color) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
         ),
+        child: Column(children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label,
+                style: TextStyle(
+                    color: color,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5)),
+          ),
+          const SizedBox(height: 4),
+          Text('$value',
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800)),
+        ]),
       );
 
   Widget _calendarCard(_Staff s) {
@@ -1032,6 +1150,12 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                 _dayCell(s, d),
           ],
         ),
+        const SizedBox(height: 10),
+        Text(
+            ref.read(permissionSessionProvider).role == 'owner'
+                ? 'Tap a day to see check-ins and edit the checkout time'
+                : 'Tap a day to see check-ins',
+            style: const TextStyle(color: AppColors.muted, fontSize: 11)),
       ]),
     );
   }
@@ -1042,7 +1166,7 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
     final tinted = st != _Status.pending && st != _Status.unmarked;
     return InkWell(
       borderRadius: BorderRadius.circular(10),
-      onTap: () => _showDayDetails(s, d, st),
+      onTap: () => _openDay(s, d, st),
       child: Container(
         decoration: BoxDecoration(
           color: tinted ? st.color.withValues(alpha: 0.12) : AppColors.dark3,
@@ -1068,6 +1192,29 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
         ]),
       ),
     );
+  }
+
+  /// Full day sheet with "Edit checkout" for owners when the month is
+  /// loaded; otherwise the basic check-in list.
+  Future<void> _openDay(_Staff s, DateTime d, _Status st) async {
+    final month = _staffMonthKey == '${s.id}|$_monthKey' ? _staffMonth : null;
+    final day =
+        month?.days.where((x) => DateUtils.isSameDay(x.day, d)).firstOrNull;
+    if (day == null) return _showDayDetails(s, d, st);
+    final changed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.dark2,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => AttendanceDaySheet(
+          day: day,
+          canEdit: ref.read(permissionSessionProvider).role == 'owner'),
+    );
+    if (changed == true) {
+      _loadRecords();
+      _loadStaffMonth();
+    }
   }
 
   void _showDayDetails(_Staff s, DateTime d, _Status st) {
@@ -1108,6 +1255,36 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                   style:
                       const TextStyle(color: AppColors.silver, fontSize: 12)),
               const SizedBox(height: 16),
+              if (recs.isNotEmpty) ...[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: recs
+                      .map(
+                          (r) => (r['attendanceWorkLocation'] ?? '').toString())
+                      .where((mode) => mode == 'wfo' || mode == 'wfh')
+                      .toSet()
+                      .map((mode) => Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: mode == 'wfh'
+                                  ? _purple.withValues(alpha: .12)
+                                  : AppColors.green.withValues(alpha: .12),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(mode.toUpperCase(),
+                                style: TextStyle(
+                                    color: mode == 'wfh'
+                                        ? _purple
+                                        : AppColors.green,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12)),
+                          ))
+                      .toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
               if (recs.isEmpty)
                 Text(
                   _leaves[s.id]?[_dayFmt.format(d)] != null
@@ -1147,6 +1324,19 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                               color: AppColors.silver, fontSize: 12)),
                     ]),
                   ),
+              if (recs.any((r) =>
+                  r['checkoutStatus'] == 'auto' ||
+                  r['checkoutStatus'] == 'edited' ||
+                  r['geofenceStatus'] != null))
+                Wrap(spacing: 6, runSpacing: 6, children: [
+                  for (final r in recs.reversed) ...[
+                    if (r['checkoutStatus'] == 'auto' ||
+                        r['checkoutStatus'] == 'edited')
+                      CheckoutBadge(r['checkoutStatus']?.toString()),
+                    if (r['checkOutTime'] == null)
+                      GeofenceBadge(r['geofenceStatus']?.toString()),
+                  ],
+                ]),
             ]),
       ),
     );
@@ -1247,7 +1437,9 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: Icon(r.status.icon ?? Icons.circle,
-                      color: AppColors.text,
+                      color: r.status == _Status.unmarked
+                          ? AppColors.silver
+                          : AppColors.white,
                       size: r.status.icon == null ? 6 : 15),
                 ),
                 const SizedBox(width: 12),
@@ -1306,7 +1498,9 @@ class _StatusMark extends StatelessWidget {
           style: TextStyle(color: AppColors.muted, fontSize: size - 1));
     }
     // Present / absent read as plain ink marks in the matrix; the rest keep their colour.
-    final color = status == _Status.present || status == _Status.absent ? AppColors.light : status.color;
+    final color = status == _Status.present || status == _Status.absent
+        ? AppColors.light
+        : status.color;
     return Icon(icon, size: size, color: color);
   }
 }

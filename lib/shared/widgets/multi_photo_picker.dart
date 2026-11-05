@@ -35,7 +35,6 @@ class ReportPhoto {
         status = PhotoUploadStatus.done,
         url = normalizedUrl ?? remote.url,
         publicId = remote.publicId,
-        driveId = remote.driveFileId,
         assetId = remote.assetId,
         thumbnailUrl = remote.thumbnailUrl,
         bytes = remote.bytes,
@@ -48,14 +47,16 @@ class ReportPhoto {
   PhotoUploadStatus status;
   String? url;
   String? publicId;
-  String? driveId;
+
   /// Server MediaAsset id — what the report save references.
   String? assetId;
   String? thumbnailUrl;
   int? bytes;
   double? durationSec;
+
   /// 0..1 while uploading.
   double? progress;
+
   /// Last upload error from the server (e.g. storage full), shown on the tile.
   String? error;
 
@@ -86,14 +87,12 @@ class ReportPhoto {
       return {
         ...remote!.toJson(),
         if (url != null) 'url': url,
-        if (driveId != null) 'driveFileId': driveId,
         'label': label,
       };
     }
     return {
       if (assetId != null) 'assetId': assetId,
       if (url != null) 'url': url,
-      if (driveId != null) 'driveFileId': driveId,
       'type': isVideo ? 'video' : 'photo',
       'label': label,
       if (c != null) 'capturedAt': c.capturedAt.toUtc().toIso8601String(),
@@ -114,12 +113,12 @@ class MultiPhotoPicker extends StatelessWidget {
   final bool isRequired;
   final bool enabled;
   final bool allowVideo;
+
   /// True while the camera/gallery picker is open or handing back files.
   final bool picking;
   final void Function(MediaSource source) onAdd;
   final void Function(ReportPhoto photo) onRemove;
   final void Function(ReportPhoto photo) onRetry;
-  /// For legacy drafts whose photo only lives in Drive (no URL).
   final String? reportId;
   final String photoSlot;
 
@@ -161,31 +160,49 @@ class MultiPhotoPicker extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            Text(allowVideo ? 'Add $label Photos or Videos' : 'Add $label Photos',
+            Text(
+                allowVideo
+                    ? 'Add $label Photos or Videos'
+                    : 'Add $label Photos',
                 style: const TextStyle(
                     color: AppColors.text,
                     fontSize: 17,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
-            Text('Photos are stamped with date · time · GPS  •  $remaining more allowed',
+            Text(
+                'Photos are stamped with date · time · GPS  •  $remaining more allowed',
                 style: const TextStyle(color: AppColors.silver, fontSize: 12)),
             const SizedBox(height: 20),
-            _opt(Icons.camera_alt_rounded, AppColors.brand, 'Take Photo',
-                'Take one photo', () => Navigator.pop(sheetContext, MediaSource.cameraPhoto)),
+            _opt(
+                Icons.camera_alt_rounded,
+                AppColors.brand,
+                'Take Photo',
+                'Take one photo',
+                () => Navigator.pop(sheetContext, MediaSource.cameraPhoto)),
             const SizedBox(height: 10),
             _opt(
                 Icons.photo_library_outlined,
                 AppColors.blue,
                 'Choose Photos',
-                remaining > 1 ? 'Select up to $remaining photos' : 'Select a photo',
+                remaining > 1
+                    ? 'Select up to $remaining photos'
+                    : 'Select a photo',
                 () => Navigator.pop(sheetContext, MediaSource.galleryPhotos)),
             if (allowVideo) ...[
               const SizedBox(height: 10),
-              _opt(Icons.videocam_rounded, AppColors.purple, 'Record Video',
-                  'Shared as a separate file, not inside the PDF', () => Navigator.pop(sheetContext, MediaSource.cameraVideo)),
+              _opt(
+                  Icons.videocam_rounded,
+                  AppColors.purple,
+                  'Record Video',
+                  'Shared as a separate file, not inside the PDF',
+                  () => Navigator.pop(sheetContext, MediaSource.cameraVideo)),
               const SizedBox(height: 10),
-              _opt(Icons.video_library_outlined, AppColors.greenDark, 'Choose Video',
-                  'Pick one video from your gallery', () => Navigator.pop(sheetContext, MediaSource.galleryVideo)),
+              _opt(
+                  Icons.video_library_outlined,
+                  AppColors.greenDark,
+                  'Choose Video',
+                  'Pick one video from your gallery',
+                  () => Navigator.pop(sheetContext, MediaSource.galleryVideo)),
             ],
             const SizedBox(height: 4),
           ]),
@@ -237,7 +254,8 @@ class MultiPhotoPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final busy = photos.where((p) => p.isBusy).length;
-    final failed = photos.where((p) => p.status == PhotoUploadStatus.failed).toList();
+    final failed =
+        photos.where((p) => p.status == PhotoUploadStatus.failed).toList();
     final canAdd = photos.length < maxPhotos;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -251,17 +269,22 @@ class MultiPhotoPicker extends StatelessWidget {
         if (isRequired)
           const Text(' *',
               style: TextStyle(
-                  color: AppColors.red, fontSize: 14, fontWeight: FontWeight.w700)),
+                  color: AppColors.red,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700)),
         const SizedBox(width: 8),
         Text('${photos.length}/$maxPhotos',
             style: const TextStyle(color: AppColors.muted, fontSize: 12)),
         const Spacer(),
         if (busy > 0)
-          _statusChip(Icons.cloud_upload_outlined, 'Uploading $busy', AppColors.brand)
+          _statusChip(
+              Icons.cloud_upload_outlined, 'Uploading $busy', AppColors.brand)
         else if (failed.isNotEmpty)
-          _statusChip(Icons.cloud_off_rounded, '${failed.length} failed', AppColors.red)
+          _statusChip(
+              Icons.cloud_off_rounded, '${failed.length} failed', AppColors.red)
         else if (photos.isNotEmpty)
-          _statusChip(Icons.cloud_done_rounded, 'All saved', AppColors.greenDark),
+          _statusChip(
+              Icons.cloud_done_rounded, 'All saved', AppColors.greenDark),
       ]),
       const SizedBox(height: 10),
       LayoutBuilder(builder: (context, constraints) {
@@ -269,7 +292,10 @@ class MultiPhotoPicker extends StatelessWidget {
         final tile = (constraints.maxWidth - gap * 2) / 3;
         return Wrap(spacing: gap, runSpacing: gap, children: [
           for (int i = 0; i < photos.length; i++)
-            SizedBox(width: tile, height: tile, child: _photoTile(context, photos[i], i)),
+            SizedBox(
+                width: tile,
+                height: tile,
+                child: _photoTile(context, photos[i], i)),
           if (canAdd || picking)
             SizedBox(width: tile, height: tile, child: _addTile(context)),
         ]);
@@ -277,7 +303,8 @@ class MultiPhotoPicker extends StatelessWidget {
       if (failed.isNotEmpty && failed.first.error != null) ...[
         const SizedBox(height: 8),
         Text(failed.first.error!,
-            style: const TextStyle(color: AppColors.red, fontSize: 12, height: 1.4)),
+            style: const TextStyle(
+                color: AppColors.red, fontSize: 12, height: 1.4)),
       ],
     ]);
   }
@@ -316,8 +343,12 @@ class MultiPhotoPicker extends StatelessWidget {
                       decoration: BoxDecoration(
                           color: AppColors.brandSoft,
                           borderRadius: BorderRadius.circular(10)),
-                      child: Icon(allowVideo ? Icons.add_photo_alternate_outlined : Icons.add_a_photo_outlined,
-                          color: AppColors.brand, size: 19)),
+                      child: Icon(
+                          allowVideo
+                              ? Icons.add_photo_alternate_outlined
+                              : Icons.add_a_photo_outlined,
+                          color: AppColors.brand,
+                          size: 19)),
                   const SizedBox(height: 6),
                   Text(photos.isEmpty ? 'Add $label' : 'Add more',
                       style: const TextStyle(
@@ -334,28 +365,44 @@ class MultiPhotoPicker extends StatelessWidget {
     final thumb = photo.thumbnailUrl;
     return Stack(fit: StackFit.expand, children: [
       if (thumb != null)
-        Image.network(thumb, fit: BoxFit.cover, cacheWidth: 360,
-            errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF1F2937)))
+        Image.network(thumb,
+            fit: BoxFit.cover,
+            cacheWidth: 360,
+            errorBuilder: (_, __, ___) =>
+                const ColoredBox(color: Color(0xFF1F2937)))
       else
         const DecoratedBox(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF1F2937), Color(0xFF111827)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            gradient: LinearGradient(
+                colors: [Color(0xFF1F2937), Color(0xFF111827)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight),
           ),
         ),
       if (!photo.isBusy)
-        const Center(child: Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 34)),
+        const Center(
+            child: Icon(Icons.play_circle_fill_rounded,
+                color: Colors.white, size: 34)),
       Positioned(
         right: 6,
         bottom: 6,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(6)),
+          decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(6)),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.videocam_rounded, color: Colors.white, size: 11),
             const SizedBox(width: 3),
             Text(
-              [formatDuration(photo.durationSec), if (photo.bytes != null) formatBytes(photo.bytes!)].where((s) => s.isNotEmpty).join(' · '),
-              style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w600),
+              [
+                formatDuration(photo.durationSec),
+                if (photo.bytes != null) formatBytes(photo.bytes!)
+              ].where((s) => s.isNotEmpty).join(' · '),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w600),
             ),
           ]),
         ),
@@ -366,7 +413,10 @@ class MultiPhotoPicker extends StatelessWidget {
   void _openVideo(BuildContext context, ReportPhoto photo, int index) {
     final file = photo.capture?.file;
     if (photo.url == null && file == null) return;
-    VideoPlayerScreen.open(context, url: photo.url, file: photo.url == null ? file : null, title: '$label video ${index + 1}');
+    VideoPlayerScreen.open(context,
+        url: photo.url,
+        file: photo.url == null ? file : null,
+        title: '$label video ${index + 1}');
   }
 
   Widget _photoTile(BuildContext context, ReportPhoto photo, int index) {
@@ -376,13 +426,16 @@ class MultiPhotoPicker extends StatelessWidget {
       preview = const Center(
         child: Padding(
           padding: EdgeInsets.all(6),
-          child: Text('Deleted to free storage', textAlign: TextAlign.center, style: TextStyle(color: AppColors.muted, fontSize: 10.5)),
+          child: Text('Deleted to free storage',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.muted, fontSize: 10.5)),
         ),
       );
     } else if (photo.isVideo) {
       preview = _videoPreview(photo);
     } else if (file != null) {
-      preview = Image.file(file, fit: BoxFit.cover, cacheWidth: 360, gaplessPlayback: true);
+      preview = Image.file(file,
+          fit: BoxFit.cover, cacheWidth: 360, gaplessPlayback: true);
     } else if (photo.url != null && photo.url!.isNotEmpty) {
       preview = Image.network(photo.url!,
           fit: BoxFit.cover,
@@ -392,13 +445,16 @@ class MultiPhotoPicker extends StatelessWidget {
       preview = _remoteFallback(photo, index);
     }
 
-    final pct = photo.progress != null ? '${(photo.progress! * 100).clamp(0, 100).round()}%' : null;
+    final pct = photo.progress != null
+        ? '${(photo.progress! * 100).clamp(0, 100).round()}%'
+        : null;
     final overlay = switch (photo.status) {
       PhotoUploadStatus.processing => _overlay(
           const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
           'Stamping...'),
       PhotoUploadStatus.uploading => _overlay(
-          CircularProgressIndicator(color: Colors.white, strokeWidth: 2, value: photo.progress),
+          CircularProgressIndicator(
+              color: Colors.white, strokeWidth: 2, value: photo.progress),
           pct != null ? 'Uploading $pct' : 'Uploading...'),
       PhotoUploadStatus.failed => GestureDetector(
           onTap: enabled ? () => onRetry(photo) : null,
@@ -414,7 +470,9 @@ class MultiPhotoPicker extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Stack(fit: StackFit.expand, children: [
         GestureDetector(
-          onTap: photo.isVideo && photo.isDone && !photo.isDeleted ? () => _openVideo(context, photo, index) : null,
+          onTap: photo.isVideo && photo.isDone && !photo.isDeleted
+              ? () => _openVideo(context, photo, index)
+              : null,
           child: Container(color: AppColors.dark4, child: preview),
         ),
         if (overlay != null) overlay,
@@ -428,7 +486,9 @@ class MultiPhotoPicker extends StatelessWidget {
                 borderRadius: BorderRadius.circular(100)),
             child: Text('${index + 1}',
                 style: const TextStyle(
-                    color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700)),
+                    color: Colors.white,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700)),
           ),
         ),
         if (photo.isDone && !photo.isDeleted)
@@ -438,7 +498,8 @@ class MultiPhotoPicker extends StatelessWidget {
             child: CircleAvatar(
                 radius: 9,
                 backgroundColor: AppColors.green,
-                child: Icon(Icons.check_rounded, color: Colors.white, size: 12)),
+                child:
+                    Icon(Icons.check_rounded, color: Colors.white, size: 12)),
           ),
         if (!photo.isBusy && enabled)
           Positioned(
@@ -452,7 +513,8 @@ class MultiPhotoPicker extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.6),
                     shape: BoxShape.circle),
-                child: const Icon(Icons.close_rounded, color: Colors.white, size: 15),
+                child: const Icon(Icons.close_rounded,
+                    color: Colors.white, size: 15),
               ),
             ),
           ),
@@ -460,8 +522,7 @@ class MultiPhotoPicker extends StatelessWidget {
     );
   }
 
-  Widget _remoteFallback(ReportPhoto photo, int index) => DrivePhotoWidget(
-        driveFileId: photo.driveId,
+  Widget _remoteFallback(ReportPhoto photo, int index) => ReportPhotoWidget(
         reportId: reportId,
         photoSlot: photoSlot,
         photoIndex: index,
@@ -476,7 +537,9 @@ class MultiPhotoPicker extends StatelessWidget {
           const SizedBox(height: 6),
           Text(text,
               style: const TextStyle(
-                  color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600)),
         ]),
       );
 }

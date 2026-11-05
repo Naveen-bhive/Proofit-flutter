@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
@@ -9,7 +10,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../shared/services/drive_service.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../shared/services/auth_storage.dart';
 import '../../../shared/models/report_model.dart';
 import '../controllers/owner_controller.dart';
 
@@ -51,16 +53,11 @@ class _PdfExportScreenState extends ConsumerState<PdfExportScreen> {
     }
     final org = ref.read(ownerControllerProvider).orgName;
 
-    setState(() => _status = 'Fetching before photo from Drive...');
+    setState(() => _status = 'Fetching before photo...');
     Uint8List? beforeBytes, afterBytes;
-    if (report.beforeDriveFileId != null) {
-      beforeBytes =
-          await DriveService.fetchPhotoBytes(report.beforeDriveFileId!);
-    }
-    setState(() => _status = 'Fetching after photo from Drive...');
-    if (report.afterDriveFileId != null) {
-      afterBytes = await DriveService.fetchPhotoBytes(report.afterDriveFileId!);
-    }
+    beforeBytes = await _fetchPhoto(report.id, 'before');
+    setState(() => _status = 'Fetching after photo...');
+    afterBytes = await _fetchPhoto(report.id, 'after');
 
     setState(() => _status = 'Generating PDF...');
 
@@ -292,6 +289,23 @@ class _PdfExportScreenState extends ConsumerState<PdfExportScreen> {
     });
   }
 
+  Future<Uint8List?> _fetchPhoto(String? reportId, String slot) async {
+    if (reportId == null) return null;
+    try {
+      final token = await AuthStorage.getToken();
+      if (token == null) return null;
+      final dio = Dio(BaseOptions(
+        baseUrl: AppConstants.baseUrl,
+        headers: {'Authorization': 'Bearer $token'},
+        responseType: ResponseType.bytes,
+      ));
+      final response = await dio.get('/reports/$reportId/photo/$slot');
+      return Uint8List.fromList(response.data as List<int>);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _share() async {
     if (_pdfBytes == null) return;
     final dir = await getTemporaryDirectory();
@@ -348,7 +362,8 @@ class _PdfExportScreenState extends ConsumerState<PdfExportScreen> {
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(12)),
-                                    textStyle: const TextStyle(fontFamily: 'Inter', 
+                                    textStyle: const TextStyle(
+                                        fontFamily: 'Inter',
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700)))),
                       ])),

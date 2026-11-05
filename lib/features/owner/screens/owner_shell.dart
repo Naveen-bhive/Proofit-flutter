@@ -14,7 +14,8 @@ import '../widgets/profile_completion_dialog.dart';
 
 class OwnerShell extends ConsumerStatefulWidget {
   const OwnerShell({super.key});
-  @override ConsumerState<OwnerShell> createState() => _OwnerShellState();
+  @override
+  ConsumerState<OwnerShell> createState() => _OwnerShellState();
 }
 
 class _OwnerShellState extends ConsumerState<OwnerShell> {
@@ -34,15 +35,18 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
   /// Decided from the server's copy of the profile, never from stale local data,
   /// so it isn't shown to owners who already filled these in (e.g. on another device).
   Future<void> _checkProfileCompletion() async {
-    final synced = await ref.read(ownerControllerProvider.notifier).syncOrgFromServer();
+    final synced =
+        await ref.read(ownerControllerProvider.notifier).syncOrgFromServer();
     if (!mounted || !synced) return;
     _promptProfileIfIncomplete();
   }
 
   void _promptProfileIfIncomplete() {
-    if (_profileDialogOpen || ref.read(ownerControllerProvider).isProfileComplete) return;
+    if (_profileDialogOpen ||
+        ref.read(ownerControllerProvider).isProfileComplete) return;
     _profileDialogOpen = true;
-    ProfileCompletionDialog.show(context).whenComplete(() => _profileDialogOpen = false);
+    ProfileCompletionDialog.show(context)
+        .whenComplete(() => _profileDialogOpen = false);
   }
 
   /// Returns true if back was handled (switched to Dashboard). False = already on Dashboard.
@@ -80,8 +84,9 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
 
   @override
   Widget build(BuildContext context) {
-    final state  = ref.watch(ownerControllerProvider);
-    final unread = state.ownerNotifications.where((n) => n['isRead'] != true).length;
+    final state = ref.watch(ownerControllerProvider);
+    final unread =
+        state.ownerNotifications.where((n) => n['isRead'] != true).length;
 
     return PopScope(
       canPop: false,
@@ -100,7 +105,12 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
           decoration: const BoxDecoration(
             color: AppColors.white,
             border: Border(top: BorderSide(color: AppColors.border)),
-            boxShadow: [BoxShadow(color: Color(0x0A0F172A), blurRadius: 12, offset: Offset(0, -2))],
+            boxShadow: [
+              BoxShadow(
+                  color: Color(0x0A0F172A),
+                  blurRadius: 12,
+                  offset: Offset(0, -2))
+            ],
           ),
           child: SafeArea(
             child: MediaQuery.withClampedTextScaling(
@@ -108,14 +118,18 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 10, bottom: 6),
                 child: Row(children: [
-                  _item(0, Icons.grid_view_outlined,         Icons.grid_view_rounded,      'Dashboard'),
-                  _item(1, Icons.content_paste_outlined,     Icons.content_paste_rounded,  'Reports'),
+                  _item(0, Icons.grid_view_outlined, Icons.grid_view_rounded,
+                      'Dashboard'),
+                  _item(1, Icons.content_paste_outlined,
+                      Icons.content_paste_rounded, 'Reports'),
                   if (state.showsFeature(AppFeature.liveMap))
-                    _item(2, Icons.map_outlined,             Icons.map_rounded,            'Map'),
+                    _item(2, Icons.map_outlined, Icons.map_rounded, 'Map'),
                   if (state.isEnabled(AppFeature.jobs))
-                    _item(3, Icons.business_center_outlined, Icons.business_center_rounded,'Jobs'),
-                  _item(4, Icons.person_outline_rounded,     Icons.person_rounded,         'Profile',
-                    badge: unread > 0 ? unread : null),
+                    _item(3, Icons.business_center_outlined,
+                        Icons.business_center_rounded, 'Jobs'),
+                  _item(4, Icons.person_outline_rounded, Icons.person_rounded,
+                      'Profile',
+                      badge: unread > 0 ? unread : null),
                 ]),
               ),
             ),
@@ -125,9 +139,11 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
     );
   }
 
-  Widget _item(int index, IconData icon, IconData activeIcon, String label, {int? badge}) {
+  Widget _item(int index, IconData icon, IconData activeIcon, String label,
+      {int? badge}) {
     final active = _tab == index;
-    return Expanded(child: GestureDetector(
+    return Expanded(
+        child: GestureDetector(
       onTap: () {
         if (index == 2) {
           context.push('/owner/map');
@@ -136,23 +152,44 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
         setState(() => _tab = index);
       },
       behavior: HitTestBehavior.opaque,
-      child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
-        Stack(clipBehavior: Clip.none, children: [
-          Icon(active ? activeIcon : icon, color: active ? AppColors.brand : AppColors.muted, size: 25),
-          if (badge != null) Positioned(top: -3, right: -6,
-            child: Container(width: 15, height: 15, decoration: BoxDecoration(color: AppColors.red, shape: BoxShape.circle, border: Border.all(color: AppColors.white, width: 1.5)),
-              child: Center(child: Text(badge > 9 ? '9+' : '$badge',
-                style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800))))),
-        ]),
-        const SizedBox(height: 5),
-        Text(
-          label,
-          maxLines: 1,
-          softWrap: false,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: active ? AppColors.brand : AppColors.muted, fontSize: 11, fontWeight: active ? FontWeight.w600 : FontWeight.w500),
-        ),
-      ]),
+      child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(clipBehavior: Clip.none, children: [
+              Icon(active ? activeIcon : icon,
+                  color: active ? AppColors.brand : AppColors.muted, size: 25),
+              if (badge != null)
+                Positioned(
+                    top: -3,
+                    right: -6,
+                    child: Container(
+                        width: 15,
+                        height: 15,
+                        decoration: BoxDecoration(
+                            color: AppColors.red,
+                            shape: BoxShape.circle,
+                            border:
+                                Border.all(color: AppColors.white, width: 1.5)),
+                        child: Center(
+                            child: Text(badge > 9 ? '9+' : '$badge',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w800))))),
+            ]),
+            const SizedBox(height: 5),
+            Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: active ? AppColors.brand : AppColors.muted,
+                  fontSize: 11,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w500),
+            ),
+          ]),
     ));
   }
 }

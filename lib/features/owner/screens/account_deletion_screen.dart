@@ -9,7 +9,8 @@ class AccountDeletionScreen extends ConsumerStatefulWidget {
   const AccountDeletionScreen({super.key});
 
   @override
-  ConsumerState<AccountDeletionScreen> createState() => _AccountDeletionScreenState();
+  ConsumerState<AccountDeletionScreen> createState() =>
+      _AccountDeletionScreenState();
 }
 
 class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
@@ -42,7 +43,9 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final user = await AuthStorage.getUser();
-    final req = await ref.read(ownerControllerProvider.notifier).fetchAccountDeletionStatus();
+    final req = await ref
+        .read(ownerControllerProvider.notifier)
+        .fetchAccountDeletionStatus();
     if (!mounted) return;
 
     final email = user?.email ?? '';
@@ -57,7 +60,9 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
         _rejectionReason = null;
       } else {
         _pendingRequest = null;
-        _rejectionReason = req != null && req['status'] == 'rejected' ? req['rejectionReason']?.toString() : null;
+        _rejectionReason = req != null && req['status'] == 'rejected'
+            ? req['rejectionReason']?.toString()
+            : null;
       }
       _loading = false;
     });
@@ -65,7 +70,8 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
 
   Future<void> _submit() async {
     if (_reasonCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Please tell us why you want to delete your account');
+      setState(
+          () => _error = 'Please tell us why you want to delete your account');
       return;
     }
     if (_emailCtrl.text.trim().isEmpty || _phoneCtrl.text.trim().isEmpty) {
@@ -77,32 +83,45 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Delete account?', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
+        title: const Text('Delete account?',
+            style:
+                TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
         content: const Text(
           'This will submit a request to permanently delete your organisation. If approved, you and all your staff will lose access immediately. This cannot be undone.',
           style: TextStyle(color: AppColors.silver),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppColors.silver))),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Submit request', style: TextStyle(color: AppColors.red))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel',
+                  style: TextStyle(color: AppColors.silver))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Submit request',
+                  style: TextStyle(color: AppColors.red))),
         ],
       ),
     );
     if (confirm != true || !mounted) return;
 
-    setState(() { _submitting = true; _error = null; });
-    final result = await ref.read(ownerControllerProvider.notifier).requestAccountDeletion(
-      reason: _reasonCtrl.text.trim(),
-      email: _emailCtrl.text.trim(),
-      phone: _phoneCtrl.text.trim(),
-    );
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    final result =
+        await ref.read(ownerControllerProvider.notifier).requestAccountDeletion(
+              reason: _reasonCtrl.text.trim(),
+              email: _emailCtrl.text.trim(),
+              phone: _phoneCtrl.text.trim(),
+            );
     if (!mounted) return;
     setState(() => _submitting = false);
 
     if (result.ok) {
       await _load();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(result.message)));
       return;
     }
     setState(() => _error = result.message);
@@ -116,22 +135,34 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.dark2,
-        title: const Text('Cancel deletion request?', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
-        content: const Text('Your account and organisation will remain active.', style: TextStyle(color: AppColors.silver)),
+        title: const Text('Cancel deletion request?',
+            style:
+                TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
+        content: const Text('Your account and organisation will remain active.',
+            style: TextStyle(color: AppColors.silver)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep request', style: TextStyle(color: AppColors.silver))),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cancel request', style: TextStyle(color: AppColors.red))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Keep request',
+                  style: TextStyle(color: AppColors.silver))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Cancel request',
+                  style: TextStyle(color: AppColors.red))),
         ],
       ),
     );
     if (confirm != true || !mounted) return;
 
     setState(() => _submitting = true);
-    final result = await ref.read(ownerControllerProvider.notifier).cancelAccountDeletionRequest(requestId);
+    final result = await ref
+        .read(ownerControllerProvider.notifier)
+        .cancelAccountDeletionRequest(requestId);
     if (!mounted) return;
     setState(() => _submitting = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(result.message)));
     if (result.ok) await _load();
   }
 
@@ -141,10 +172,13 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
       backgroundColor: AppColors.dark,
       appBar: AppBar(title: const Text('Delete Account')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.brand))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.brand))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
-              child: _pendingRequest != null ? _buildPendingView() : _buildFormView(),
+              child: _pendingRequest != null
+                  ? _buildPendingView()
+                  : _buildFormView(),
             ),
     );
   }
@@ -155,25 +189,40 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: AppColors.dark2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(
+            color: AppColors.dark2,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Row(children: [
             Icon(Icons.hourglass_top_rounded, color: AppColors.brand, size: 20),
             SizedBox(width: 10),
-            Text('Pending review', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 16)),
+            Text('Pending review',
+                style: TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16)),
           ]),
           const SizedBox(height: 12),
-          const Text('Your deletion request has been submitted and is awaiting super admin review.',
+          const Text(
+              'Your deletion request has been submitted and is awaiting super admin review.',
               style: TextStyle(color: AppColors.silver, fontSize: 13.5)),
           if (reason.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const Text('REASON', style: TextStyle(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+            const Text('REASON',
+                style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2)),
             const SizedBox(height: 4),
-            Text(reason, style: const TextStyle(color: AppColors.light, fontSize: 14)),
+            Text(reason,
+                style: const TextStyle(color: AppColors.light, fontSize: 14)),
           ],
           if (createdAt != null) ...[
             const SizedBox(height: 12),
-            Text('Submitted ${_formatDate(createdAt)}', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+            Text('Submitted ${_formatDate(createdAt)}',
+                style: const TextStyle(color: AppColors.muted, fontSize: 12)),
           ],
         ]),
       ),
@@ -194,11 +243,19 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.red.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Your previous request was rejected', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w700, fontSize: 13.5)),
+          decoration: BoxDecoration(
+              color: AppColors.red.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12)),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Your previous request was rejected',
+                style: TextStyle(
+                    color: AppColors.red,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5)),
             const SizedBox(height: 6),
-            Text(_rejectionReason!, style: const TextStyle(color: AppColors.silver, fontSize: 13)),
+            Text(_rejectionReason!,
+                style: const TextStyle(color: AppColors.silver, fontSize: 13)),
           ]),
         ),
         const SizedBox(height: 20),
@@ -224,8 +281,11 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
         readOnly: _emailReadOnly,
         enabled: !_emailReadOnly,
         keyboardType: TextInputType.emailAddress,
-        style: TextStyle(color: _emailReadOnly ? AppColors.muted : AppColors.text),
-        decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined, color: AppColors.muted)),
+        style:
+            TextStyle(color: _emailReadOnly ? AppColors.muted : AppColors.text),
+        decoration: const InputDecoration(
+            labelText: 'Email',
+            prefixIcon: Icon(Icons.email_outlined, color: AppColors.muted)),
       ),
       const SizedBox(height: 14),
       TextField(
@@ -233,12 +293,16 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
         readOnly: _phoneReadOnly,
         enabled: !_phoneReadOnly,
         keyboardType: TextInputType.phone,
-        style: TextStyle(color: _phoneReadOnly ? AppColors.muted : AppColors.text),
-        decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone_outlined, color: AppColors.muted)),
+        style:
+            TextStyle(color: _phoneReadOnly ? AppColors.muted : AppColors.text),
+        decoration: const InputDecoration(
+            labelText: 'Phone',
+            prefixIcon: Icon(Icons.phone_outlined, color: AppColors.muted)),
       ),
       if (_error != null) ...[
         const SizedBox(height: 14),
-        Text(_error!, style: const TextStyle(color: AppColors.red, fontSize: 13)),
+        Text(_error!,
+            style: const TextStyle(color: AppColors.red, fontSize: 13)),
       ],
       const SizedBox(height: 24),
       AppButton(

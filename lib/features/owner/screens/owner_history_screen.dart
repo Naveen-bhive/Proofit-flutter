@@ -27,20 +27,21 @@ import '../../../shared/permissions/permission_session.dart';
 class OwnerHistoryScreen extends ConsumerStatefulWidget {
   final String? initialStatus;
   const OwnerHistoryScreen({super.key, this.initialStatus});
-  @override ConsumerState<OwnerHistoryScreen> createState() => _OwnerHistoryScreenState();
+  @override
+  ConsumerState<OwnerHistoryScreen> createState() => _OwnerHistoryScreenState();
 }
 
 class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
-  String _filter      = 'today';
+  String _filter = 'today';
   late String _status;
   String? _staffId;
   DateTime? _fromDate;
   DateTime? _toDate;
-  bool _exporting     = false;
-  bool _loading       = true;
-  bool _loadingMore   = false;
-  int  _page          = 1;
-  bool _hasMore       = true;
+  bool _exporting = false;
+  bool _loading = true;
+  bool _loadingMore = false;
+  int _page = 1;
+  bool _hasMore = true;
   final ScrollController _scroll = ScrollController();
 
   @override
@@ -53,99 +54,151 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
   }
 
   @override
-  void dispose() { _scroll.dispose(); super.dispose(); }
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   void _onScroll() {
-    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 200 && _hasMore && !_loadingMore) {
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 200 &&
+        _hasMore &&
+        !_loadingMore) {
       _loadMore();
     }
   }
 
   Future<void> _loadFirst() async {
-    setState(() { _page = 1; _hasMore = true; _loading = true; });
+    setState(() {
+      _page = 1;
+      _hasMore = true;
+      _loading = true;
+    });
     await ref.read(ownerControllerProvider.notifier).loadAllReports(
-      filter:   _fromDate == null ? _filter : null,
-      staffId:  _staffId,
-      from:     _fromDate != null ? DateFormat('yyyy-MM-dd').format(_fromDate!) : null,
-      to:       _toDate   != null ? DateFormat('yyyy-MM-dd').format(_toDate!)   : null,
-      page:     1,
-      status:   _status,
-    );
+          filter: _fromDate == null ? _filter : null,
+          staffId: _staffId,
+          from: _fromDate != null
+              ? DateFormat('yyyy-MM-dd').format(_fromDate!)
+              : null,
+          to: _toDate != null
+              ? DateFormat('yyyy-MM-dd').format(_toDate!)
+              : null,
+          page: 1,
+          status: _status,
+        );
     if (!mounted) return;
     final state = ref.read(ownerControllerProvider);
-    setState(() { _page = 1; _hasMore = state.reportPagination?['hasMore'] == true; _loading = false; });
+    setState(() {
+      _page = 1;
+      _hasMore = state.reportPagination?['hasMore'] == true;
+      _loading = false;
+    });
   }
 
   Future<void> _loadMore() async {
     if (!_hasMore || _loadingMore) return;
-    setState(() { _loadingMore = true; _page++; });
+    setState(() {
+      _loadingMore = true;
+      _page++;
+    });
     await ref.read(ownerControllerProvider.notifier).loadMoreReports(
-      filter:  _fromDate == null ? _filter : null,
-      staffId: _staffId,
-      from:    _fromDate != null ? DateFormat('yyyy-MM-dd').format(_fromDate!) : null,
-      to:      _toDate   != null ? DateFormat('yyyy-MM-dd').format(_toDate!)   : null,
-      page:    _page,
-      status:  _status,
-    );
+          filter: _fromDate == null ? _filter : null,
+          staffId: _staffId,
+          from: _fromDate != null
+              ? DateFormat('yyyy-MM-dd').format(_fromDate!)
+              : null,
+          to: _toDate != null
+              ? DateFormat('yyyy-MM-dd').format(_toDate!)
+              : null,
+          page: _page,
+          status: _status,
+        );
     final state = ref.read(ownerControllerProvider);
-    setState(() { _loadingMore = false; _hasMore = state.reportPagination?['hasMore'] == true; });
+    setState(() {
+      _loadingMore = false;
+      _hasMore = state.reportPagination?['hasMore'] == true;
+    });
   }
 
   Future<void> _pickDateRange() async {
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime(2024), lastDate: DateTime.now(),
-      initialDateRange: _fromDate != null ? DateTimeRange(start: _fromDate!, end: _toDate ?? DateTime.now()) : null,
+      firstDate: DateTime(2024),
+      lastDate: DateTime.now(),
+      initialDateRange: _fromDate != null
+          ? DateTimeRange(start: _fromDate!, end: _toDate ?? DateTime.now())
+          : null,
     );
     if (picked != null) {
-      setState(() { _fromDate = picked.start; _toDate = picked.end; _filter = ''; });
+      setState(() {
+        _fromDate = picked.start;
+        _toDate = picked.end;
+        _filter = '';
+      });
       _loadFirst();
     }
   }
 
-  void _clearDateRange() { setState(() { _fromDate = null; _toDate = null; _filter = 'today'; }); _loadFirst(); }
+  void _clearDateRange() {
+    setState(() {
+      _fromDate = null;
+      _toDate = null;
+      _filter = 'today';
+    });
+    _loadFirst();
+  }
 
   Future<void> _export(String format) async {
     setState(() => _exporting = true);
     try {
       final token = await AuthStorage.getToken();
       if (token == null) return;
-      final dio  = Dio();
-      final dir  = await getTemporaryDirectory();
-      final org  = exportFileNamePart(ref.read(ownerControllerProvider).orgName);
+      final dio = Dio();
+      final dir = await getTemporaryDirectory();
+      final org = exportFileNamePart(ref.read(ownerControllerProvider).orgName);
       final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      final ext  = format == 'excel' ? 'xlsx' : 'pdf';
+      final ext = format == 'excel' ? 'xlsx' : 'pdf';
       final path = '${dir.path}/proofit-$org-$date.$ext';
 
       final body = <String, dynamic>{'format': format};
-      if (_fromDate != null) { body['from'] = DateFormat('yyyy-MM-dd').format(_fromDate!); body['to'] = DateFormat('yyyy-MM-dd').format(_toDate ?? DateTime.now()); }
-      else if (_filter.isNotEmpty) {
+      if (_fromDate != null) {
+        body['from'] = DateFormat('yyyy-MM-dd').format(_fromDate!);
+        body['to'] = DateFormat('yyyy-MM-dd').format(_toDate ?? DateTime.now());
+      } else if (_filter.isNotEmpty) {
         body['filter'] = _filter;
       }
       if (_staffId != null) body['staffId'] = _staffId;
 
       final res = await dio.post('${AppConstants.baseUrl}/reports/export',
-        data: body,
-        options: Options(headers: {'Authorization': 'Bearer $token'}, responseType: ResponseType.bytes));
+          data: body,
+          options: Options(
+              headers: {'Authorization': 'Bearer $token'},
+              responseType: ResponseType.bytes));
       await File(path).writeAsBytes(res.data);
       if (!mounted) return;
       // Videos are separate files, never inside the PDF.
       final videos = format == 'pdf'
-          ? await offerExportVideos(context, ref.read(apiServiceProvider), body, dir.path)
+          ? await offerExportVideos(
+              context, ref.read(apiServiceProvider), body, dir.path)
           : const <XFile>[];
       if (!mounted) return;
       _showFileOptions(path, videos);
     } catch (e) {
-      if (mounted) showErrorSnackBar(context, e, fallback: 'Could not export reports. Please try again.');
-    } finally { if (mounted) setState(() => _exporting = false); }
+      if (mounted)
+        showErrorSnackBar(context, e,
+            fallback: 'Could not export reports. Please try again.');
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 
-  void _showFileOptions(String path, [List<XFile> videos = const []]) => showExportReadySheet(
-    context,
-    path: path,
-    onOpen: () => OpenFile.open(path),
-    onShare: () => shareReportFiles(context, pdf: XFile(path), videos: videos, text: 'Work Completion Report'),
-  );
+  void _showFileOptions(String path, [List<XFile> videos = const []]) =>
+      showExportReadySheet(
+        context,
+        path: path,
+        onOpen: () => OpenFile.open(path),
+        onShare: () => shareReportFiles(context,
+            pdf: XFile(path), videos: videos, text: 'Work Completion Report'),
+      );
 
   Future<void> _showExportOptions() async {
     final format = await showExportOptionsSheet(
@@ -171,11 +224,24 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
             actions: [
               if (_exporting)
-                const SizedBox(width: 38, height: 38, child: Padding(padding: EdgeInsets.all(9), child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brand)))
+                const SizedBox(
+                    width: 38,
+                    height: 38,
+                    child: Padding(
+                        padding: EdgeInsets.all(9),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.brand)))
               else if (state.showsFeature(AppFeature.export) &&
-                  ref.watch(permissionSessionProvider).can(AppPermissions.reportsExport))
-                IconButton(icon: const Icon(Icons.file_download_outlined, color: AppColors.text), onPressed: _showExportOptions),
-              IconButton(icon: const Icon(Icons.search_rounded, color: AppColors.text), onPressed: () => context.push('/owner/search')),
+                  ref
+                      .watch(permissionSessionProvider)
+                      .can(AppPermissions.reportsExport))
+                IconButton(
+                    icon: const Icon(Icons.file_download_outlined,
+                        color: AppColors.text),
+                    onPressed: _showExportOptions),
+              IconButton(
+                  icon: const Icon(Icons.search_rounded, color: AppColors.text),
+                  onPressed: () => context.push('/owner/search')),
             ],
           ),
           ReportsFilterBar(
@@ -183,36 +249,63 @@ class _OwnerHistoryScreenState extends ConsumerState<OwnerHistoryScreen> {
             status: _status,
             fromDate: _fromDate,
             toDate: _toDate,
-            onFilter: (f) { setState(() { _filter = f; _fromDate = null; _toDate = null; }); _loadFirst(); },
-            onStatus: (s) { setState(() => _status = s); _loadFirst(); },
+            onFilter: (f) {
+              setState(() {
+                _filter = f;
+                _fromDate = null;
+                _toDate = null;
+              });
+              _loadFirst();
+            },
+            onStatus: (s) {
+              setState(() => _status = s);
+              _loadFirst();
+            },
             onPickRange: _pickDateRange,
             onClearRange: _clearDateRange,
             staff: state.staffList,
             staffId: _staffId,
-            onStaff: (id, _) { setState(() { _staffId = id; }); _loadFirst(); },
-            total: state.reportPagination == null ? null : (state.reportPagination!['total'] as num?)?.toInt() ?? 0,
+            onStaff: (id, _) {
+              setState(() {
+                _staffId = id;
+              });
+              _loadFirst();
+            },
+            total: state.reportPagination == null
+                ? null
+                : (state.reportPagination!['total'] as num?)?.toInt() ?? 0,
           ),
           const SizedBox(height: 8),
-          Expanded(child: _loading && state.allReports.isEmpty
-            ? const ReportListShimmer()
-            : state.allReports.isEmpty
-              ? ReportsEmptyState(onRefresh: _loadFirst)
-              : RefreshIndicator(
-                  color: AppColors.brand,
-                  onRefresh: _loadFirst,
-                  child: ListView.builder(
-                    controller: _scroll,
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                    itemCount: state.allReports.length + (_loadingMore ? 1 : 0),
-                    itemBuilder: (_, i) {
-                      if (i == state.allReports.length) {
-                        return const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator(color: AppColors.brand, strokeWidth: 2)));
-                      }
-                      return ReportCard(
-                        report: state.allReports[i], showStaffName: true, actionLabel: 'View',
-                        onTap: () => context.push('/owner/report/${state.allReports[i].id}'));
-                    }),
-                )),
+          Expanded(
+              child: _loading && state.allReports.isEmpty
+                  ? const ReportListShimmer()
+                  : state.allReports.isEmpty
+                      ? ReportsEmptyState(onRefresh: _loadFirst)
+                      : RefreshIndicator(
+                          color: AppColors.brand,
+                          onRefresh: _loadFirst,
+                          child: ListView.builder(
+                              controller: _scroll,
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                              itemCount: state.allReports.length +
+                                  (_loadingMore ? 1 : 0),
+                              itemBuilder: (_, i) {
+                                if (i == state.allReports.length) {
+                                  return const Padding(
+                                      padding: EdgeInsets.all(20),
+                                      child: Center(
+                                          child: CircularProgressIndicator(
+                                              color: AppColors.brand,
+                                              strokeWidth: 2)));
+                                }
+                                return ReportCard(
+                                    report: state.allReports[i],
+                                    showStaffName: true,
+                                    actionLabel: 'View',
+                                    onTap: () => context.push(
+                                        '/owner/report/${state.allReports[i].id}'));
+                              }),
+                        )),
         ]),
       ),
     );

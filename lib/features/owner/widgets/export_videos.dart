@@ -24,20 +24,28 @@ Future<List<XFile>> offerExportVideos(
   } catch (_) {
     return []; // the PDF is already saved — never lose it over the video list
   }
-  final videos = List<Map<String, dynamic>>.from((data['videos'] as List? ?? const []).map((v) => Map<String, dynamic>.from(v as Map)));
+  final videos = List<Map<String, dynamic>>.from(
+      (data['videos'] as List? ?? const [])
+          .map((v) => Map<String, dynamic>.from(v as Map)));
   if (videos.isEmpty || !context.mounted) return [];
 
   final total = (data['totalBytes'] as num?)?.toInt() ?? 0;
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text('${videos.length} video${videos.length == 1 ? '' : 's'} not in the PDF'),
+      title: Text(
+          '${videos.length} video${videos.length == 1 ? '' : 's'} not in the PDF'),
       content: Text(
         'Photos are inside the PDF. Videos are separate files${total > 0 ? ' (${formatBytes(total)} in total)' : ''}. Download them now to share with the PDF?',
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('PDF only')),
-        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Download videos', style: TextStyle(color: AppColors.brand))),
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('PDF only')),
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Download videos',
+                style: TextStyle(color: AppColors.brand))),
       ],
     ),
   );
@@ -59,14 +67,16 @@ Future<List<XFile>> offerExportVideos(
     onStatus?.call('Downloading video ${n + 1} of ${videos.length}…');
     try {
       await api.downloadToFile('/media/$assetId/download', path);
-      files.add(XFile(path, mimeType: v['mimeType']?.toString() ?? videoMimeFor(path)));
+      files.add(XFile(path,
+          mimeType: v['mimeType']?.toString() ?? videoMimeFor(path)));
     } catch (_) {
       failed += 1;
     }
   }
   if (failed > 0 && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('$failed video${failed == 1 ? '' : 's'} could not be downloaded. Try the export again.'),
+      content: Text(
+          '$failed video${failed == 1 ? '' : 's'} could not be downloaded. Try the export again.'),
       backgroundColor: AppColors.red,
     ));
   }

@@ -134,13 +134,12 @@ class _StaffReportDetailScreenState extends ConsumerState<StaffReportDetailScree
   }
 
   Widget _mediaBox(String label, MediaData? media, String? reportId, String slot, int index) {
-    final driveFileId = media?.driveFileId;
     final url = media?.url;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(media?.isVideo == true ? '$label (video)' : label, style: const TextStyle(color: AppColors.silver, fontSize: 13, fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
       ReportMediaTile(
-        media: (driveFileId != null || url != null || media?.isDeleted == true) ? media : null,
+        media: (url != null || media?.isDeleted == true) ? media : null,
         reportId: reportId,
         slot: slot,
         index: index,
