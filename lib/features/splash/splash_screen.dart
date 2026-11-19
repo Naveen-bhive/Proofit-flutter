@@ -58,6 +58,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               .timeout(const Duration(seconds: 3), onTimeout: () => null);
       if (config != null &&
           await AppUpdateService.isForceUpdateRequired(config)) {
+        if (await AppUpdateService.startAndroidUpdate(immediate: true)) {
+          return;
+        }
         final elapsed = DateTime.now().difference(started);
         if (elapsed < _minDisplay) await Future.delayed(_minDisplay - elapsed);
         if (!mounted) {
@@ -67,6 +70,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         setState(() => _forceUpdate = config);
         FlutterNativeSplash.remove();
         return;
+      }
+
+      if (config?.autoUpdateEnabled == true) {
+        // Flexible Play update: starts the download after Google Play consent,
+        // while allowing startup to continue.
+        unawaited(AppUpdateService.startAndroidUpdate(immediate: false));
       }
 
       final inviteToken = await DeepLinkService.resolveInviteToken()

@@ -297,8 +297,14 @@ class BatteryOptimizationService {
                     },
                     style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.brand),
-                    child: const Text('Allow unrestricted',
-                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: const Text(
+                      'Allow unrestricted',
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
                   ),
                 ),
               if (!unrestricted) const SizedBox(height: 8),
@@ -312,7 +318,13 @@ class BatteryOptimizationService {
                     style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.yellow,
                         side: const BorderSide(color: AppColors.yellow)),
-                    child: const Text('Open Autostart settings'),
+                    child: const Text(
+                      'Open Autostart settings',
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: TextStyle(fontSize: 14),
+                    ),
                   ),
                 ),
               if (aggressive) const SizedBox(height: 8),
@@ -325,26 +337,36 @@ class BatteryOptimizationService {
                   style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.silver,
                       side: const BorderSide(color: AppColors.border)),
-                  child: const Text('Open battery settings'),
+                  child: const Text(
+                    'Open battery settings',
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () async {
+                    await skipGuideForToday();
+                    if (forceMarkShown) await _markWarningShown();
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  },
+                  child: const Text(
+                    'I understand — Continue',
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
                 ),
               ),
             ],
           ),
         ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () async {
-                await skipGuideForToday();
-                if (forceMarkShown) await _markWarningShown();
-                if (ctx.mounted) Navigator.pop(ctx);
-              },
-              child: const Text('I understand — Continue',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ),
-        ],
       ),
     );
 

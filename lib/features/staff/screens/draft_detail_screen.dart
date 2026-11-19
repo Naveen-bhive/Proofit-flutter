@@ -79,9 +79,10 @@ class _DraftDetailScreenState extends ConsumerState<DraftDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.dark,
       appBar: AppBar(
-        title: const Text('Draft Report'),
+        title: Text(report?.isInProgress == true ? 'In-Progress Report' : 'Draft Report'),
         actions: [
-          if (report != null)
+          // In-progress reports are already shared with the manager.
+          if (report != null && !report.isInProgress)
             IconButton(
               icon: _deleting
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.red))
@@ -134,7 +135,9 @@ class _DraftDetailScreenState extends ConsumerState<DraftDetailScreen> {
                           const Icon(Icons.warning_amber_rounded, color: AppColors.yellow, size: 20),
                           const SizedBox(width: 10),
                           Expanded(child: Text(
-                            'This report was saved as a draft${report.createdAt != null ? ' at ${DateFormat("h:mm a").format(report.createdAt!)}' : ''}. Complete and submit it.',
+                            report.isInProgress
+                                ? 'This job is in progress and your updates are shared with your manager. Add more updates or submit it when finished.'
+                                : 'This report was saved as a draft${report.createdAt != null ? ' at ${DateFormat("h:mm a").format(report.createdAt!)}' : ''}. Complete and submit it.',
                             style: const TextStyle(color: AppColors.yellow, fontSize: 13),
                           )),
                         ]),
@@ -167,7 +170,7 @@ class _DraftDetailScreenState extends ConsumerState<DraftDetailScreen> {
                       ],
                       const SizedBox(height: 28),
                       AppButton(
-                        label: 'Complete & Submit',
+                        label: report.isInProgress ? 'Continue Job' : 'Complete & Submit',
                         icon: Icons.send_outlined,
                         onPressed: () => context.push('/staff/submit?reportId=${report.id}'),
                       ),

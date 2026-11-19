@@ -368,7 +368,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen>
                         key: ValueKey(r.id ?? r.jobTitle),
                         report: r,
                         onTap: () {
-                          if (r.status == 'draft') {
+                          if (r.isEditable) {
                             context.push('/staff/draft/${r.id}');
                           } else {
                             context.push('/staff/report/${r.id}');

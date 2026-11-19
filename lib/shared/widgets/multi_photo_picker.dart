@@ -109,7 +109,7 @@ class ReportPhoto {
 class MultiPhotoPicker extends StatelessWidget {
   final String label;
   final List<ReportPhoto> photos;
-  final int maxPhotos;
+  final int? maxPhotos;
   final bool isRequired;
   final bool enabled;
   final bool allowVideo;
@@ -139,7 +139,7 @@ class MultiPhotoPicker extends StatelessWidget {
   });
 
   Future<void> _showAddOptions(BuildContext context) async {
-    final remaining = maxPhotos - photos.length;
+    final remaining = maxPhotos == null ? null : maxPhotos! - photos.length;
     final source = await showModalBottomSheet<MediaSource>(
       context: context,
       backgroundColor: AppColors.dark2,
@@ -170,7 +170,9 @@ class MultiPhotoPicker extends StatelessWidget {
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             Text(
-                'Photos are stamped with date · time · GPS  •  $remaining more allowed',
+                remaining == null
+                    ? 'Photos are stamped with date · time · GPS'
+                    : 'Photos are stamped with date · time · GPS  •  $remaining more allowed',
                 style: const TextStyle(color: AppColors.silver, fontSize: 12)),
             const SizedBox(height: 20),
             _opt(
@@ -184,9 +186,11 @@ class MultiPhotoPicker extends StatelessWidget {
                 Icons.photo_library_outlined,
                 AppColors.blue,
                 'Choose Photos',
-                remaining > 1
-                    ? 'Select up to $remaining photos'
-                    : 'Select a photo',
+                remaining == null
+                    ? 'Select photos'
+                    : remaining > 1
+                        ? 'Select up to $remaining photos'
+                        : 'Select a photo',
                 () => Navigator.pop(sheetContext, MediaSource.galleryPhotos)),
             if (allowVideo) ...[
               const SizedBox(height: 10),
@@ -256,7 +260,7 @@ class MultiPhotoPicker extends StatelessWidget {
     final busy = photos.where((p) => p.isBusy).length;
     final failed =
         photos.where((p) => p.status == PhotoUploadStatus.failed).toList();
-    final canAdd = photos.length < maxPhotos;
+    final canAdd = maxPhotos == null || photos.length < maxPhotos!;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
@@ -273,7 +277,10 @@ class MultiPhotoPicker extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: FontWeight.w700)),
         const SizedBox(width: 8),
-        Text('${photos.length}/$maxPhotos',
+        Text(
+            maxPhotos == null
+                ? '${photos.length} files'
+                : '${photos.length}/$maxPhotos',
             style: const TextStyle(color: AppColors.muted, fontSize: 12)),
         const Spacer(),
         if (busy > 0)

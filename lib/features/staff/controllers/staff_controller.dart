@@ -450,36 +450,45 @@ class StaffController extends StateNotifier<StaffState> {
     );
   }
 
-  /// Creates or updates a report with every before/after photo. Photos must
-  /// already be uploaded (see [uploadPhotoWithFallback]); each entry is a
-  /// media map (`url`, `publicId`, `capturedAt`, GPS…).
+  /// Creates or updates a report with every before/after/progress item.
+  /// Media must already be uploaded (see [uploadPhotoWithFallback]); each
+  /// entry is a media map (`assetId`, `url`, `capturedAt`, GPS…).
+  ///
+  /// [status] is `draft` (private), `in_progress` (shared with the owner,
+  /// job moves to In Progress) or `submitted` (job completed, report locked).
+  /// The server derives the job status from it. Pass [refresh] false for
+  /// background auto-saves so they don't reload lists every 30 seconds.
   Future<({bool ok, String? error, String? reportId})> saveReport({
     required String jobTitle,
     required String? notes,
     required List<Map<String, dynamic>> beforePhotos,
     required List<Map<String, dynamic>> afterPhotos,
+    List<Map<String, dynamic>> progressMedia = const [],
     required double? latitude,
     required double? longitude,
     required String? address,
-    required bool asDraft,
+    required String status,
     String? existingReportId,
     String? jobId,
+    bool refresh = true,
   }) async {
-    if (!asDraft && (jobId == null || jobId.isEmpty)) {
+    assert(const {'draft', 'in_progress', 'submitted'}.contains(status));
+    final submitting = status == 'submitted';
+    if (status != 'draft' && (jobId == null || jobId.isEmpty)) {
       return (
         ok: false,
         error: 'Select an assigned job before submitting.',
         reportId: null
       );
     }
-    if (!asDraft && beforePhotos.isEmpty) {
+    if (submitting && beforePhotos.isEmpty) {
       return (
         ok: false,
         error: 'Add at least one before photo.',
         reportId: null
       );
     }
-    if (!asDraft && afterPhotos.isEmpty) {
+    if (submitting && afterPhotos.isEmpty) {
       return (
         ok: false,
         error: 'Add at least one after photo.',
@@ -491,7 +500,9 @@ class StaffController extends StateNotifier<StaffState> {
       final payload = {
         'jobTitle': jobTitle,
         'notes': notes,
-        'status': asDraft ? 'draft' : 'submitted',
+        'status': status,
+        if (status != 'draft')
+          'jobStatus': submitting ? 'completed' : 'in_progress',
         'location': latitude != null
             ? {'latitude': latitude, 'longitude': longitude, 'address': address}
             : null,
@@ -499,6 +510,7 @@ class StaffController extends StateNotifier<StaffState> {
         if (afterPhotos.isNotEmpty) 'afterMedia': afterPhotos.first,
         'beforePhotos': beforePhotos,
         'afterPhotos': afterPhotos,
+        'progressMedia': progressMedia,
         if (jobId != null && jobId.isNotEmpty) 'jobId': jobId,
       };
 
@@ -515,9 +527,10 @@ class StaffController extends StateNotifier<StaffState> {
         );
       }
       final reportId = res.data['data']?['_id']?.toString();
-      await loadTodayReports();
-      await loadProfileStats();
-      state = state.copyWith(jobsEpoch: state.jobsEpoch + 1);
+      if (refresh) {
+        await Future.wait([loadTodayReports(), loadProfileStats()]);
+        state = state.copyWith(jobsEpoch: state.jobsEpoch + 1);
+      }
       return (ok: true, error: null, reportId: reportId);
     } on DioException catch (e) {
       return (
@@ -812,6 +825,21 @@ class StaffController extends StateNotifier<StaffState> {
           notifications:
               state.notifications.map((n) => {...n, 'isRead': true}).toList());
     } catch (_) {}
+  }
+
+  Future<void> markNotificationRead(String notificationId) async {
+    final index = state.notifications
+        .indexWhere((n) => (n['_id'] ?? n['id'])?.toString() == notificationId);
+    if (index < 0 || state.notifications[index]['isRead'] == true) return;
+
+    final updated = [...state.notifications];
+    updated[index] = {...updated[index], 'isRead': true};
+    state = state.copyWith(notifications: updated);
+    try {
+      await _api.post('/notifications/read/$notificationId');
+    } catch (_) {
+      await loadNotifications();
+    }
   }
 
   Future<bool> deleteReport(String reportId) async {

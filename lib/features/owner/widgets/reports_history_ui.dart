@@ -119,11 +119,13 @@ class ReportsFilterBar extends StatelessWidget {
           ],
         ]),
       ),
-      Padding(
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
         child: Row(children: [
           for (final s in const [
             ('submitted', 'Submitted'),
+            ('in_progress', 'In progress'),
             ('draft', 'Drafts'),
             ('all', 'All')
           ]) ...[

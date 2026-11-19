@@ -1,8 +1,8 @@
 name: proofit
 description: ProofIt — Work Done. Proved Instantly.
 publish_to: 'none'
-#version: 1.0.17+21  #play store
-version: 1.0.15+21 #app store
+#version: 1.0.19+23  #play store
+version: 1.0.16+22 #app store
 
 
 environment:
@@ -91,6 +91,7 @@ dependencies:
 
   # Native "Rate us" popup (Play In-App Review / iOS SKStoreReviewController)
   in_app_review: ^2.0.9
+  in_app_update: ^5.0.0
 
 flutter_launcher_icons:
   android: true

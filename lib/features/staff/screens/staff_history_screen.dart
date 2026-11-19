@@ -80,7 +80,7 @@ class StaffHistoryScreenState extends ConsumerState<StaffHistoryScreen> {
                           const SizedBox(height: 90),
                           SoftEmptyState(
                             icon: _filter == 'drafts' ? Icons.drafts_outlined : Icons.history_rounded,
-                            title: _filter == 'drafts' ? 'No draft reports saved' : 'No reports in this period',
+                            title: _filter == 'drafts' ? 'No draft or in-progress reports' : 'No reports in this period',
                             subtitle: 'Reports you submit will appear here.',
                           ),
                         ])
@@ -90,9 +90,9 @@ class StaffHistoryScreenState extends ConsumerState<StaffHistoryScreen> {
                             for (final report in state.historyReports)
                               ReportCard(
                                 report: report,
-                                actionLabel: report.status == 'draft' ? 'Continue' : 'View Report',
+                                actionLabel: report.isEditable ? 'Continue' : 'View Report',
                                 onTap: () {
-                                  if (report.status == 'draft') {
+                                  if (report.isEditable) {
                                     context.push('/staff/draft/${report.id}');
                                   } else {
                                     context.push('/staff/report/${report.id}');

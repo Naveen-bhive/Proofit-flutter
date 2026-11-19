@@ -58,6 +58,9 @@ class MediaData {
   /// Set when the owner deleted the file in Media and Storage.
   final DateTime? deletedAt;
 
+  /// When the server stored the file; used when no capture time was recorded.
+  final DateTime? uploadedAt;
+
   MediaData({
     this.url,
     this.publicId,
@@ -74,9 +77,13 @@ class MediaData {
     this.durationSec,
     this.originalFilename,
     this.deletedAt,
+    this.uploadedAt,
   });
 
   bool get isVideo => type == 'video';
+
+  /// When this item happened, for grouping progress updates by date.
+  DateTime? get takenAt => capturedAt ?? uploadedAt;
   bool get isDeleted => deletedAt != null;
 
   factory MediaData.fromJson(Map<String, dynamic> json) => MediaData(
@@ -98,6 +105,7 @@ class MediaData {
         durationSec: (json['durationSec'] as num?)?.toDouble(),
         originalFilename: _nonEmpty(json['originalFilename']),
         deletedAt: parseApiDate(json['deletedAt']),
+        uploadedAt: parseApiDate(json['uploadedAt']),
       );
 
   static String? _nonEmpty(dynamic value) {
@@ -139,7 +147,9 @@ class ReportModel {
   final String? customerName;
   final String? customerPhone;
   final String? jobId;
-  final String status; // 'draft' | 'submitted'
+
+  /// 'draft' (private) | 'in_progress' (shared, job underway) | 'submitted'.
+  final String status;
   final LocationData? location;
   final MediaData? beforeMedia;
   final MediaData? afterMedia;
@@ -147,6 +157,9 @@ class ReportModel {
   /// Every before/after photo; falls back to the single legacy media.
   final List<MediaData> beforePhotos;
   final List<MediaData> afterPhotos;
+
+  /// Media added as dated progress updates while a job is underway.
+  final List<MediaData> progressMedia;
   final DateTime? submittedAt;
   final DateTime? createdAt;
 
@@ -167,11 +180,22 @@ class ReportModel {
     this.afterMedia,
     this.beforePhotos = const [],
     this.afterPhotos = const [],
+    this.progressMedia = const [],
     this.submittedAt,
     this.createdAt,
   });
 
   bool get isSubmitted => status == 'submitted';
+  bool get isInProgress => status == 'in_progress';
+
+  /// Drafts and in-progress reports can still be continued by their author.
+  bool get isEditable => !isSubmitted;
+
+  String get statusLabel => switch (status) {
+        'submitted' => 'Completed',
+        'in_progress' => 'In progress',
+        _ => 'Draft',
+      };
   bool get isFlagged => location?.isVerified == false;
   Map<String, dynamic>? get customer {
     if (customerName == null && customerId == null) return null;
@@ -242,6 +266,7 @@ class ReportModel {
       afterMedia: afterMedia,
       beforePhotos: _mediaList(json['beforePhotos'], beforeMedia),
       afterPhotos: _mediaList(json['afterPhotos'], afterMedia),
+      progressMedia: _mediaList(json['progressMedia'], null),
       submittedAt: parseApiDate(json['submittedAt']),
       createdAt: parseApiDate(json['createdAt']),
     );

@@ -41,7 +41,7 @@ class CameraService {
   /// and returns the raw files straight away — no GPS or stamping yet — so
   /// the caller can show a spinner immediately. Pair with [stamp].
   static Future<List<File>> pickRaw(BuildContext context,
-      {required bool fromCamera, int limit = 1}) async {
+      {required bool fromCamera, int? limit = 1}) async {
     try {
       final List<XFile> picked;
       if (fromCamera) {
@@ -53,7 +53,7 @@ class CameraService {
             maxHeight: 1920,
             preferredCameraDevice: CameraDevice.rear);
         picked = [if (shot != null) shot];
-      } else if (limit <= 1) {
+      } else if (limit != null && limit <= 1) {
         final one = await _picker.pickImage(
             source: ImageSource.gallery,
             imageQuality: 85,
@@ -66,7 +66,7 @@ class CameraService {
       }
 
       final files = <File>[];
-      for (final x in picked.take(limit)) {
+      for (final x in limit == null ? picked : picked.take(limit)) {
         final file = File(x.path);
         final sizeMB = await getFileSizeMB(file);
         if (sizeMB > _maxPhotoMB) {
@@ -82,8 +82,11 @@ class CameraService {
     } catch (e) {
       debugPrint('Photo pick error: $e');
       if (context.mounted) {
-        _showError(context,
-            fromCamera ? 'Camera error. Please try again.' : 'Could not open gallery.');
+        _showError(
+            context,
+            fromCamera
+                ? 'Camera error. Please try again.'
+                : 'Could not open gallery.');
       }
       return [];
     }
@@ -127,8 +130,11 @@ class CameraService {
     } catch (e) {
       debugPrint('Video pick error: $e');
       if (context.mounted) {
-        _showError(context,
-            fromCamera ? 'Could not record video. Please try again.' : 'Could not open videos.');
+        _showError(
+            context,
+            fromCamera
+                ? 'Could not record video. Please try again.'
+                : 'Could not open videos.');
       }
       return null;
     }
@@ -173,7 +179,8 @@ class CameraService {
     if (cached != null && DateTime.now().difference(cached.at) < _fixMaxAge) {
       return Future.value(cached);
     }
-    return _fixInFlight ??= _lookupFix().whenComplete(() => _fixInFlight = null);
+    return _fixInFlight ??=
+        _lookupFix().whenComplete(() => _fixInFlight = null);
   }
 
   static Future<({double lat, double lng, String? address, DateTime at})?>
@@ -192,7 +199,9 @@ class CameraService {
       // Skip the reverse-geocode round trip when we haven't moved.
       final sameSpot = prev != null &&
           prev.address != null &&
-          Geolocator.distanceBetween(prev.lat, prev.lng, p.latitude, p.longitude) < 50;
+          Geolocator.distanceBetween(
+                  prev.lat, prev.lng, p.latitude, p.longitude) <
+              50;
       final address = sameSpot
           ? prev.address
           : await LocationService.getAddressFromCoords(p.latitude, p.longitude);

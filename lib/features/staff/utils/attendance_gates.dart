@@ -51,13 +51,42 @@ class AttendanceGates {
   /// Called before opening the checkout screen.
   /// Returns `true` if checkout may proceed.
   static Future<bool> allowCheckOut(BuildContext context, WidgetRef ref) async {
-    final openJob = await firstOpenJob(ref);
+    final jobs = await ref
+        .read(staffControllerProvider.notifier)
+        .loadMyJobs(status: 'in_progress');
     if (!context.mounted) return false;
-    if (openJob != null) {
-      await goSubmitOpenJob(context, openJob);
+    if (jobs.isEmpty) return true;
+
+    final job = jobs.first;
+    final title = _jobTitle(job);
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.dark2,
+        title: const Text('Job still in progress',
+            style: TextStyle(color: AppColors.text)),
+        content: Text(
+          '“$title” is still in progress. You can leave it open and check out, or continue working on the job.',
+          style: const TextStyle(color: AppColors.silver),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 'job'),
+            child: const Text('Go to job'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, 'checkout'),
+            child: const Text('Check out'),
+          ),
+        ],
+      ),
+    );
+    if (!context.mounted) return false;
+    if (choice == 'job') {
+      await goSubmitOpenJob(context, job);
       return false;
     }
-    return true;
+    return choice == 'checkout';
   }
 
   /// Called when staff taps Logout.
@@ -68,18 +97,6 @@ class AttendanceGates {
 
     final checkedIn = ref.read(staffControllerProvider).isCheckedIn;
     if (!checkedIn) return true;
-
-    final openJob = await firstOpenJob(ref);
-    if (!context.mounted) return false;
-
-    if (openJob != null) {
-      await goSubmitOpenJob(
-        context,
-        openJob,
-        message: 'Complete the job first before logging out.',
-      );
-      return false;
-    }
 
     _snack(context, 'Logout is restricted while checked in. Please check out first.');
     if (!context.mounted) return false;

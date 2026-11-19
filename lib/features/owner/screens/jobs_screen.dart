@@ -25,7 +25,7 @@ class JobsScreen extends ConsumerStatefulWidget {
 
 class _JobsScreenState extends ConsumerState<JobsScreen>
     with SingleTickerProviderStateMixin {
-  static const _statuses = ['pending', 'in_progress', 'completed'];
+  static const _statuses = ['pending', 'in_progress', 'completed', 'draft'];
   late TabController _tabs;
   List<Map<String, dynamic>> _jobs = [];
   final Map<String, int> _counts = {};
@@ -35,7 +35,7 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 4, vsync: this);
     _tabs.addListener(() {
       if (_tabs.indexIsChanging) return;
       final next = _statuses[_tabs.index];
@@ -58,7 +58,10 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
   Future<List<Map<String, dynamic>>?> _fetch(String status) async {
     try {
       final api = ref.read(apiServiceProvider);
-      final res = await api.get('/jobs', params: {'status': status});
+      final res = await api.get('/jobs',
+          params: status == 'draft'
+              ? {'status': 'all', 'reportStatus': 'draft'}
+              : {'status': status});
       if (res.data['success'] == true) {
         return List<Map<String, dynamic>>.from(res.data['data']['jobs'] ?? []);
       }
@@ -82,12 +85,14 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
 
   /// Tab badges show how many jobs each status holds.
   Future<void> _loadCounts() async {
-    for (final status in _statuses) {
-      if (status == _statusFilter) continue;
-      final jobs = await _fetch(status);
-      if (!mounted) return;
-      if (jobs != null) setState(() => _counts[status] = jobs.length);
-    }
+    final others = _statuses.where((s) => s != _statusFilter).toList();
+    final results = await Future.wait(others.map(_fetch));
+    if (!mounted) return;
+    setState(() {
+      for (final (i, jobs) in results.indexed) {
+        if (jobs != null) _counts[others[i]] = jobs.length;
+      }
+    });
   }
 
   Future<void> _reloadAll() async {
@@ -113,6 +118,7 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
   Widget build(BuildContext context) {
     final count = _counts[_statusFilter] ?? 0;
     final (pillLabel, pillColor) = switch (_statusFilter) {
+      'draft' => ('$count Draft', AppColors.amberDark),
       'in_progress' => ('$count In Progress', AppColors.brand),
       'completed' => ('$count Completed', AppColors.greenDark),
       _ => ('$count Active', AppColors.brand),
@@ -151,9 +157,14 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
                   borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
                 ),
                 tabs: [
-                  for (var i = 0; i < 3; i++)
+                  for (var i = 0; i < 4; i++)
                     CountTab(
-                      label: const ['Pending', 'In Progress', 'Completed'][i],
+                      label: const [
+                        'Pending',
+                        'In Progress',
+                        'Completed',
+                        'Drafts'
+                      ][i],
                       count: _counts[_statuses[i]],
                       selected: _tabs.index == i,
                     ),
@@ -202,6 +213,8 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
     final reportId = j['reportId'] is Map
         ? j['reportId']['_id']?.toString()
         : j['reportId']?.toString();
+    final reportStatus =
+        j['reportId'] is Map ? j['reportId']['status']?.toString() : null;
     final title = (j['title'] ?? '').toString();
 
     return Container(
@@ -374,6 +387,12 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
                         const SizedBox(height: 8),
                         _progressPanel(reportId != null),
                       ],
+                      if (reportId != null &&
+                          (reportStatus == 'draft' ||
+                              reportStatus == 'in_progress')) ...[
+                        const SizedBox(height: 8),
+                        _openReportLink(reportId, reportStatus!),
+                      ],
                       if (completed) ...[
                         const SizedBox(height: 8),
                         _completedPanel(
@@ -445,6 +464,36 @@ class _JobsScreenState extends ConsumerState<JobsScreen>
               backgroundColor: AppColors.border),
         ),
       ]),
+    );
+  }
+
+  /// Opens the staff member's draft or in-progress report for this job.
+  Widget _openReportLink(String reportId, String reportStatus) {
+    final inProgress = reportStatus == 'in_progress';
+    final color = inProgress ? AppColors.brand : AppColors.amberDark;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => context.push('/owner/report/$reportId'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(children: [
+          Icon(inProgress ? Icons.timelapse_rounded : Icons.edit_note_rounded,
+              size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+                inProgress ? 'View progress updates' : 'View draft report',
+                style: TextStyle(
+                    color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+          Icon(Icons.chevron_right_rounded, color: color),
+        ]),
+      ),
     );
   }
 

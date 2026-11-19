@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:in_app_update/in_app_update.dart';
 
 import '../../core/network/api_service.dart';
 
@@ -13,6 +14,7 @@ class AppUpdateConfig {
   final String storeUrl;
   final String updateMessage;
   final bool forceUpdateEnabled;
+  final bool autoUpdateEnabled;
 
   const AppUpdateConfig({
     required this.minVersion,
@@ -20,15 +22,18 @@ class AppUpdateConfig {
     required this.storeUrl,
     required this.updateMessage,
     required this.forceUpdateEnabled,
+    this.autoUpdateEnabled = true,
   });
 
-  factory AppUpdateConfig.fromJson(Map<String, dynamic> json) => AppUpdateConfig(
+  factory AppUpdateConfig.fromJson(Map<String, dynamic> json) =>
+      AppUpdateConfig(
         minVersion: (json['minVersion'] as String?) ?? '1.0.0',
         latestVersion: (json['latestVersion'] as String?) ?? '1.0.0',
         storeUrl: (json['storeUrl'] as String?) ?? '',
         updateMessage: (json['updateMessage'] as String?) ??
             'A new version of ProofIt is available. Please update to continue.',
         forceUpdateEnabled: (json['forceUpdateEnabled'] as bool?) ?? true,
+        autoUpdateEnabled: (json['autoUpdateEnabled'] as bool?) ?? true,
       );
 }
 
@@ -36,12 +41,39 @@ class AppUpdateConfig {
 /// Fails open on any error (network down, backend unreachable, bad data) —
 /// a broken config check must never lock users out of the app.
 class AppUpdateService {
+  /// Uses Play Core for Android installations distributed through Google Play.
+  /// Play requires user consent; flexible updates download in the background.
+  static Future<bool> startAndroidUpdate({required bool immediate}) async {
+    if (!Platform.isAndroid) return false;
+    try {
+      final info = await InAppUpdate.checkForUpdate();
+      if (info.installStatus == InstallStatus.downloaded) {
+        await InAppUpdate.completeFlexibleUpdate();
+        return true;
+      }
+      if (info.updateAvailability != UpdateAvailability.updateAvailable) {
+        return false;
+      }
+      if (immediate && info.immediateUpdateAllowed) {
+        final result = await InAppUpdate.performImmediateUpdate();
+        return result == AppUpdateResult.success;
+      }
+      if (!immediate && info.flexibleUpdateAllowed) {
+        final result = await InAppUpdate.startFlexibleUpdate();
+        return result == AppUpdateResult.success;
+      }
+    } catch (e) {
+      // Sideloaded and development builds are not eligible for Play Core.
+      debugPrint('AppUpdateService.startAndroidUpdate failed: $e');
+    }
+    return false;
+  }
+
   static Future<AppUpdateConfig?> fetchConfig(ApiService api) async {
     try {
       final platform = Platform.isIOS ? 'ios' : 'android';
-      final res = await api
-          .get('/app/config', params: {'platform': platform})
-          .timeout(const Duration(seconds: 6));
+      final res = await api.get('/app/config',
+          params: {'platform': platform}).timeout(const Duration(seconds: 6));
       final body = res.data;
       if (body is Map && body['success'] == true && body['data'] is Map) {
         return AppUpdateConfig.fromJson(

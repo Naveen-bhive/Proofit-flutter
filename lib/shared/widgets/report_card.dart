@@ -216,7 +216,9 @@ class ReportCard extends StatelessWidget {
         ? (AppColors.red, 'Flagged')
         : report.isSubmitted
             ? (AppColors.green, 'Sent')
-            : (AppColors.yellow, 'Draft');
+            : report.isInProgress
+                ? (AppColors.brand, 'In progress')
+                : (AppColors.yellow, 'Draft');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(

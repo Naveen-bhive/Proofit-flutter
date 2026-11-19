@@ -198,32 +198,6 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen>
                       );
                       final actions = <Widget>[
                         if (isOwner) ...[
-                          GestureDetector(
-                            onTap: () => context.push('/owner/subscription'),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 5),
-                              decoration: BoxDecoration(
-                                  color: const Color(0xFFEEF2FF),
-                                  borderRadius: BorderRadius.circular(100),
-                                  border: Border.all(
-                                      color: const Color(0xFFC7D2FE)),
-                                  boxShadow: AppColors.softShadow),
-                              child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.star_rounded,
-                                        size: 12, color: AppColors.indigo),
-                                    const SizedBox(width: 3),
-                                    Text(state.plan.toUpperCase(),
-                                        style: const TextStyle(
-                                            color: AppColors.indigo,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 10,
-                                            letterSpacing: 0.5)),
-                                  ]),
-                            ),
-                          ),
                           HeaderIconButton(
                               icon: Icons.notifications_none_rounded,
                               badge: _unreadCount,
@@ -243,6 +217,42 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen>
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: actions,
                       );
+                      final wideHeaderActions = Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.end,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (isOwner)
+                            GestureDetector(
+                              onTap: () => context.push('/owner/subscription'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                    color: const Color(0xFFEEF2FF),
+                                    borderRadius: BorderRadius.circular(100),
+                                    border: Border.all(
+                                        color: const Color(0xFFC7D2FE)),
+                                    boxShadow: AppColors.softShadow),
+                                child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.star_rounded,
+                                          size: 12, color: AppColors.indigo),
+                                      const SizedBox(width: 3),
+                                      Text(state.plan.toUpperCase(),
+                                          style: const TextStyle(
+                                              color: AppColors.indigo,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 10,
+                                              letterSpacing: 0.5)),
+                                    ]),
+                              ),
+                            ),
+                          ...actions,
+                        ],
+                      );
                       return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -257,7 +267,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen>
                               title,
                               if (!compactHeader && isOwner) ...[
                                 const SizedBox(width: 8),
-                                headerActions,
+                                wideHeaderActions,
                               ],
                             ]),
                             if (compactHeader && isOwner) ...[

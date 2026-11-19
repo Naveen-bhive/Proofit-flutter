@@ -33,16 +33,22 @@ class SubmitReportScreen extends ConsumerStatefulWidget {
 class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
   final _notesCtrl = TextEditingController();
 
-  static const _maxPhotosPerSlot = 10;
+  /// No client-side count cap: the server bounds entries per slot and the
+  /// media service enforces storage quota, file size and video duration.
+  static const int? _maxPhotosPerSlot = null;
   static const _parallelUploads = 3;
-  // Client-side hints only (refreshed from GET /media/limits); the server enforces the real limits.
+  static const _autoSaveInterval = Duration(seconds: 30);
+  // Client-side hints only (refreshed from GET /media/limits) so oversized
+  // videos are refused before a long upload; the server enforces the real limits.
   int _maxVideoSeconds = 180;
   int? _maxVideoBytes;
 
   final List<ReportPhoto> _beforePhotos = [];
   final List<ReportPhoto> _afterPhotos = [];
+  final List<ReportPhoto> _progressPhotos = [];
   bool _pickingBefore = false;
   bool _pickingAfter = false;
+  bool _pickingProgress = false;
   double? _lat, _lng;
   String? _address;
   bool _locationLoading = false;
@@ -54,17 +60,46 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
   String? _selectedJobId;
   String? _selectedJobTitle;
 
+  /// Status of the report on the server: null until first saved, then
+  /// 'draft' or 'in_progress'. An in-progress report is never demoted.
+  String? _serverStatus;
+
+  /// The status chosen for the next manual save: finished → submitted.
+  bool _jobFinished = false;
+  bool _autoSaveEnabled = true;
+  bool _autoSaving = false;
+  String? _autoSaveError;
+  DateTime? _lastSavedAt;
+  Timer? _autoSaveTimer;
+
+  // Every edit bumps [_revision]; a save records the revision it sent, so
+  // edits made while a save is in flight are never marked as saved.
+  int _revision = 0;
+  int _savedRevision = 0;
+  String _lastNotes = '';
+  bool get _hasUnsavedChanges => _revision != _savedRevision;
+  void _markDirty() => _revision++;
+
   String get _jobTitle => _selectedJobTitle ?? '';
+  List<ReportPhoto> get _allMedia =>
+      [..._beforePhotos, ..._progressPhotos, ..._afterPhotos];
 
   @override
   void initState() {
     super.initState();
+    // The controller also notifies on cursor moves; only text edits count.
+    _notesCtrl.addListener(() {
+      if (_notesCtrl.text == _lastNotes) return;
+      _lastNotes = _notesCtrl.text;
+      _markDirty();
+    });
     // Keep continuing an existing draft on the same report id - never create a second draft.
     _savedDraftId = widget.reportId;
     _loadJobs();
     _loadMediaLimits();
     _getLocation();
     if (widget.reportId != null) _loadDraft();
+    _autoSaveTimer = Timer.periodic(_autoSaveInterval, (_) => _autoSave());
   }
 
   Future<void> _loadMediaLimits() async {
@@ -108,7 +143,14 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         .fetchReportDetail(widget.reportId!);
     if (!mounted || r == null) return;
     setState(() {
-      _notesCtrl.text = r.notes ?? '';
+      _lastNotes = r.notes ?? '';
+      _notesCtrl.text = _lastNotes;
+      _serverStatus = r.isEditable ? r.status : null;
+      _jobFinished = false;
+      _progressPhotos
+        ..clear()
+        ..addAll(r.progressMedia.map((m) =>
+            ReportPhoto.remote(m, normalizedUrl: _normalizePhotoUrl(m.url))));
       _savedDraftId = r.id ?? widget.reportId;
       _selectedJobId = r.jobId ?? widget.jobId ?? _selectedJobId;
       _selectedJobTitle = (r.jobTitle.isNotEmpty ? r.jobTitle : null) ??
@@ -127,11 +169,16 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         _lng = r.location!.longitude;
         _address = r.location!.address;
       }
+      // Loading what's on the server is not an edit.
+      _savedRevision = _revision;
     });
   }
 
-  List<ReportPhoto> _photosFor(String slot) =>
-      slot == 'before' ? _beforePhotos : _afterPhotos;
+  List<ReportPhoto> _photosFor(String slot) => slot == 'before'
+      ? _beforePhotos
+      : slot == 'after'
+          ? _afterPhotos
+          : _progressPhotos;
 
   bool _slotReady(List<ReportPhoto> photos) =>
       photos.isNotEmpty && photos.every((p) => p.isDone);
@@ -147,15 +194,19 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _notesCtrl.dispose();
     super.dispose();
   }
 
   void _setPicking(String slot, bool value) => setState(() {
-        if (slot == 'before') {
-          _pickingBefore = value;
-        } else {
-          _pickingAfter = value;
+        switch (slot) {
+          case 'before':
+            _pickingBefore = value;
+          case 'after':
+            _pickingAfter = value;
+          default:
+            _pickingProgress = value;
         }
       });
 
@@ -164,8 +215,9 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
   /// Videos skip stamping and upload with a progress indicator.
   Future<void> _addPhotos(String slot, MediaSource source) async {
     final photos = _photosFor(slot);
-    final remaining = _maxPhotosPerSlot - photos.length;
-    if (remaining <= 0) return;
+    final remaining =
+        _maxPhotosPerSlot == null ? null : _maxPhotosPerSlot! - photos.length;
+    if (remaining != null && remaining <= 0) return;
 
     if (source == MediaSource.cameraVideo ||
         source == MediaSource.galleryVideo) {
@@ -231,6 +283,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
       if (result.asset != null) {
         item.applyUpload(result.asset!);
         item.url = _normalizePhotoUrl(item.url);
+        if (_photosFor(slot).contains(item)) _markDirty();
       } else {
         item.status = PhotoUploadStatus.failed;
         item.progress = null;
@@ -273,6 +326,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
           photo.assetId = result.assetId;
           photo.status = PhotoUploadStatus.done;
           photo.error = null;
+          if (_photosFor(slot).contains(photo)) _markDirty();
         } else {
           photo.status = PhotoUploadStatus.failed;
           photo.error = result.error;
@@ -283,18 +337,22 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     }
   }
 
-  void _removePhoto(String slot, ReportPhoto photo) =>
-      setState(() => _photosFor(slot).remove(photo));
+  void _removePhoto(String slot, ReportPhoto photo) => setState(() {
+        // Only uploaded items were ever on the server.
+        if (photo.isDone) _markDirty();
+        _photosFor(slot).remove(photo);
+      });
 
-  String? _photosNotReadyError({required bool asDraft}) {
-    final all = [..._beforePhotos, ..._afterPhotos];
+  /// Why a manual save to [status] can't go ahead yet, or null.
+  String? _photosNotReadyError(String status) {
+    final all = _allMedia;
     if (all.any((p) => p.isBusy)) {
       return 'Photos and videos are still uploading - please wait';
     }
     if (all.any((p) => p.status == PhotoUploadStatus.failed)) {
       return 'Some files failed to upload. Tap a red tile to retry, or remove it.';
     }
-    if (asDraft) return null;
+    if (status != 'submitted') return null;
     if (_beforePhotos.isEmpty) return 'Add at least one before photo or video';
     if (_afterPhotos.isEmpty) return 'Add at least one after photo or video';
     return null;
@@ -315,66 +373,162 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     if (mounted) setState(() => _locationLoading = false);
   }
 
-  Future<void> _submit({bool asDraft = false}) async {
+  /// The status a "Save Draft" should use: an in-progress report has already
+  /// been shared with the owner, so it stays in progress.
+  String get _draftStatus =>
+      _serverStatus == 'in_progress' ? 'in_progress' : 'draft';
+
+  /// Primary button: finish the job, or share an in-progress update.
+  Future<void> _submit() => _save(_jobFinished ? 'submitted' : 'in_progress');
+
+  Future<void> _saveDraft() => _save(_draftStatus);
+
+  List<Map<String, dynamic>> _mediaPayload(
+          List<ReportPhoto> items, String prefix,
+          {required bool doneOnly}) =>
+      [
+        for (final (i, p) in items.indexed)
+          if (!doneOnly || p.isDone) p.toMedia('${prefix}_${i + 1}'),
+      ];
+
+  /// Saves the report as [status] ('draft' | 'in_progress' | 'submitted').
+  ///
+  /// Auto-saves never show validation errors, never navigate, never change
+  /// the status (they keep [_draftStatus]) and only send items that finished
+  /// uploading — items still uploading are picked up by the next save.
+  Future<void> _save(String status, {bool isAutoSave = false}) async {
+    if (_submitting) return;
     if (_selectedJobId == null || _jobTitle.isEmpty) {
-      setState(() => _error = 'Select an assigned job');
+      if (!isAutoSave) setState(() => _error = 'Select an assigned job');
       return;
     }
-    final photoError = _photosNotReadyError(asDraft: asDraft);
-    if (photoError != null) {
-      setState(() => _error = photoError);
-      return;
+    if (!isAutoSave) {
+      final photoError = _photosNotReadyError(status);
+      if (photoError != null) {
+        setState(() => _error = photoError);
+        return;
+      }
     }
 
+    final revision = _revision;
     setState(() {
       _submitting = true;
-      _error = null;
+      _autoSaving = isAutoSave;
+      if (!isAutoSave) _error = null;
     });
 
     final result = await ref.read(staffControllerProvider.notifier).saveReport(
           jobTitle: _jobTitle,
           notes: _notesCtrl.text.trim(),
-          beforePhotos: [
-            for (int i = 0; i < _beforePhotos.length; i++)
-              _beforePhotos[i].toMedia('before_${i + 1}'),
-          ],
-          afterPhotos: [
-            for (int i = 0; i < _afterPhotos.length; i++)
-              _afterPhotos[i].toMedia('after_${i + 1}'),
-          ],
+          beforePhotos:
+              _mediaPayload(_beforePhotos, 'before', doneOnly: isAutoSave),
+          afterPhotos:
+              _mediaPayload(_afterPhotos, 'after', doneOnly: isAutoSave),
+          progressMedia:
+              _mediaPayload(_progressPhotos, 'progress', doneOnly: isAutoSave),
           latitude: _lat,
           longitude: _lng,
           address: _address,
-          asDraft: asDraft,
+          status: status,
           existingReportId: _savedDraftId ?? widget.reportId,
           jobId: _selectedJobId,
+          refresh: !isAutoSave,
         );
 
     if (!mounted) return;
-    setState(() => _submitting = false);
-    if (result.ok) {
-      if (result.reportId != null) _savedDraftId = result.reportId;
-      if (!mounted) return;
-      if (asDraft) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Row(children: [
-              Icon(Icons.save_outlined, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Text('Draft saved'),
-            ]),
-            backgroundColor: AppColors.amberDark,
-            duration: Duration(seconds: 2)));
-      } else {
+    setState(() {
+      _submitting = false;
+      _autoSaving = false;
+      if (result.ok) {
+        _savedRevision = revision;
+        _lastSavedAt = DateTime.now();
+        _autoSaveError = null;
+        if (result.reportId != null) _savedDraftId = result.reportId;
+        if (status != 'submitted') _serverStatus = status;
+      } else if (isAutoSave) {
+        _autoSaveError = friendlyErrorMessage(result.error,
+            fallback: 'Auto-save failed. Will retry.');
+      }
+    });
+    if (isAutoSave) return;
+
+    if (!result.ok) {
+      setState(() => _error = friendlyErrorMessage(
+            result.error,
+            fallback: 'Failed to save. Check your connection.',
+          ));
+      return;
+    }
+    switch (status) {
+      case 'submitted':
         await _showSubmittedSheet();
         if (!mounted) return;
         ReviewService.maybePromptAfterSuccess();
-      }
-      context.pop();
-    } else {
-      setState(() => _error = friendlyErrorMessage(
-            result.error,
-            fallback: 'Failed to submit. Check your connection.',
-          ));
+      case 'in_progress':
+        _showSavedSnack(
+            Icons.timelapse_rounded, 'Progress update shared', AppColors.brand);
+      default:
+        _showSavedSnack(
+            Icons.save_outlined, 'Draft saved', AppColors.amberDark);
+    }
+    if (mounted) context.pop();
+  }
+
+  void _showSavedSnack(IconData icon, String text, Color color) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Row(children: [
+            Icon(icon, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(text),
+          ]),
+          backgroundColor: color,
+          duration: const Duration(seconds: 2)));
+
+  /// Periodic background save. A brand-new report is only created once it
+  /// has something worth keeping (notes or an uploaded file).
+  void _autoSave() {
+    if (!_autoSaveEnabled || !_hasUnsavedChanges || _submitting) return;
+    final hasContent =
+        _notesCtrl.text.trim().isNotEmpty || _allMedia.any((p) => p.isDone);
+    if (_savedDraftId == null && !hasContent) return;
+    _save(_draftStatus, isAutoSave: true);
+  }
+
+  /// Back with unsaved edits: save them, discard them, or keep editing.
+  Future<void> _confirmLeave() async {
+    if (_submitting) return;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.white,
+        title: const Text('Save your changes?',
+            style: TextStyle(color: AppColors.text)),
+        content: const Text('You have changes that are not saved yet.',
+            style: TextStyle(color: AppColors.silver)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, 'discard'),
+              child: const Text('Discard',
+                  style: TextStyle(color: AppColors.red))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, 'stay'),
+              child: const Text('Keep editing')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, 'save'),
+              child: Text(
+                  _draftStatus == 'in_progress' ? 'Save update' : 'Save draft',
+                  style: const TextStyle(
+                      color: AppColors.brand, fontWeight: FontWeight.w700))),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    switch (choice) {
+      case 'save':
+        await _saveDraft();
+      case 'discard':
+        setState(() => _savedRevision = _revision);
+        CircleBackButton.goBack(context);
     }
   }
 
@@ -539,12 +693,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
               borderRadius: BorderRadius.circular(18),
               child: InkWell(
                 borderRadius: BorderRadius.circular(18),
-                onTap: _submitting
-                    ? null
-                    : () => setState(() {
-                          _selectedJobId = id;
-                          _selectedJobTitle = job['title']?.toString() ?? '';
-                        }),
+                onTap: _submitting ? null : () => _selectJob(job),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -626,8 +775,114 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     );
   }
 
+  /// Picks [job]. A job that already has an open (draft / in-progress)
+  /// report is continued on that report instead of starting a second one.
+  void _selectJob(Map<String, dynamic> job) {
+    final id = job['_id']?.toString() ?? '';
+    final linked = job['reportId'];
+    final openReportId = linked is Map &&
+            (linked['status'] == 'draft' || linked['status'] == 'in_progress')
+        ? linked['_id']?.toString()
+        : null;
+    final isNewReport = _savedDraftId == null;
+    if (isNewReport && openReportId != null) {
+      if (_allMedia.isEmpty && _notesCtrl.text.trim().isEmpty) {
+        context.pushReplacement('/staff/submit?reportId=$openReportId'
+            '&jobId=$id&jobTitle=${Uri.encodeComponent(job['title']?.toString() ?? '')}');
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'This job already has an open report. Saving here will start a second one.'),
+          backgroundColor: AppColors.amberDark));
+    }
+    if (_selectedJobId == id) return;
+    setState(() {
+      _selectedJobId = id;
+      _selectedJobTitle = job['title']?.toString() ?? '';
+      _markDirty();
+    });
+  }
+
+  String get _screenTitle => switch (_serverStatus) {
+        'in_progress' => 'Update Job',
+        'draft' => 'Complete Draft',
+        _ => widget.reportId != null ? 'Complete Draft' : 'New Report',
+      };
+
+  String get _autoSaveSubtitle {
+    if (_autoSaving) return 'Saving…';
+    if (_autoSaveError != null) return _autoSaveError!;
+    if (!_autoSaveEnabled) return 'Off — save manually before leaving';
+    if (_lastSavedAt != null && !_hasUnsavedChanges) {
+      return 'All changes saved · ${DateFormat('h:mm a').format(_lastSavedAt!)}';
+    }
+    return 'Saves changes every 30 seconds';
+  }
+
+  Widget _statusOption(
+          {required bool finished,
+          required IconData icon,
+          required String title,
+          required String subtitle}) =>
+      Expanded(
+        child: GestureDetector(
+          onTap: _submitting
+              ? null
+              : () => setState(() {
+                    _jobFinished = finished;
+                    _error = null;
+                  }),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _jobFinished == finished
+                  ? AppColors.brandSoft
+                  : AppColors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: _jobFinished == finished
+                      ? AppColors.brand
+                      : AppColors.border,
+                  width: _jobFinished == finished ? 1.5 : 1),
+            ),
+            child: Row(children: [
+              Icon(icon,
+                  size: 20,
+                  color: _jobFinished == finished
+                      ? AppColors.brand
+                      : AppColors.muted),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700)),
+                      Text(subtitle,
+                          style: const TextStyle(
+                              color: AppColors.silver, fontSize: 11.5)),
+                    ]),
+              ),
+            ]),
+          ),
+        ),
+      );
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => PopScope(
+        canPop: !_hasUnsavedChanges,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _confirmLeave();
+        },
+        child: _buildForm(context),
+      );
+
+  Widget _buildForm(BuildContext context) {
     final isDraft = widget.reportId != null;
     return Scaffold(
       backgroundColor: AppColors.page,
@@ -638,17 +893,24 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
             child: Row(children: [
               CircleBackButton(
+                  // maybePop runs the unsaved-changes guard; plain pop would skip it.
+                  onTap: () async {
+                    final popped = await Navigator.of(context).maybePop();
+                    if (!popped && context.mounted && !_hasUnsavedChanges) {
+                      CircleBackButton.goBack(context);
+                    }
+                  },
                   icon: isDraft
                       ? Icons.chevron_left_rounded
                       : Icons.arrow_back_rounded),
               const SizedBox(width: 14),
               Expanded(
-                child: Text(isDraft ? 'Complete Draft' : 'New Report',
+                child: Text(_screenTitle,
                     style: AppTextStyles.pageTitle.copyWith(fontSize: 20)),
               ),
               if (isDraft)
                 GestureDetector(
-                  onTap: _submitting ? null : () => _submit(asDraft: true),
+                  onTap: _submitting ? null : _saveDraft,
                   child: Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -671,7 +933,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                 )
               else
                 GestureDetector(
-                  onTap: _submitting ? null : () => _submit(asDraft: true),
+                  onTap: _submitting ? null : _saveDraft,
                   child: const Text('Save Draft',
                       style: TextStyle(
                           color: AppColors.brand,
@@ -785,7 +1047,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                           : null,
                     ),
                     const Text(
-                        'Add the before and after photos or videos the job needs. Photos are stamped with date, time and GPS and appear in the report PDF; videos are shared as separate files.',
+                        'Add before, progress and after photos or videos. Photos are stamped with date, time and GPS and appear in the report PDF; videos are shared as separate files.',
                         style: TextStyle(
                             color: AppColors.silver,
                             fontSize: 13,
@@ -803,6 +1065,30 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                       onAdd: (source) => _addPhotos('before', source),
                       onRemove: (p) => _removePhoto('before', p),
                       onRetry: (p) => _processPhoto(p, 'before'),
+                    ),
+                    const SizedBox(height: 22),
+
+                    MultiPhotoPicker(
+                      label: 'Progress',
+                      photos: _progressPhotos,
+                      maxPhotos: _maxPhotosPerSlot,
+                      enabled: !_submitting,
+                      picking: _pickingProgress,
+                      photoSlot: 'progress',
+                      reportId: _savedDraftId ?? widget.reportId,
+                      isRequired: false,
+                      onAdd: (source) => _addPhotos('progress', source),
+                      onRemove: (p) => _removePhoto('progress', p),
+                      onRetry: (p) => _processPhoto(p, 'progress'),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 6),
+                      child: Text(
+                          'Optional. Each photo or video keeps the date it was taken, so the owner sees updates day by day.',
+                          style: TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 12,
+                              height: 1.4)),
                     ),
                     const SizedBox(height: 22),
 
@@ -834,6 +1120,45 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                         _div(),
                         _check('After', _slotReady(_afterPhotos)),
                       ]),
+                    ),
+                    const SizedBox(height: 18),
+
+                    _sectionLabel('JOB STATUS'),
+                    Row(children: [
+                      _statusOption(
+                          finished: false,
+                          icon: Icons.timelapse_rounded,
+                          title: 'In Progress',
+                          subtitle: 'Share an update'),
+                      const SizedBox(width: 10),
+                      _statusOption(
+                          finished: true,
+                          icon: Icons.task_alt_rounded,
+                          title: 'Finished',
+                          subtitle: 'Needs before & after'),
+                    ]),
+                    const SizedBox(height: 12),
+                    SurfaceCard(
+                      radius: 14,
+                      padding: EdgeInsets.zero,
+                      child: SwitchListTile.adaptive(
+                        dense: true,
+                        title: const Text('Auto-save',
+                            style: TextStyle(
+                                color: AppColors.text,
+                                fontWeight: FontWeight.w600)),
+                        subtitle: Text(_autoSaveSubtitle,
+                            style: TextStyle(
+                                color: _autoSaveError != null
+                                    ? AppColors.red
+                                    : AppColors.silver,
+                                fontSize: 12)),
+                        value: _autoSaveEnabled,
+                        onChanged: (v) => setState(() {
+                          _autoSaveEnabled = v;
+                          _autoSaveError = null;
+                        }),
+                      ),
                     ),
                     const SizedBox(height: 18),
 
@@ -893,11 +1218,13 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
               border: Border(top: BorderSide(color: AppColors.border)),
             ),
             child: PrimaryButton(
-              label: 'Submit Report',
-              icon: isDraft ? Icons.verified_outlined : Icons.send_rounded,
-              color: isDraft ? const Color(0xFF1D4ED8) : AppColors.brand,
-              loading: _submitting,
-              onPressed: () => _submit(),
+              label:
+                  _jobFinished ? 'Submit as Finished' : 'Share Progress Update',
+              icon: _jobFinished ? Icons.verified_outlined : Icons.send_rounded,
+              color: _jobFinished ? const Color(0xFF1D4ED8) : AppColors.brand,
+              // A background auto-save shouldn't look like the user's submit.
+              loading: _submitting && !_autoSaving,
+              onPressed: _submitting ? null : _submit,
             ),
           ),
         ]),

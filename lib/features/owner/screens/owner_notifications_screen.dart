@@ -86,6 +86,14 @@ class _OwnerNotificationsScreenState
     }
   }
 
+  Future<void> _markRead(Map<String, dynamic> n) async {
+    final id = (n['_id'] ?? n['id'])?.toString();
+    if (id == null || id.isEmpty || n['isRead'] == true) return;
+    await ref
+        .read(ownerControllerProvider.notifier)
+        .markOwnerNotificationRead(id);
+  }
+
   void _openMap(Map<String, dynamic> n) {
     final data = n['data'] is Map ? n['data'] as Map : const {};
     final staffId = (data['staffId'] ?? n['staffId'])?.toString();
@@ -297,7 +305,10 @@ class _OwnerNotificationsScreenState
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => _open(n),
+              onTap: () {
+                _markRead(n);
+                _open(n);
+              },
               child: Container(
                 decoration: BoxDecoration(
                   border: highlight
@@ -354,7 +365,10 @@ class _OwnerNotificationsScreenState
                             if (type == 'staff_login')
                               Row(children: [
                                 GestureDetector(
-                                  onTap: () => _openMap(n),
+                                  onTap: () {
+                                    _markRead(n);
+                                    _openMap(n);
+                                  },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 5),
@@ -432,7 +446,10 @@ class _OwnerNotificationsScreenState
         color: const Color(0xFFFFFBEB),
         borderColor: const Color(0xFFFDE68A),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-        onTap: () => _open(n),
+        onTap: () {
+          _markRead(n);
+          _open(n);
+        },
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const IconTile(
               icon: Icons.event_busy_outlined,

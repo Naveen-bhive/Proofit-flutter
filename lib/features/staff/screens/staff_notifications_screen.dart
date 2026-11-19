@@ -24,6 +24,12 @@ class _StaffNotificationsScreenState
 
   String _filter = 'all';
 
+  void _markRead(Map<String, dynamic> n) {
+    final id = (n['_id'] ?? n['id'])?.toString();
+    if (id == null || id.isEmpty || n['isRead'] == true) return;
+    ref.read(staffControllerProvider.notifier).markNotificationRead(id);
+  }
+
   static const _groups = {
     'jobs': {'job_assigned', 'job_completed', 'draft_reminder'},
     'targets': {'target_update', 'streak'},
@@ -193,7 +199,10 @@ class _StaffNotificationsScreenState
     return Material(
       color: isRead ? AppColors.white : AppColors.dark3,
       child: InkWell(
-        onTap: () => _open(n),
+        onTap: () {
+          _markRead(n);
+          _open(n);
+        },
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [

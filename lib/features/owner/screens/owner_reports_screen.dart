@@ -149,6 +149,8 @@ class _OwnerReportsScreenState extends ConsumerState<OwnerReportsScreen> {
       final path = '${dir.path}/proofit-$org-$date.$ext';
 
       final body = <String, dynamic>{'format': format};
+      // Always sent: the server treats a missing status as 'submitted'.
+      body['status'] = _status;
       if (_fromDate != null) {
         body['from'] = DateFormat('yyyy-MM-dd').format(_fromDate!);
         body['to'] = DateFormat('yyyy-MM-dd').format(_toDate ?? DateTime.now());

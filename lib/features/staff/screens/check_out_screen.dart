@@ -21,7 +21,6 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
   String? _address;
   bool _locLoading = true;
   bool _submitting = false;
-  bool _checkingGate = true;
   final _now = DateTime.now();
 
   @override
@@ -34,17 +33,6 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
   Future<void> _prepare() async {
     await ref.read(staffControllerProvider.notifier).loadCheckInStatus();
     if (!mounted) return;
-    final allowed = await AttendanceGates.allowCheckOut(context, ref);
-    if (!mounted) return;
-    if (!allowed) {
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/staff');
-      }
-      return;
-    }
-    setState(() => _checkingGate = false);
   }
 
   Future<void> _getLocation() async {
@@ -76,6 +64,8 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
   }
 
   Future<void> _checkOut() async {
+    final proceed = await AttendanceGates.allowCheckOut(context, ref);
+    if (!mounted || !proceed) return;
     if (_lat == null) {
       _getLocation();
       return;
@@ -95,29 +85,17 @@ class _CheckOutScreenState extends ConsumerState<CheckOutScreen> {
       return;
     }
 
-    final message = result.message ??
-        'Complete the job first by submitting a report before checking out.';
+    final message = result.message ?? 'Could not check out. Please try again.';
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
           SnackBar(content: Text(message), backgroundColor: AppColors.brand));
 
-    if (result.jobId != null && result.jobId!.isNotEmpty) {
-      final title = Uri.encodeComponent(result.jobTitle ?? 'Assigned job');
-      context.pushReplacement(
-          '/staff/submit?jobId=${result.jobId}&jobTitle=$title');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(staffControllerProvider);
-    if (_checkingGate) {
-      return const Scaffold(
-        backgroundColor: AppColors.dark,
-        body: Center(child: CircularProgressIndicator(color: AppColors.brand)),
-      );
-    }
     return Scaffold(
       backgroundColor: AppColors.dark,
       appBar: AppBar(title: const Text('Check Out')),

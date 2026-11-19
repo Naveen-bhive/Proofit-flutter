@@ -37,7 +37,7 @@ class _StaffReportDetailScreenState extends ConsumerState<StaffReportDetailScree
       appBar: AppBar(
         title: Text(report?.jobTitle ?? 'Report Detail'),
         actions: [
-          if (report?.status == 'draft')
+          if (report?.isEditable ?? false)
             TextButton(
               onPressed: () => context.push('/staff/submit?reportId=${report!.id}'),
               child: const Text('Complete', style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700)),
@@ -61,7 +61,11 @@ class _StaffReportDetailScreenState extends ConsumerState<StaffReportDetailScree
                       color: report.isSubmitted ? AppColors.green : AppColors.yellow, size: 20),
                   const SizedBox(width: 10),
                   Text(
-                    report.isSubmitted ? 'Submitted Successfully' : 'Draft - Not Submitted',
+                    report.isSubmitted
+                        ? 'Submitted Successfully'
+                        : report.isInProgress
+                            ? 'In Progress - Shared with manager'
+                            : 'Draft - Not Submitted',
                     style: TextStyle(
                       color: report.isSubmitted ? AppColors.green : AppColors.yellow,
                       fontWeight: FontWeight.w600,

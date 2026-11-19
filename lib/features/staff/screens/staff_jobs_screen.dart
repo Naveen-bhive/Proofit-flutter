@@ -259,7 +259,10 @@ class StaffJobsScreenState extends ConsumerState<StaffJobsScreen> {
     final report = _linkedReport(j);
     final reportId = report?['_id']?.toString() ?? report?['id']?.toString() ??
         (j['reportId'] is String ? j['reportId'] as String : null);
-    final draftId = report?['status'] == 'draft' ? reportId : null;
+    // Drafts and in-progress reports are continued, never duplicated.
+    final reportStatus = report?['status']?.toString();
+    final draftId = reportStatus == 'draft' || reportStatus == 'in_progress' ? reportId : null;
+    final inProgressReport = reportStatus == 'in_progress';
     final canSubmit = status != 'completed' && status != 'cancelled';
     final address = j['location'] is Map ? j['location']['address']?.toString() : null;
     final description = (j['description'] ?? '').toString();
@@ -328,8 +331,8 @@ class StaffJobsScreenState extends ConsumerState<StaffJobsScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Report saved as draft',
-                        style: TextStyle(color: Color(0xFF78350F), fontSize: 13.5, fontWeight: FontWeight.w600)),
+                    Text(inProgressReport ? 'Progress update shared' : 'Report saved as draft',
+                        style: const TextStyle(color: Color(0xFF78350F), fontSize: 13.5, fontWeight: FontWeight.w600)),
                     if (_date(report?['updatedAt']) != null)
                       Text('Updated ${DateFormat('d MMM, h:mm a').format(_date(report!['updatedAt'])!)}',
                           style: const TextStyle(color: AppColors.amberDark, fontSize: 11.5)),
@@ -400,7 +403,7 @@ class StaffJobsScreenState extends ConsumerState<StaffJobsScreen> {
             ],
             Expanded(
               child: PrimaryButton(
-                label: draftId != null ? 'Continue Draft' : 'Submit Report',
+                label: draftId == null ? 'Submit Report' : inProgressReport ? 'Update Progress' : 'Continue Draft',
                 icon: draftId != null ? Icons.drafts_outlined : Icons.photo_camera_outlined,
                 color: draftId != null ? const Color(0xFFF59E0B) : AppColors.brand,
                 height: 52,

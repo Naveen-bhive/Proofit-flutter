@@ -63,6 +63,10 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
       final videos = await _downloadVideos(dir.path);
       if (!mounted) return;
 
+      final finished =
+          ref.read(ownerControllerProvider).selectedReport?.isSubmitted ?? true;
+      final reportKind =
+          finished ? 'work completion report' : 'work progress report';
       // PDF and videos are shared separately — see shareReportFiles.
       final videoNote = videos.isEmpty
           ? ''
@@ -73,8 +77,8 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         pdf: XFile(path, mimeType: 'application/pdf'),
         videos: videos,
         text: customer != null
-            ? 'Dear ${customer['name']}, please find attached the work completion report.$videoNote - ${ref.read(ownerControllerProvider).orgName}'
-            : 'Work Completion Report.$videoNote',
+            ? 'Dear ${customer['name']}, please find attached the $reportKind.$videoNote - ${ref.read(ownerControllerProvider).orgName}'
+            : '${reportKind[0].toUpperCase()}${reportKind.substring(1)}.$videoNote',
       );
     } catch (e) {
       if (mounted) {
@@ -103,6 +107,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     final out = <XFile>[];
     final entries = [
       for (final (i, m) in report.beforePhotos.indexed) ('Before', i, m),
+      for (final (i, m) in report.progressMedia.indexed) ('Progress', i, m),
       for (final (i, m) in report.afterPhotos.indexed) ('After', i, m),
     ]
         .where((e) => e.$3.isVideo && !e.$3.isDeleted && e.$3.assetId != null)
@@ -166,6 +171,43 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (!report.isSubmitted) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                            color: (report.isInProgress
+                                    ? AppColors.brand
+                                    : AppColors.yellow)
+                                .withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: (report.isInProgress
+                                        ? AppColors.brand
+                                        : AppColors.yellow)
+                                    .withValues(alpha: 0.3))),
+                        child: Row(children: [
+                          Icon(
+                              report.isInProgress
+                                  ? Icons.timelapse_rounded
+                                  : Icons.edit_note_rounded,
+                              size: 18,
+                              color: report.isInProgress
+                                  ? AppColors.brand
+                                  : AppColors.amberDark),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                                report.isInProgress
+                                    ? 'In progress — the job is not finished yet. Updates are grouped by date below.'
+                                    : 'Draft — not submitted by staff yet.',
+                                style: const TextStyle(
+                                    color: AppColors.light, fontSize: 13)),
+                          ),
+                        ]),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     // Staff info row
                     Container(
                         padding: const EdgeInsets.all(16),
@@ -336,6 +378,43 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                                   report.afterPhotos, 'after')),
                         ]),
 
+                    if (report.progressMedia.isNotEmpty) ...[
+                      const SizedBox(height: 18),
+                      const Text('PROGRESS UPDATES',
+                          style: TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.2)),
+                      const SizedBox(height: 8),
+                      for (final group
+                          in _groupProgressByDate(report.progressMedia)) ...[
+                        Text('${group.$1} · ${group.$2.length}',
+                            style: const TextStyle(
+                                color: AppColors.silver,
+                                fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Wrap(spacing: 12, runSpacing: 12, children: [
+                          for (final (index, media) in group.$2)
+                            SizedBox(
+                                width: 150,
+                                child: ReportMediaTile(
+                                    key: ValueKey('progress-$index'),
+                                    media: media,
+                                    reportId: widget.reportId,
+                                    slot: 'progress',
+                                    // Server index, for the photo proxy.
+                                    index: index,
+                                    label: media.takenAt == null
+                                        ? 'Progress update'
+                                        : DateFormat('h:mm a')
+                                            .format(media.takenAt!.toLocal()),
+                                    height: 130))
+                        ]),
+                        const SizedBox(height: 12),
+                      ],
+                    ],
+
                     if (report.notes != null && report.notes!.isNotEmpty) ...[
                       const SizedBox(height: 20),
                       const Text('NOTES',
@@ -402,9 +481,33 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     ]);
   }
 
-  static int _videoCount(ReportModel r) => [...r.beforePhotos, ...r.afterPhotos]
-      .where((m) => m.isVideo && !m.isDeleted)
-      .length;
+  static int _videoCount(ReportModel r) => [
+        ...r.beforePhotos,
+        ...r.progressMedia,
+        ...r.afterPhotos
+      ].where((m) => m.isVideo && !m.isDeleted).length;
+
+  /// Progress media grouped by local calendar day, oldest first; undated
+  /// items last. Each entry keeps its index in [media] (the server order).
+  static List<(String, List<(int, MediaData)>)> _groupProgressByDate(
+      List<MediaData> media) {
+    final indexed = [...media.indexed]..sort((a, b) {
+        final at = a.$2.takenAt, bt = b.$2.takenAt;
+        if (at == null || bt == null) {
+          return at == null ? (bt == null ? 0 : 1) : -1; // undated last
+        }
+        return at.compareTo(bt);
+      });
+    final groups = <String, List<(int, MediaData)>>{};
+    for (final entry in indexed) {
+      final at = entry.$2.takenAt?.toLocal();
+      final label = at == null
+          ? 'Date not recorded'
+          : DateFormat('EEE, d MMM yyyy').format(at);
+      groups.putIfAbsent(label, () => []).add(entry);
+    }
+    return groups.entries.map((e) => (e.key, e.value)).toList();
+  }
 
   Widget _photoCol(BuildContext context, String label, MediaData? media,
       String slot, int index) {

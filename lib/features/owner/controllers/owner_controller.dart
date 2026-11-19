@@ -753,6 +753,21 @@ class OwnerController extends StateNotifier<OwnerState> {
     } catch (_) {}
   }
 
+  Future<void> markOwnerNotificationRead(String notificationId) async {
+    final index = state.ownerNotifications.indexWhere(
+        (n) => (n['_id'] ?? n['id'])?.toString() == notificationId);
+    if (index < 0 || state.ownerNotifications[index]['isRead'] == true) return;
+
+    final updated = [...state.ownerNotifications];
+    updated[index] = {...updated[index], 'isRead': true};
+    state = state.copyWith(ownerNotifications: updated);
+    try {
+      await _api.post('/notifications/read/$notificationId');
+    } catch (_) {
+      await loadOwnerNotifications();
+    }
+  }
+
   Future<void> broadcastNotification(String title, String body) async {
     try {
       await _api.post('/notifications/broadcast',
